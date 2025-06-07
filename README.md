@@ -12,8 +12,10 @@
 
 ## 📖 상세 구현/테스트/이슈 정리는 아래 포스트에서 확인하세요!
 
-👉 [벨로그에서 자세히 보기 (프로젝트 개요, 인증 플로우, 구현)]([https://velog.io/@your-velog-id/your-project-post-url](https://velog.io/@losiento_nana/Spring-Boot-OAuth2-JWT-React%EA%B8%B0%EB%B0%98-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8))
-👉 [벨로그에서 자세히 보기2 (테스트 영상)]([[https://velog.io/@your-velog-id/your-project-post-url](https://velog.io/@losiento_nana/Spring-Boot-OAuth2-JWT-React%EA%B8%B0%EB%B0%98-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8)](https://velog.io/@losiento_nana/Spring-Boot-OAuth2-JWT-React-%EA%B8%B0%EB%B0%98-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-%EC%8B%A4%EC%A0%9C-%EC%9B%B9-%ED%85%8C%EC%8A%A4%ED%8A%B8-%EC%98%81%EC%83%81))
+👉 [벨로그에서 자세히 보기 (프로젝트 개요, 인증 플로우, 구현)](https://velog.io/@losiento_nana/Spring-Boot-OAuth2-JWT-React%EA%B8%B0%EB%B0%98-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8)
+
+👉 [벨로그에서 자세히 보기2 (테스트 영상)](https://velog.io/@losiento_nana/Spring-Boot-OAuth2-JWT-React-%EA%B8%B0%EB%B0%98-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-%EC%8B%A4%EC%A0%9C-%EC%9B%B9-%ED%85%8C%EC%8A%A4%ED%8A%B8-%EC%98%81%EC%83%81)
+
 
 ---
 
