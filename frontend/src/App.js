@@ -22,6 +22,7 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Navbar from "./components/Navbar";
 import MyRoutes from "./routes/MyRoutes";
+import NicknameGuard from "./components/NicknameGuard";
 
 function App() {
     return (
@@ -40,7 +41,9 @@ function App() {
                         fontFamily: "Pretendard, sans-serif"
                     }}
                 >
+                    <NicknameGuard>
                     <MyRoutes />
+                    </NicknameGuard>
                 </div>
             </BrowserRouter>
         </AuthProvider>
@@ -48,3 +51,4 @@ function App() {
 }
 
 export default App;
+

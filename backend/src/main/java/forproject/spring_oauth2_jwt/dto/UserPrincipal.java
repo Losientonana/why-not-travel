@@ -23,6 +23,7 @@ public class UserPrincipal implements UserDetails, OAuth2User {
     private final String name;
     private final String email;
     private final String role;
+    private final String nickname;
     private final Map<String, Object> attributes; // 소셜 로그인용(없으면 null)
 
     // 1) Entity로부터 생성 (일반 로그인, DB 조회)
@@ -33,6 +34,7 @@ public class UserPrincipal implements UserDetails, OAuth2User {
         this.name = userEntity.getName();
         this.email = userEntity.getEmail();
         this.role = userEntity.getRole();
+        this.nickname = userEntity.getNickname();
         this.attributes = null;
     }
 
@@ -45,6 +47,7 @@ public class UserPrincipal implements UserDetails, OAuth2User {
         this.email = userDTO.getEmail();
         this.role = userDTO.getRole();
         this.attributes = attributes != null ? Collections.unmodifiableMap(attributes) : null;
+        this.nickname = userDTO.getNickname();
     }
 
     // ----- 공통 Getter -----

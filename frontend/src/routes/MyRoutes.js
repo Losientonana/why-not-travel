@@ -7,6 +7,7 @@ import OAuth2Redirect from "../pages/OAuth2Redirect";
 import Logout from "../pages/Logout";
 import PrivateRoute from "../components/PrivateRoute";
 import PublicRoute from "../components/PublicRoute";
+import NicknameForm from "../pages/NicknameForm";
 
 const MyRoutes = () => (
     <Routes>
@@ -28,6 +29,7 @@ const MyRoutes = () => (
         } />
         <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/nickname" element={<NicknameForm />} />
     </Routes>
 );
 

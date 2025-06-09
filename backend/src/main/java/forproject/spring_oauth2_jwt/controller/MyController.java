@@ -26,6 +26,7 @@ public class MyController {
         dto.setName(user.getName());
         dto.setRole(user.getRole());
         dto.setEmail(user.getEmail());
+        dto.setNickname(user.getNickname());
 
         // [중요!] accessToken이 헤더에 있으면 응답 헤더에도 실어주기 (콜백 이후 최초 1회만)
         String accessToken = request.getHeader("access");
