@@ -1,5 +1,6 @@
 package forproject.spring_oauth2_jwt.config;
 
+import forproject.spring_oauth2_jwt.interceptor.NicknameCheckInterceptor;
 import forproject.spring_oauth2_jwt.jwt.JWTFilter;
 import forproject.spring_oauth2_jwt.jwt.JWTUtil;
 import forproject.spring_oauth2_jwt.jwt.LoginFilter;
@@ -42,6 +43,7 @@ public class SecurityConfig {
     private final JWTUtil jwtUtil;
     //Redis 사용
     private final RefreshTokenService refreshTokenService;
+
 
     // 인증 매니저 빈을 직접 등록해서 필터에서 사용 가능하게 함
     @Bean
@@ -112,7 +114,7 @@ public class SecurityConfig {
         //경로별 인가 작업
         http
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("/login","/","/join", "/oauth2/**","/reissue","api/token").permitAll()
+                        .requestMatchers("/login","/","/join", "/oauth2/**","/reissue","api/token","/userinfo").permitAll()
                         .anyRequest().authenticated());
 
         // LoginFilter 가 실행되기 전에 JWT 필터를 먼저 실행( 헤더나 쿠키에서 토큰을 추출하여 사용자 인증) 하여 현재 요청을 보낸
