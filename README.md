@@ -39,3 +39,4 @@
 - 프로젝트 구현 상세, 예외처리, 추가 테스트는 벨로그에서 계속 업데이트됩니다!
 - 문의/피드백은 [velog]([https://velog.io/@your-velog-id](https://velog.io/@losiento_nana/posts))나 GitHub Issue로 남겨주세요.
 
+/2025/06/16
