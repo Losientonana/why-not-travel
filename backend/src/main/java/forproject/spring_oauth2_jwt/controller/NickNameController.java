@@ -63,6 +63,7 @@ public class NickNameController {
         Map<String, String> result = new HashMap<>();
         result.put("username", username);
         result.put("nickname", user.getNickname());
+        result.put("email",user.getEmail());
         return ResponseEntity.ok(result);
     }
 }
