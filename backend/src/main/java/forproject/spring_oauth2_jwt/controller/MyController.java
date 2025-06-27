@@ -8,18 +8,48 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+//
+//@RestController
+//@Slf4j
+//public class MyController {
+//    @GetMapping("/my")
+//    public ResponseEntity<?> myAPI(Authentication authentication, HttpServletResponse response, HttpServletRequest request) {
+//        if (authentication == null || !authentication.isAuthenticated()) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+//        }
+//        UserPrincipal user = (UserPrincipal) authentication.getPrincipal();
+//        UserDTO dto = new UserDTO();
+//        dto.setId(user.getId());
+//        dto.setUsername(user.getUsername());
+//        dto.setName(user.getName());
+//        dto.setRole(user.getRole());
+//        dto.setEmail(user.getEmail());
+//        dto.setNickname(user.getNickname());
+//
+//        // [중요!] accessToken이 헤더에 있으면 응답 헤더에도 실어주기 (콜백 이후 최초 1회만)
+//        String accessToken = request.getHeader("access");
+//        if (accessToken != null) {
+//            response.setHeader("access", accessToken);
+//        }
+//        return ResponseEntity.ok(dto);
+//    }
+//
+//}
 
+
+// @AuthenticationPrincipal 을 사용하여 인증된 객체를 쉽게 뽑아낼 수 있다.
 @RestController
 @Slf4j
 public class MyController {
     @GetMapping("/my")
-    public ResponseEntity<?> myAPI(Authentication authentication, HttpServletResponse response, HttpServletRequest request) {
+    public ResponseEntity<?> myAPI(@AuthenticationPrincipal UserPrincipal user, Authentication authentication, HttpServletResponse response, HttpServletRequest request) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         }
-        UserPrincipal user = (UserPrincipal) authentication.getPrincipal();
+
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
