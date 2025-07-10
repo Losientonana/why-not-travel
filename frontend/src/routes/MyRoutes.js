@@ -8,7 +8,8 @@ import Logout from "../pages/Logout";
 import PrivateRoute from "../components/PrivateRoute";
 import PublicRoute from "../components/PublicRoute";
 import NicknameForm from "../pages/NicknameForm";
-import TravelPlanPage from "../pages/TravelPlanPage";
+import ViewTravelPlansPage from "../pages/ViewTravelPlansPage"; // 새로 추가
+import CreateTravelPlanPage from "../pages/CreateTravelPlanPage"; // 새로 추가
 
 const MyRoutes = () => {
     const navigate = useNavigate();
@@ -35,9 +36,14 @@ const MyRoutes = () => {
                     <MyPage />
                 </PrivateRoute>
             } />
-            <Route path="/travel-plans" element={
+            <Route path="/travel-plans/view" element={
                 <PrivateRoute>
-                    <TravelPlanPage />
+                    <ViewTravelPlansPage />
+                </PrivateRoute>
+            } />
+            <Route path="/travel-plans/create" element={
+                <PrivateRoute>
+                    <CreateTravelPlanPage />
                 </PrivateRoute>
             } />
             <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
