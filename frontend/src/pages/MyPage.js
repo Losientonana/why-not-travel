@@ -1,113 +1,3 @@
-// import React, { useEffect, useState } from "react";
-// import api from "../api/axiosConfig";
-// import { useAuth } from "../contexts/AuthContext";
-// import { useNavigate } from "react-router-dom";
-//
-// const MyPage = () => {
-//     const [userDetail, setUserDetail] = useState(null);
-//     const [msg, setMsg] = useState("");
-//     const { setIsLoggedIn, setUser } = useAuth();
-//     const navigate = useNavigate();
-//
-//     useEffect(() => {
-//         const fetchUser = async () => {
-//             try {
-//                 const token = localStorage.getItem("access");
-//                 const res = await api.get("/my", { headers: { access: token } });
-//                 setUserDetail(res.data);
-//                 if (!res.data.nickname || res.data.nickname.trim() === "") {
-//                     navigate("/nickname");
-//                 }
-//             } catch (err) {
-//                 setUserDetail(null);
-//                 setMsg(err.response?.data?.message || err.message);
-//                 if (err.response?.status === 401) {
-//                     setIsLoggedIn(false);
-//                     setUser(null);
-//                     localStorage.removeItem("access");
-//                     navigate("/login");
-//                 }
-//             }
-//         };
-//         fetchUser();
-//     }, [setIsLoggedIn, setUser, navigate]);
-//
-//     const onLogout = async () => {
-//         try {
-//             const token = localStorage.getItem("access");
-//             await api.post("/logout", {}, { headers: { access: token } });
-//             setIsLoggedIn(false);
-//             setUser(null);
-//             localStorage.removeItem("access");
-//             navigate("/");
-//         } catch (err) {
-//             setMsg(err.response?.data?.message || err.message);
-//         }
-//     };
-//
-//     if (!userDetail) return null;
-//
-//     return (
-//         <div style={{ textAlign: "center", marginTop: 50 }}>
-//             <h2 style={{ fontWeight: 700, color: "#2563eb", marginBottom: 32 }}>
-//                 {userDetail.name || userDetail.username ? `${userDetail.name || userDetail.username}님 환영합니다!` : "이름 정보를 불러오지 못했습니다."}
-//             </h2>
-//             <table
-//                 style={{
-//                     margin: "0 auto 24px",
-//                     borderCollapse: "collapse",
-//                     borderRadius: 10,
-//                     background: "#f9fafb",
-//                     minWidth: 350,
-//                     fontSize: 16,
-//                     boxShadow: "0 2px 12px #0001"
-//                 }}
-//             >
-//                 <tbody>
-//                 <tr>
-//                     <th style={{ textAlign: "right", padding: "6px 18px", color: "#666", fontWeight: 500 }}>이메일</th>
-//                     <td style={{ textAlign: "left", padding: "6px 18px" }}>{userDetail.email}</td>
-//                 </tr>
-//                 <tr>
-//                     <th style={{ textAlign: "right", padding: "6px 18px", color: "#666", fontWeight: 500 }}>아이디</th>
-//                     <td style={{ textAlign: "left", padding: "6px 18px" }}>{userDetail.username}</td>
-//                 </tr>
-//                 <tr>
-//                     <th style={{ textAlign: "right", padding: "6px 18px", color: "#666", fontWeight: 500 }}>이름</th>
-//                     <td style={{ textAlign: "left", padding: "6px 18px" }}>{userDetail.name}</td>
-//                 </tr>
-//                 <tr>
-//                     <th style={{ textAlign: "right", padding: "6px 18px", color: "#666", fontWeight: 500 }}>닉네임</th>
-//                     <td style={{ textAlign: "left", padding: "6px 18px" }}>{userDetail.nickname}</td>
-//                 </tr>
-//                 </tbody>
-//             </table>
-//
-//             <button
-//                 onClick={onLogout}
-//                 style={{
-//                     background: "#3b82f6",
-//                     color: "#fff",
-//                     border: "none",
-//                     borderRadius: 8,
-//                     padding: "10px 32px",
-//                     fontSize: 16,
-//                     fontWeight: 600,
-//                     cursor: "pointer",
-//                     marginBottom: 16,
-//                     marginTop: 8,
-//                     transition: "background 0.2s"
-//                 }}
-//             >
-//                 로그아웃
-//             </button>
-//             {msg && <div style={{ color: "#ef4444", marginTop: 18 }}>{msg}</div>}
-//         </div>
-//     );
-// };
-//
-// export default MyPage;
-
 // src/pages/MyPage.js
 import React, { useEffect, useState } from "react";
 import api from "../api/axiosConfig";
@@ -122,24 +12,26 @@ const MyPage = () => {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const token = localStorage.getItem("access");
-                const res = await api.get("/userinfo", { headers: { access: token } });
+                const res = await api.get("/userinfo");
                 setUser(res.data);
                 setAuthUser(res.data); // context도 동기화
                 if (!res.data.nickname || res.data.nickname.trim() === "") {
                     navigate("/nickname");
                 }
             } catch (err) {
-                setUser(null);
-                setIsLoggedIn(false);
-                localStorage.removeItem("access");
-                navigate("/login");
+                // 인터셉터가 401을 처리하므로, 여기서는 주로 네트워크 오류나 기타 서버 오류를 처리
+                // 사용자를 강제로 로그아웃 시키기보다는 에러 메시지를 보여주는 것이 더 나은 UX일 수 있음
+                console.error("Failed to fetch user info:", err);
+                // setUser(null);
+                // setIsLoggedIn(false);
+                // localStorage.removeItem("access");
+                // navigate("/login");
             }
         };
         fetchUser();
     }, [setIsLoggedIn, setAuthUser, navigate]);
 
-    if (!user) return null;
+    if (!user) return <div>Loading...</div>; // user 정보가 로드되기 전에는 로딩 상태를 보여줌
 
     return (
         <div style={{ textAlign: "center", marginTop: 50 }}>

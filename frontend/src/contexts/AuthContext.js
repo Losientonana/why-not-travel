@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const token = localStorage.getItem("access");
         if (token) {
-            api.get("/userinfo", { headers: { access: token } })
+            api.get("/userinfo")
                 .then((res) => {
                     setUser(res.data);
                     setIsLoggedIn(true);

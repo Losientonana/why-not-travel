@@ -160,7 +160,7 @@ const LoginPage = () => {
             setIsLoggedIn(true);
 
             // 유저 정보 받아서 분기
-            const userRes = await api.get("/userinfo", { headers: { access: token } });
+            const userRes = await api.get("/userinfo");
             setUser(userRes.data);
 
             if (userRes.data.nickname && userRes.data.nickname.trim() !== "") {

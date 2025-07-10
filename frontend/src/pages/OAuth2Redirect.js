@@ -53,7 +53,7 @@ const OAuth2Redirect = () => {
                     localStorage.setItem("access", token);
                     setIsLoggedIn(true);
                     // 유저 정보도 같이 fetch
-                    const userRes = await api.get("/userinfo", { headers: { access: token } });
+                    const userRes = await api.get("/userinfo");
                     setUser(userRes.data);
                     if (!userRes.data.nickname) {
                         navigate("/nickname");

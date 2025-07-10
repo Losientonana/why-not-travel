@@ -118,99 +118,13 @@ public class JWTFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
-    //    @Override
-//    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-//
-//        // 무한 재로그인 오류 해결을 위해
-//        String requestUri = request.getRequestURI();
-//        if (requestUri.matches("^/(login|oauth2|public|error)(/.*)?$")) {
-//            filterChain.doFilter(request, response);
-//            return;
-//        }
-//
-//
-//        String token = null;
-//
-//        // 1. Authorization 헤더에서 토큰 추출 (일반 로그인)
-//        String authHeader = request.getHeader("Authorization");
-//        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-//            token = authHeader.substring(7);
-//        }
-//
-//        // 2. Authorization 쿠키에서 토큰 추출 (소셜 로그인)
-//        if (token == null && request.getCookies() != null) {
-//            for (Cookie cookie : request.getCookies()) {
-//                if (cookie.getName().equals("Authorization")) {
-//                    token = cookie.getValue();
-//                    break;
-//                }
-//            }
-//        }
-//
-//        // 토큰이 없거나 만료된 경우 다음 필터로 진행
-//        if (token == null || jwtUtil.isExpired(token)) {
-//            filterChain.doFilter(request, response);
-//            return;
-//        }
-//
-//        // 토큰에서 정보 추출
-////        String username = jwtUtil.getUsername(token);
-////        String role = jwtUtil.getRole(token);
-////
-////        // 인증 객체 생성
-////        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-////            // 일반 로그인
-////            UserEntity userEntity = new UserEntity();
-////            userEntity.setUsername(username);
-////            userEntity.setPassword("temppw");
-////            userEntity.setRole(role);
-////            UserPrincipal userDetails = new UserPrincipal(userEntity);
-////            Authentication authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-////            SecurityContextHolder.getContext().setAuthentication(authToken);
-////        } else {
-////            // OAuth2 로그인
-////            UserDTO userDTO = new UserDTO();
-////            userDTO.setUsername(username);
-////            userDTO.setRole(role);
-////            UserPrincipal customOAuth2User = new UserPrincipal(userDTO);
-////            Authentication authToken = new UsernamePasswordAuthenticationToken(customOAuth2User, null, customOAuth2User.getAuthorities());
-////            SecurityContextHolder.getContext().setAuthentication(authToken);
-////        }
-////
-////        filterChain.doFilter(request, response);
-////    }
-//        // 토큰에서 정보 추출 (username, role 등)
-//        String username = jwtUtil.getUsername(token);
-//        String role = jwtUtil.getRole(token);
-//
-//    // DB에서 사용자 정보 조회 (존재할 수도, 없을 수도 있음)
-//        UserEntity userEntity = userRepository.findByUsername(username);
-//
-//        UserPrincipal userPrincipal; // 공통 인증 객체 선언
-//
-//        if (userEntity != null) {                                 // 1. DB에 해당 username이 있다면
-//            userPrincipal = new UserPrincipal(userEntity);         // 2. UserEntity 기반으로 UserPrincipal 생성
-//        } else {                                                  // 3. DB에 없을 때(소셜 최초 로그인 등)
-//            UserDTO userDTO = new UserDTO();                      // 4. UserDTO 생성
-//            userDTO.setUsername(username);                        // 5. username 세팅
-//            userDTO.setRole(role);                                // 6. role 세팅
-//            userPrincipal = new UserPrincipal(userDTO, null);     // 7. DTO 기반으로 UserPrincipal 생성(확장성을 위해 attributes는 null)
-//        }
-//
-//        Authentication authToken = new UsernamePasswordAuthenticationToken(
-//                userPrincipal, null, userPrincipal.getAuthorities());  // 8. UserPrincipal을 인증 객체로 wrapping
-//        SecurityContextHolder.getContext().setAuthentication(authToken); // 9. Security 컨텍스트에 주입
-//
-//        filterChain.doFilter(request, response); // 10. 다음 필터로 요청 전달
-//        }
-//    }
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         // 1. 로그인/회원가입 등 인증이 필요 없는 요청 예외처리
         String requestUri = request.getRequestURI();
-        if (requestUri.matches("^/(login|oauth2|public|error)(/.*)?$")) {
+        if (requestUri.matches("^/(login|oauth2|public|error|reissue|api/token)(/.*)?$")) {
             filterChain.doFilter(request, response);
             return;
         }
