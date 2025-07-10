@@ -65,6 +65,7 @@ const Navbar = () => {
             {isLoggedIn && (
                 <div style={{ display: "flex", gap: "24px" }}>
                     <Link to="/mypage" style={navLinkStyle}>MyPage</Link>
+                    <Link to="/travel-plans" style={navLinkStyle}>내 여행 계획</Link>
                     <Link to="/logout" style={navLinkStyle}>Logout</Link>
                 </div>
             )}

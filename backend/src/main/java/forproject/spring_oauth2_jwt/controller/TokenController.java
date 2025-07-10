@@ -55,7 +55,7 @@ public class TokenController {
             for (Cookie cookie : cookies) {
                 if ("refresh".equals(cookie.getName())) {
                     refreshToken = cookie.getValue();
-                    break;
+
                 }
             }
         }
