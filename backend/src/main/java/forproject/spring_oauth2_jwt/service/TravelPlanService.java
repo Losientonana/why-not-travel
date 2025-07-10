@@ -29,6 +29,7 @@ public class TravelPlanService {
                 .endDate(req.getEndDate())
                 .description(req.getDescription())
                 .user(user)
+                .visibility(req.getVisibility() != null ? req.getVisibility() : "PUBLIC") // 기본값
                 .build();
 
         TravelPlanEntity saved = travelPlanRepository.save(entity);

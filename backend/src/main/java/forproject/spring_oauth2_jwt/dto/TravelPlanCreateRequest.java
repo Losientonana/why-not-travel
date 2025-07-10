@@ -17,4 +17,6 @@ public class TravelPlanCreateRequest {
     @NotNull
     private LocalDate endDate;
     private String description;
+    @NotBlank
+    private String visibility;
 }
