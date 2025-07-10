@@ -124,7 +124,7 @@ public class JWTFilter extends OncePerRequestFilter {
 
         // 1. 로그인/회원가입 등 인증이 필요 없는 요청 예외처리
         String requestUri = request.getRequestURI();
-        if (requestUri.matches("^/(login|oauth2|public|error|reissue|api/token)(/.*)?$")) {
+        if (requestUri.matches("^/(api/login|api/join|api/logout|oauth2|public|error|reissue|api/token)(/.*)?$")) {
             filterChain.doFilter(request, response);
             return;
         }

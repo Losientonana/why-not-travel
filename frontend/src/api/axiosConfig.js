@@ -3,7 +3,7 @@ import axios from "axios";
 
 const api = axios.create({
     baseURL: "http://localhost:8080",
-    withCredentials: true, // 중요! 쿠키 전달을 위해
+    withCredentials: true, // 중요! 쿠키 전달
 });
 
 // 요청 인터셉터: 모든 요청에 Access Token을 자동으로 추가
@@ -18,8 +18,6 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-
-
 // 응답 인터셉터: 401 에러 발생 시 토큰 재발급 처리
 api.interceptors.response.use(
     (response) => response, // 성공 응답은 그대로 반환
@@ -28,7 +26,7 @@ api.interceptors.response.use(
 
         // 401 에러이고, 재발급 요청이 아니며(무한 루프 방지), 재시도한 요청이 아닐 때
         if (error.response.status === 401 && originalRequest.url !== '/reissue' && !originalRequest._retry) {
-            originalRequest._retry = true; // 재시도 플래그 설정
+            originalRequest._retry = true; // 무한 재시도 방지를 위해 플래그 설정
 
             try {
                 console.log("Access token expired. Attempting to reissue...");
@@ -57,6 +55,5 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
-
 
 export default api;

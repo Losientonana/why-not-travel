@@ -13,7 +13,7 @@ const NicknameForm = ({ onSuccess }) => {
         setMsg("");
         setLoading(true);
         try {
-            await api.post("/nickname", { nickname });
+            await api.patch("/api/user/me", { nickname });
             setUser((prev) => ({ ...prev, nickname }));
             setMsg("닉네임이 성공적으로 등록되었습니다!");
             setLoading(false);

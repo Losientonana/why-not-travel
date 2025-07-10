@@ -10,7 +10,7 @@ const Logout = () => {
     useEffect(() => {
         const doLogout = async () => {
             try {
-                await api.post("/logout");
+                await api.post("/api/logout");
             } catch (err) {
                 console.error("Logout failed:", err);
             } finally {

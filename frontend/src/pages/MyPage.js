@@ -12,7 +12,7 @@ const MyPage = () => {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const res = await api.get("/userinfo");
+                const res = await api.get("/api/user/me");
                 setUser(res.data);
                 setAuthUser(res.data); // context도 동기화
                 if (!res.data.nickname || res.data.nickname.trim() === "") {

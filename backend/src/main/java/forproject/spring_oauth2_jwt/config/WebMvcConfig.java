@@ -21,7 +21,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(nicknameCheckInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/login", "/join", "/oauth2/**", "/nickname", "/reissue", "/api/token", "/static/**", "/css/**", "/js/**", "/images/**"
+                        "/login", "/join", "/oauth2/**", "/nickname", "/reissue", "/api/token", "/static/**", "/css/**", "/js/**", "/images/**",
+                        "/api/login", "/api/join", "/api/logout", "/api/user/me"
                 );
         // 모든 요청에 대해 적용
     }

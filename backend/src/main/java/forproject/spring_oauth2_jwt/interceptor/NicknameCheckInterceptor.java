@@ -24,8 +24,8 @@ public class NicknameCheckInterceptor implements HandlerInterceptor {
 
     // 닉네임 체크를 하지 않을 경로(로그인, 회원가입, 닉네임 등록 등)
     private static final List<String> EXCLUDE_PATHS = Arrays.asList(
-            "/login", "/join", "/oauth2", "/oauth2/", "/oauth2/redirect", "/nickname", "/reissue", "/api/token"
-    );
+                "/login", "/join", "/oauth2", "/oauth2/", "/oauth2/redirect", "/nickname", "/reissue", "/api/token", "/api/user/me"
+        );
 
     public NicknameCheckInterceptor(JWTUtil jwtUtil, UserRepository userRepository) {
         this.jwtUtil = jwtUtil;

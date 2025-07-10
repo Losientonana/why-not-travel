@@ -15,26 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.stream.Collectors;
-//
-//@RestController
-//@Slf4j
-//public class JoinController {
-//
-//    private final JoinService joinService;
-//
-//    public JoinController(JoinService joinService) {
-//        this.joinService = joinService;
-//    }
-//
-//    @PostMapping("/join")
-//    public String joinProcess(@RequestBody JoinDTO joinDTO) {
-//        log.info("username = " + joinDTO.getUsername());
-//        joinService.joinProcess(joinDTO);
-//        return "ok";
-//    }
-//
-//}
-
 
 @RestController
 @RequiredArgsConstructor
@@ -42,7 +22,7 @@ public class JoinController {
 
     private final JoinService joinService;
 
-    @PostMapping("/join")
+    @PostMapping("/api/join")
     public ResponseEntity<?> join(@RequestBody @Valid JoinDTO joinDTO, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             String errorMessage = bindingResult.getFieldErrors().stream()
