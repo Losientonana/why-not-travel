@@ -41,6 +41,7 @@ public class TravelPlanService {
         resp.setEndDate(saved.getEndDate());
         resp.setDescription(saved.getDescription());
         resp.setNickname(user.getNickname());
+        resp.setVisibility(saved.getVisibility());
         return resp;
     }
 
@@ -56,9 +57,55 @@ public class TravelPlanService {
             resp.setEndDate(plan.getEndDate());
             resp.setDescription(plan.getDescription());
             resp.setNickname(plan.getUser().getNickname());
+            resp.setVisibility(plan.getVisibility());
             return resp;
         }).collect(Collectors.toList());
 
         return result;
+    }
+
+    public TravelPlanResponse getTravelPlan(Long tripId, Long userId) {
+        TravelPlanEntity plan = travelPlanRepository.findById(tripId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없음"));
+
+        if (!plan.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("이 여행 계획을 조회할 권한이 없습니다.");
+        }
+
+        TravelPlanResponse resp = new TravelPlanResponse();
+        resp.setId(plan.getId());
+        resp.setTitle(plan.getTitle());
+        resp.setStartDate(plan.getStartDate());
+        resp.setEndDate(plan.getEndDate());
+        resp.setDescription(plan.getDescription());
+        resp.setNickname(plan.getUser().getNickname());
+        resp.setVisibility(plan.getVisibility());
+        return resp;
+    }
+
+
+    public TravelPlanResponse updateTravelPlan(Long tripId, TravelPlanCreateRequest req, Long userId) {
+        TravelPlanEntity travelPlanEntity = travelPlanRepository.findById(tripId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없음"));
+
+        if(!travelPlanEntity.getUser().getId().equals(userId)){
+            throw new IllegalArgumentException("이 여행 계획을 수정할 권한이 없습니다.");
+        }
+        travelPlanEntity.setTitle(req.getTitle());
+        travelPlanEntity.setStartDate(req.getStartDate());
+        travelPlanEntity.setEndDate(req.getEndDate());
+        travelPlanEntity.setDescription(req.getDescription());
+        travelPlanEntity.setVisibility(req.getVisibility());
+
+        TravelPlanEntity save = travelPlanRepository.save(travelPlanEntity);
+
+        TravelPlanResponse travelPlanResponse = new TravelPlanResponse();
+        travelPlanResponse.setTitle(save.getTitle());
+        travelPlanResponse.setStartDate(save.getStartDate());
+        travelPlanResponse.setEndDate(save.getEndDate());
+        travelPlanResponse.setDescription(save.getDescription());
+        travelPlanResponse.setVisibility(save.getVisibility());
+
+        return travelPlanResponse;
     }
 }
