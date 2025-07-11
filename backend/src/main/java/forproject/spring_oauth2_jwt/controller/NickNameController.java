@@ -23,23 +23,23 @@ public class NickNameController {
     public ResponseEntity<?> updateMyInfo(
             @AuthenticationPrincipal UserPrincipal user,
             @RequestBody Map<String, String> req) {
-        log.info("PATCH /api/user/me called by user: {}", user.getUsername());
+                        log.info("PATCH /api/user/me called by user: {}", user.getUsername());
         String nickname = req.get("nickname");
-        log.info("Received nickname: {}", nickname);
+                        log.info("Received nickname: {}", nickname);
 
         if (nickname == null || nickname.trim().isEmpty()) {
-            log.warn("Nickname is null or empty.");
+                        log.warn("Nickname is null or empty.");
             return ResponseEntity.badRequest().body("닉네임을 입력해주세요.");
         }
         try {
             userService.updateNickname(user.getId(), nickname); // 서비스에서 DB에 반영
-            log.info("Nickname updated successfully for user: {}", user.getUsername());
+                        log.info("Nickname updated successfully for user: {}", user.getUsername());
             return ResponseEntity.ok("내 정보가 업데이트되었습니다.");
         } catch (IllegalStateException e) {
-            log.error("Nickname update failed for user {}: {}", user.getUsername(), e.getMessage());
+                        log.error("Nickname update failed for user {}: {}", user.getUsername(), e.getMessage());
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); // 닉네임 중복 등
         } catch (Exception e) {
-            log.error("An unexpected error occurred during nickname update for user {}: {}", user.getUsername(), e.getMessage(), e);
+                        log.error("An unexpected error occurred during nickname update for user {}: {}", user.getUsername(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("알 수 없는 서버 오류가 발생했습니다.");
         }
     }
