@@ -9,7 +9,8 @@ import PrivateRoute from "../components/PrivateRoute";
 import PublicRoute from "../components/PublicRoute";
 import NicknameForm from "../pages/NicknameForm";
 import ViewTravelPlansPage from "../pages/ViewTravelPlansPage"; // 새로 추가
-import CreateTravelPlanPage from "../pages/CreateTravelPlanPage"; // 새로 추가
+import CreateTravelPlanPage from "../pages/CreateTravelPlanPage";
+import EditTravelPlanPage from "../pages/EditTravelPlanPage"; // 새로 추가
 
 const MyRoutes = () => {
     const navigate = useNavigate();
@@ -39,6 +40,11 @@ const MyRoutes = () => {
             <Route path="/travel-plans/view" element={
                 <PrivateRoute>
                     <ViewTravelPlansPage />
+                </PrivateRoute>
+            } />
+            <Route path="/travel-plans/edit/:id" element={
+                <PrivateRoute>
+                    <EditTravelPlanPage/>
                 </PrivateRoute>
             } />
             <Route path="/travel-plans/create" element={

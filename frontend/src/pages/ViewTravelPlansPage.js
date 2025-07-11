@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom'; // Link import 추가
 
 const ViewTravelPlansPage = () => {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth(); // authLoading 추가
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -24,12 +25,12 @@ const ViewTravelPlansPage = () => {
     };
 
     useEffect(() => {
-        if (user) { // user 정보가 로드된 후에만 fetch
+        if (!authLoading && user) { // authLoading이 끝나고 user가 있을 때만 fetch
             fetchPlans();
         }
-    }, [user]); // user 객체가 변경될 때마다 fetch
+    }, [user, authLoading]); // authLoading도 의존성에 추가
 
-    if (loading) return <div style={{ textAlign: 'center', marginTop: '50px' }}>여행 계획 로딩 중...</div>;
+    if (authLoading || loading) return <div style={{ textAlign: 'center', marginTop: '50px' }}>여행 계획 로딩 중...</div>; // authLoading 또는 fetch loading일 때
     if (error) return <div style={{ textAlign: 'center', marginTop: '50px', color: 'red' }}>{error}</div>;
 
     return (
@@ -47,11 +48,14 @@ const ViewTravelPlansPage = () => {
                                 {plan.startDate} ~ {plan.endDate}
                             </p>
                             {plan.description && <p style={{ fontSize: '14px', color: '#475569', marginTop: '5px' }}>{plan.description}</p>}
-                            <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'right' }}>
-                                작성자: {plan.nickname}
-                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                                <p style={{ fontSize: '12px', color: '#94a3b8' }}>
+                                    작성자: {plan.nickname}
+                                </p>
+                                <Link to={`/travel-plans/edit/${plan.id}`} style={editButtonStyle}>수정</Link>
+                            </div>
                         </div>
-                    ))}
+                    ))}î
                 </div>
             )}
         </div>
@@ -64,6 +68,17 @@ const planCardStyle = {
     padding: '15px',
     backgroundColor: '#f8fafc',
     boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+};
+
+const editButtonStyle = {
+    padding: '5px 10px',
+    border: 'none',
+    backgroundColor: '#2563eb',
+    color: 'white',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    fontSize: '12px',
 };
 
 export default ViewTravelPlansPage;

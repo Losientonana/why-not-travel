@@ -78,8 +78,8 @@ public class TokenController {
             }
 
             // 3. access 토큰 새로 발급 (ex. 10분)
-//            String access = jwtUtil.createJwt("access", username, role, 600_000L);
-            String access = jwtUtil.createJwt("access", username, role, 3000L);
+            String access = jwtUtil.createJwt("access", username, role, 600_000L);
+//            String access = jwtUtil.createJwt("access", username, role, 3000L);
             response.setHeader("access", access);
 
             // (선택) 사용자 정보도 같이 반환
