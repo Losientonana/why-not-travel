@@ -15,4 +15,5 @@ public class TravelPlanResponse {
     private LocalDate endDate;
     private String description;
     private String nickname;
+    private String visibility;
 }
