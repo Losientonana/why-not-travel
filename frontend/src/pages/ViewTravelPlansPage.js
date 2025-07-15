@@ -24,6 +24,20 @@ const ViewTravelPlansPage = () => {
         }
     };
 
+    // 여행 계획 삭제
+    const handleDelete = async (tripId) => {
+        if (window.confirm('정말로 이 여행 계획을 삭제하시겠습니까?')) {
+            try {
+                await api.delete(`/api/trips/${tripId}`);
+                alert('여행 계획이 성공적으로 삭제되었습니다.');
+                fetchPlans(); // 목록 새로고침
+            } catch (err) {
+                console.error('Failed to delete travel plan:', err);
+                alert('여행 계획 삭제에 실패했습니다.');
+            }
+        }
+    };
+
     useEffect(() => {
         if (!authLoading && user) { // authLoading이 끝나고 user가 있을 때만 fetch
             fetchPlans();
@@ -53,9 +67,10 @@ const ViewTravelPlansPage = () => {
                                     작성자: {plan.nickname}
                                 </p>
                                 <Link to={`/travel-plans/edit/${plan.id}`} style={editButtonStyle}>수정</Link>
+                                <button onClick={() => handleDelete(plan.id)} style={deleteButtonStyle}>삭제</button>
                             </div>
                         </div>
-                    ))}î
+                    ))}
                 </div>
             )}
         </div>
@@ -74,6 +89,17 @@ const editButtonStyle = {
     padding: '5px 10px',
     border: 'none',
     backgroundColor: '#2563eb',
+    color: 'white',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    fontSize: '12px',
+};
+
+const deleteButtonStyle = {
+    padding: '5px 10px',
+    border: 'none',
+    backgroundColor: '#dc2626', /* Red color for delete */
     color: 'white',
     borderRadius: '5px',
     cursor: 'pointer',
