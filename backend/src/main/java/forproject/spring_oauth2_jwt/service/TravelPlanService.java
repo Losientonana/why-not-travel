@@ -6,10 +6,12 @@ import forproject.spring_oauth2_jwt.entity.TravelPlanEntity;
 import forproject.spring_oauth2_jwt.entity.UserEntity;
 import forproject.spring_oauth2_jwt.repository.TravelPlanRepository;
 import forproject.spring_oauth2_jwt.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,7 +49,7 @@ public class TravelPlanService {
 
     // 내 일정 전체 조회
     public List<TravelPlanResponse> listMyPlans(Long userId) {
-        List<TravelPlanEntity> plans = travelPlanRepository.findByUser_Id(userId);
+        List<TravelPlanEntity> plans = travelPlanRepository.findByUser_IdAndIsDeletedFalse(userId);
 
         List<TravelPlanResponse> result = plans.stream().map(plan -> {
             TravelPlanResponse resp = new TravelPlanResponse();
@@ -65,7 +67,7 @@ public class TravelPlanService {
     }
 
     public TravelPlanResponse getTravelPlan(Long tripId, Long userId) {
-        TravelPlanEntity plan = travelPlanRepository.findById(tripId)
+        TravelPlanEntity plan = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없음"));
 
         if (!plan.getUser().getId().equals(userId)) {
@@ -85,7 +87,7 @@ public class TravelPlanService {
 
 
     public TravelPlanResponse updateTravelPlan(Long tripId, TravelPlanCreateRequest req, Long userId) {
-        TravelPlanEntity travelPlanEntity = travelPlanRepository.findById(tripId)
+        TravelPlanEntity travelPlanEntity = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없음"));
 
         if(!travelPlanEntity.getUser().getId().equals(userId)){
@@ -107,5 +109,21 @@ public class TravelPlanService {
         travelPlanResponse.setVisibility(save.getVisibility());
 
         return travelPlanResponse;
+    }
+
+    @Transactional
+    public void deleteTravelPlan(Long tripId, Long userId) {
+        // 1. 여행 일정 조회 또는 예외 발생
+        TravelPlanEntity travelPlanEntity = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없습니다."));
+
+        // 2. 소유권 확인 (ID가 다를 경우 예외 발생)
+        if (!travelPlanEntity.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("이 여행을 삭제할 권한이 없습니다.");
+        }
+
+        // 3. 논리적 삭제 (isDeleted 플래그를 true로 변경)
+        travelPlanEntity.setDeleted(true);
+        // @Transactional 어노테이션에 의해 메소드 종료 시 자동으로 DB에 반영됩니다.
     }
 }
