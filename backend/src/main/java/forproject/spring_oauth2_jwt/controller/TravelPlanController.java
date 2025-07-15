@@ -58,6 +58,12 @@ public class TravelPlanController {
         return ResponseEntity.ok(result);
     }
 
+    @DeleteMapping("/{tripId}")
+    public ResponseEntity<Void> deletePlan(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user){
+        travelPlanService.deleteTravelPlan(tripId, user.getId());
+        return ResponseEntity.noContent().build();
+    }
+
 
 }
 
