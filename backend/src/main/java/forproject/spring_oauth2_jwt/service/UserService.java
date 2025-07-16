@@ -31,4 +31,12 @@ public class UserService {
         // (JPA 트랜잭션이면 save 불필요
 
     }
+
+    public boolean isNickNameAvailable(String nickname){
+        return !userRepository.existsByNickname(nickname);
+    }
+
+    public boolean isEmailAvailable(String email) {
+        return !userRepository.existsByEmail(email);
+    }
 }

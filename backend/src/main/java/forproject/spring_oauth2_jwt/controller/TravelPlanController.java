@@ -63,8 +63,5 @@ public class TravelPlanController {
         travelPlanService.deleteTravelPlan(tripId, user.getId());
         return ResponseEntity.noContent().build();
     }
-
-    //ㄴㄴ
-
 }
 

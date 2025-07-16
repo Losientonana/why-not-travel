@@ -64,6 +64,10 @@ public class JoinService {
             throw new IllegalStateException("이미 사용 중인 아이디입니다.");
         }
 
+        if (userRepository.existsByNickname(joinDTO.getNickname())) {
+            throw new IllegalStateException("이미 사용 중인 닉네임입니다.");
+        }
+
         UserEntity user = new UserEntity();
         user.setUsername(joinDTO.getUsername());
         user.setPassword(bCryptPasswordEncoder.encode(joinDTO.getPassword()));
