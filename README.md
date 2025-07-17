@@ -40,3 +40,5 @@
 - 문의/피드백은 [velog]([https://velog.io/@your-velog-id](https://velog.io/@losiento_nana/posts))나 GitHub Issue로 남겨주세요.
 
 /2025/06/16
+/2025/07/17
+
