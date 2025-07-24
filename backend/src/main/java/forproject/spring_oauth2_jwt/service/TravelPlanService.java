@@ -20,6 +20,7 @@ public class TravelPlanService {
     private final TravelPlanRepository travelPlanRepository;
     private final UserRepository userRepository;
 
+    //hello-
     // 일정 생성
     public TravelPlanResponse createTravelPlan(TravelPlanCreateRequest req, Long userId) {
         UserEntity user = userRepository.findById(userId)
