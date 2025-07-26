@@ -41,14 +41,11 @@ public class UserEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = true, unique = true, length = 50)
     private String username;
 
     @Column(nullable = true, length = 30)
     private String name;
-
-    @Column(nullable = true, length = 30)
-    private String nickname;
 
     @Column(nullable = false, unique = true, length = 100)
     private String email;

@@ -126,13 +126,13 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
             throw new RuntimeException(e);
         }
 
-        System.out.println(loginDTO.getUsername());
+        System.out.println(loginDTO.getEmail());
 
-        String username = loginDTO.getUsername();
+        String email = loginDTO.getEmail();
         String password = loginDTO.getPassword();
 
         // Authentication Manager에게 값을 전달해주기 위해 ,스프링 시큐리티에서 username 과 password 를 검증하기 위해서는 token 에 담아야한다.
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password, null);
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(email, password, null);
 
         //token에 담은 검증을 위한 AuthenticationManager로 전달하면, authenticationManager로 이동하면, 반대로 db에서 유저정보를 갖고와서 userDetails로 이동시킨후
         //검증을 진행한다.

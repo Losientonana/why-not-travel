@@ -1,6 +1,6 @@
 package forproject.spring_oauth2_jwt.config;
 
-import forproject.spring_oauth2_jwt.interceptor.NicknameCheckInterceptor;
+//import forproject.spring_oauth2_jwt.interceptor.NicknameCheckInterceptor;
 import forproject.spring_oauth2_jwt.jwt.JWTFilter;
 import forproject.spring_oauth2_jwt.jwt.JWTUtil;
 import forproject.spring_oauth2_jwt.jwt.LoginFilter;

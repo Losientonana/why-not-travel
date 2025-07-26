@@ -167,17 +167,17 @@ public class JWTFilter extends OncePerRequestFilter {
         }
 
         // 5. 토큰에서 사용자 정보 추출
-        String username = jwtUtil.getUsername(accessToken);
+        String email = jwtUtil.getEmail(accessToken);
         String role = jwtUtil.getRole(accessToken);
 
         // 6. DB에 사용자 실존 확인 (보안 향상, 소셜 등 최초 가입 상태 고려)
-        UserEntity userEntity = userRepository.findByUsername(username);
+        UserEntity userEntity = userRepository.findByEmail(email);
         UserPrincipal userPrincipal;
         if (userEntity != null) {
             userPrincipal = new UserPrincipal(userEntity);
         } else {
             UserDTO userDTO = new UserDTO();
-            userDTO.setUsername(username);
+            userDTO.setEmail(email);
             userDTO.setRole(role);
             userPrincipal = new UserPrincipal(userDTO, null);
         }

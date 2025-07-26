@@ -35,15 +35,15 @@ public class JoinController {
         return ResponseEntity.ok("회원가입 성공");
     }
 
-    @GetMapping("/api/check-nickname")
-    public ResponseEntity<AvailabilityResponseDTO> checkNickname(
-            @RequestParam("nickname") String nickname){
-        if (nickname == null || nickname.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(new AvailabilityResponseDTO(false));
-        }
-        boolean isAvailable = userService.isNickNameAvailable(nickname);
-        return ResponseEntity.ok(new AvailabilityResponseDTO(isAvailable));
-    }
+//    @GetMapping("/api/check-nickname")
+//    public ResponseEntity<AvailabilityResponseDTO> checkNickname(
+//            @RequestParam("nickname") String nickname){
+//        if (nickname == null || nickname.trim().isEmpty()) {
+//            return ResponseEntity.badRequest().body(new AvailabilityResponseDTO(false));
+//        }
+//        boolean isAvailable = userService.isNickNameAvailable(nickname);
+//        return ResponseEntity.ok(new AvailabilityResponseDTO(isAvailable));
+//    }
     @GetMapping("/api/auth/check-email")
    public ResponseEntity<AvailabilityResponseDTO> checkEmail(
             @RequestParam("email") String email) {

@@ -68,16 +68,16 @@ public class CustomLogoutFilter extends GenericFilterBean {
         }
 
         // Username 추출 (key: username, value: refreshToken)
-        String username = jwtUtil.getUsername(refresh);
+        String email = jwtUtil.getEmail(refresh);
         // Redis에 저장되어 있는지 확인 (username 기준)
-        boolean isExist = refreshTokenService.isValid(refresh, username); // 직접 비교
+        boolean isExist = refreshTokenService.isValid(refresh, email); // 직접 비교
         if (!isExist) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
         // 로그아웃: Redis에서 Refresh 토큰 삭제
-        refreshTokenService.delete(username);
+        refreshTokenService.delete(email);
 
         // Refresh 토큰 Cookie 삭제
         Cookie cookie = new Cookie("refresh", null);

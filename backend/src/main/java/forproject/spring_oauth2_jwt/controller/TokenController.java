@@ -65,7 +65,7 @@ public class TokenController {
 
         // 2. refresh 토큰 검증 및 username 추출
         try {
-            String username = jwtUtil.getUsername(refreshToken);
+            String username = jwtUtil.getEmail(refreshToken);
             String role = jwtUtil.getRole(refreshToken);
             String category = jwtUtil.getCategory(refreshToken);
             if (!"refresh".equals(category)) {

@@ -19,7 +19,7 @@ public class MyController {
         dto.setName(user.getName());
         dto.setRole(user.getRole());
         dto.setEmail(user.getEmail());
-        dto.setNickname(user.getNickname());
+//        dto.setNickname(user.getNickname());
 
         return ResponseEntity.ok(dto);
     }

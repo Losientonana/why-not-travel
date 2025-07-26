@@ -60,19 +60,19 @@ public class JoinService {
             throw new IllegalStateException("이미 등록된 이메일입니다.");
         }
 
-        if (userRepository.existsByUsername(joinDTO.getUsername())) {
-            throw new IllegalStateException("이미 사용 중인 아이디입니다.");
-        }
-
-        if (userRepository.existsByNickname(joinDTO.getNickname())) {
-            throw new IllegalStateException("이미 사용 중인 닉네임입니다.");
-        }
+//        if (userRepository.existsByUsername(joinDTO.getUsername())) {
+//            throw new IllegalStateException("이미 사용 중인 아이디입니다.");
+//        }
+//
+//        if (userRepository.existsByNickname(joinDTO.getNickname())) {
+//            throw new IllegalStateException("이미 사용 중인 닉네임입니다.");
+//        }
 
         UserEntity user = new UserEntity();
-        user.setUsername(joinDTO.getUsername());
+//        user.setUsername(joinDTO.getUsername());
         user.setPassword(bCryptPasswordEncoder.encode(joinDTO.getPassword()));
         user.setName(joinDTO.getName());
-        user.setNickname(joinDTO.getNickname());
+//        user.setNickname(joinDTO.getNickname());
         user.setEmail(joinDTO.getEmail());
         user.setRole("ROLE_USER");
 

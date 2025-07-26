@@ -42,11 +42,11 @@ public class TravelPlanService {
         resp.setStartDate(saved.getStartDate());
         resp.setEndDate(saved.getEndDate());
         resp.setDescription(saved.getDescription());
-        resp.setNickname(user.getNickname());
+        resp.setName(user.getName());
         resp.setVisibility(saved.getVisibility());
         return resp;
     }
-
+//d
     // 내 일정 전체 조회
     public List<TravelPlanResponse> listMyPlans(Long userId) {
         List<TravelPlanEntity> plans = travelPlanRepository.findByUser_IdAndIsDeletedFalse(userId);
@@ -58,7 +58,7 @@ public class TravelPlanService {
             resp.setStartDate(plan.getStartDate());
             resp.setEndDate(plan.getEndDate());
             resp.setDescription(plan.getDescription());
-            resp.setNickname(plan.getUser().getNickname());
+            resp.setName(plan.getUser().getName());
             resp.setVisibility(plan.getVisibility());
             return resp;
         }).collect(Collectors.toList());
@@ -80,7 +80,7 @@ public class TravelPlanService {
         resp.setStartDate(plan.getStartDate());
         resp.setEndDate(plan.getEndDate());
         resp.setDescription(plan.getDescription());
-        resp.setNickname(plan.getUser().getNickname());
+        resp.setName(plan.getUser().getName());
         resp.setVisibility(plan.getVisibility());
         return resp;
     }
