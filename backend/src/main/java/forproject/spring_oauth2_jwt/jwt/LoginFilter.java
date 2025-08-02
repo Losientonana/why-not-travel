@@ -110,6 +110,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         this.jwtUtil = jwtUtil;
 
         this.setFilterProcessesUrl("/api/login");
+        this.setUsernameParameter("email");
         this.refreshTokenService = refreshTokenService;
     }
 

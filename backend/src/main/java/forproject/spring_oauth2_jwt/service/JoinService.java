@@ -69,10 +69,9 @@ public class JoinService {
 //        }
 
         UserEntity user = new UserEntity();
-//        user.setUsername(joinDTO.getUsername());
+        user.setUsername(joinDTO.getEmail()); // username을 email과 동일하게 설정
         user.setPassword(bCryptPasswordEncoder.encode(joinDTO.getPassword()));
         user.setName(joinDTO.getName());
-//        user.setNickname(joinDTO.getNickname());
         user.setEmail(joinDTO.getEmail());
         user.setRole("ROLE_USER");
 
