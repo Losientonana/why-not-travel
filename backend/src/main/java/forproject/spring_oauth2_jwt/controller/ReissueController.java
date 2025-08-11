@@ -58,26 +58,26 @@ public class ReissueController {
             return new ResponseEntity<>("invalid refresh token", HttpStatus.BAD_REQUEST);
         }
 
-        String username = jwtUtil.getEmail(refresh);
+        String email = jwtUtil.getEmail(refresh);
 
-        if (!refreshTokenService.isValid(refresh, username)) {
-            log.warn("Refresh token does not match the one in Redis for user: {}", username);
+        if (!refreshTokenService.isValid(refresh, email)) {
+            log.warn("Refresh token does not match the one in Redis for user: {}", email);
             return new ResponseEntity<>("invalid refresh token", HttpStatus.BAD_REQUEST);
         }
 
-        log.info("Refresh token is valid for user: {}", username);
+        log.info("Refresh token is valid for user: {}", email);
 
         String role = jwtUtil.getRole(refresh);
-        String newAccess = jwtUtil.createJwt("access", username, role, 600_000L);
-        String newRefresh = jwtUtil.createJwt("refresh", username, role, 86_400_000L);
+        String newAccess = jwtUtil.createJwt("access", email, role, 600_000L);
+        String newRefresh = jwtUtil.createJwt("refresh", email, role, 86_400_000L);
 
-        refreshTokenService.delete(username);
-        refreshTokenService.save(username, newRefresh, 86_400_000L);
+        refreshTokenService.delete(email);
+        refreshTokenService.save(email, newRefresh, 86_400_000L);
 
         response.setHeader("access", newAccess);
         response.addCookie(createCookie("refresh", newRefresh));
 
-        log.info("Successfully reissued tokens for user: {}", username);
+        log.info("Successfully reissued tokens for userEmail: {}", email);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

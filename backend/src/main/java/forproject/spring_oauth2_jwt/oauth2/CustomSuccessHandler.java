@@ -33,22 +33,23 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         //OAuth2User
         UserPrincipal customOAuth2User = (UserPrincipal) authentication.getPrincipal();
-        String username = customOAuth2User.getUsername();
 
+        // 사용자 정보에서 email과 role을 추출합니다.
+        String email = customOAuth2User.getEmail();
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
         GrantedAuthority auth = iterator.next();
         String role = auth.getAuthority();
 
-        String access = jwtUtil.createJwt("access", username, role, 600000L);
-//        String access = jwtUtil.createJwt("access", username, role, 5000L);
-        String refresh = jwtUtil.createJwt("refresh", username, role, 86400000L);
+        // email을 사용하여 JWT를 생성합니다.
+        String access = jwtUtil.createJwt("access", email, role, 600000L);
+        String refresh = jwtUtil.createJwt("refresh", email, role, 86400000L);
 
-        // Redis에 Refresh 저장
-        refreshTokenService.save(username,refresh,86_400_000L);
+        // Redis에 Refresh 토큰을 email을 key로 하여 저장합니다.
+        refreshTokenService.save(email, refresh, 86_400_000L);
 
         //응답 설정
-//        response.setHeader("access", access);
+        response.setHeader("access", access);
         response.addCookie(createCookie("refresh", refresh));
         response.setStatus(HttpStatus.OK.value());
 
