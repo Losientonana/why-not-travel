@@ -1,6 +1,0 @@
-# ESLint ignore file
-node_modules/
-.next/
-out/
-build/
-dist/

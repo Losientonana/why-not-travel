@@ -144,21 +144,21 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) throws IOException, ServletException {
 
-            //유저 정보
-            String username = authentication.getName();
+            //유저 정보 (email로 통일)
+            String email = authentication.getName(); // 실제로는 email이 들어옴 (setUsernameParameter("email") 설정 때문)
 
             Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
             Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
             GrantedAuthority auth = iterator.next();
             String role = auth.getAuthority();
 
-            //토큰 생성
-            String access = jwtUtil.createJwt("access", username, role, 600000L);
-//        String access = jwtUtil.createJwt("access", username, role, 3000L);
-            String refresh = jwtUtil.createJwt("refresh", username, role, 86400000L);
+            //토큰 생성 (email로 통일)
+            String access = jwtUtil.createJwt("access", email, role, 600000L);
+//        String access = jwtUtil.createJwt("access", email, role, 3000L);
+            String refresh = jwtUtil.createJwt("refresh", email, role, 86400000L);
 
-            // Redis에 Refresh 저장
-            refreshTokenService.save(username,refresh,86_400_000L);
+            // Redis에 Refresh 저장 (email을 key로 사용)
+            refreshTokenService.save(email, refresh, 86_400_000L);
 
             //응답 설정
             response.setHeader("access", access);
