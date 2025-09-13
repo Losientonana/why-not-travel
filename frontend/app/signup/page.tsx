@@ -6,28 +6,79 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Lock, Eye, EyeOff, Check, ArrowLeft } from "lucide-react"
+import { signup, checkEmail } from "@/lib/auth"
 
 export default function SignupPage() {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
     agreeToTerms: false,
     agreeToMarketing: false,
   })
+  const [errors, setErrors] = useState<{[key: string]: string}>({})
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validateEmail = async (email: string) => {
+    if (email) {
+      const result = await checkEmail(email)
+      if (!result.isAvailable) {
+        setErrors(prev => ({ ...prev, email: "이미 사용 중인 이메일입니다." }))
+      } else {
+        setErrors(prev => ({ ...prev, email: "" }))
+      }
+    }
+  }
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: 회원가입 로직 구현
-    console.log("회원가입 데이터:", formData)
+
+    if (formData.password !== formData.confirmPassword) {
+      setErrors(prev => ({ ...prev, confirmPassword: "비밀번호가 일치하지 않습니다." }))
+      return
+    }
+
+    if (!formData.agreeToTerms) {
+      setErrors(prev => ({ ...prev, terms: "이용약관에 동의해주세요." }))
+      return
+    }
+
+    setIsLoading(true)
+    setErrors({})
+
+    try {
+      const signupData = {
+        name: formData.name,
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
+      }
+
+      const result = await signup(signupData)
+
+      if (result.success) {
+        alert("회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.")
+        router.push("/login")
+      } else {
+        setErrors(prev => ({ ...prev, general: result.message || "회원가입에 실패했습니다." }))
+      }
+    } catch (error) {
+      setErrors(prev => ({ ...prev, general: "회원가입 중 오류가 발생했습니다." }))
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const passwordRequirements = [
@@ -80,6 +131,12 @@ export default function SignupPage() {
 
             {/* Signup Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {errors.general && (
+                <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">
+                  {errors.general}
+                </div>
+              )}
+
               <div>
                 <Input
                   type="text"
@@ -89,14 +146,32 @@ export default function SignupPage() {
                   required
                 />
               </div>
+
+              <div>
+                <Input
+                  type="text"
+                  placeholder="닉네임을 입력하세요"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                />
+              </div>
+
               <div>
                 <Input
                   type="email"
                   placeholder="이메일을 입력하세요"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, email: e.target.value })
+                    setErrors(prev => ({ ...prev, email: "" }))
+                  }}
+                  onBlur={(e) => validateEmail(e.target.value)}
                   required
                 />
+                {errors.email && (
+                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">비밀번호</label>
@@ -152,7 +227,10 @@ export default function SignupPage() {
                     {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+{errors.confirmPassword && (
+                  <p className="text-xs text-red-500">{errors.confirmPassword}</p>
+                )}
+                {formData.confirmPassword && formData.password !== formData.confirmPassword && !errors.confirmPassword && (
                   <p className="text-xs text-red-500">비밀번호가 일치하지 않습니다</p>
                 )}
               </div>
@@ -192,10 +270,13 @@ export default function SignupPage() {
                 type="submit"
                 className="w-full bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600"
                 size="lg"
-                disabled={!formData.agreeToTerms}
+                disabled={!formData.agreeToTerms || isLoading}
               >
-                회원가입
+                {isLoading ? "회원가입 중..." : "회원가입"}
               </Button>
+              {errors.terms && (
+                <p className="text-red-500 text-xs text-center">{errors.terms}</p>
+              )}
             </form>
 
             <div className="text-center text-sm text-gray-600">

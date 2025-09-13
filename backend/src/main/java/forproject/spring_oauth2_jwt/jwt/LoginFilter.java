@@ -152,13 +152,12 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
             GrantedAuthority auth = iterator.next();
             String role = auth.getAuthority();
 
-            //토큰 생성 (email로 통일)
-            String access = jwtUtil.createJwt("access", email, role, 600000L);
-//        String access = jwtUtil.createJwt("access", email, role, 3000L);
-            String refresh = jwtUtil.createJwt("refresh", email, role, 86400000L);
+            //토큰 생성 (실무 표준: Access 15분, Refresh 7일)
+            String access = jwtUtil.createJwt("access", email, role, 900000L);      // 15분
+            String refresh = jwtUtil.createJwt("refresh", email, role, 604800000L); // 7일
 
             // Redis에 Refresh 저장 (email을 key로 사용)
-            refreshTokenService.save(email, refresh, 86_400_000L);
+            refreshTokenService.save(email, refresh, 604_800_000L); // 7일
 
             //응답 설정
             response.setHeader("access", access);

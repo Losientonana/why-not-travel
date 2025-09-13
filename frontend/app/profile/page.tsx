@@ -91,25 +91,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="w-5 h-5" />
-              <span>대시보드로 돌아가기</span>
-            </Link>
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">T</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">TravelMate</span>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Profile Header */}
         <Card className="mb-8">
           <CardContent className="p-8">

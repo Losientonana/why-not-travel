@@ -2,18 +2,20 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Eye, EyeOff, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { login } from "@/lib/auth";
+import { login, getUserInfo } from "@/lib/auth";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login: contextLogin, isLoggedIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -21,12 +23,24 @@ export default function LoginPage() {
   })
   const [error, setError] = useState<string | null>(null);
 
+  // 로그인 상태 변화 감지해서 자동 리다이렉트
+  useEffect(() => {
+    if (isLoggedIn) {
+      router.push("/");
+    }
+  }, [isLoggedIn, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     const result = await login(formData);
     if (result.success) {
-      router.push("/dashboard");
+      // 로그인 성공 시 Context에 사용자 정보 업데이트
+      const userInfo = await getUserInfo();
+      if (userInfo) {
+        contextLogin(userInfo);
+        // isLoggedIn 상태 변화를 useEffect에서 감지해서 자동 리다이렉트
+      }
     } else {
       setError(result.message || "로그인에 실패했습니다.");
     }

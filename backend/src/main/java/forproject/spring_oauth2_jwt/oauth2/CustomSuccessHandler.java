@@ -41,12 +41,12 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         GrantedAuthority auth = iterator.next();
         String role = auth.getAuthority();
 
-        // email을 사용하여 JWT를 생성합니다.
-        String access = jwtUtil.createJwt("access", email, role, 600000L);
-        String refresh = jwtUtil.createJwt("refresh", email, role, 86400000L);
+        // email을 사용하여 JWT를 생성합니다. (실무 표준: Access 15분, Refresh 7일)
+        String access = jwtUtil.createJwt("access", email, role, 900000L);      // 15분
+        String refresh = jwtUtil.createJwt("refresh", email, role, 604800000L); // 7일
 
         // Redis에 Refresh 토큰을 email을 key로 하여 저장합니다.
-        refreshTokenService.save(email, refresh, 86_400_000L);
+        refreshTokenService.save(email, refresh, 604_800_000L); // 7일
 
         //응답 설정
         response.setHeader("access", access);

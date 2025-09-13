@@ -133,44 +133,6 @@ export default function TripsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-orange-500 rounded-lg flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">TravelMate</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link href="/trips" className="text-blue-600 font-medium">
-                내 여행
-              </Link>
-              <Link href="/explore" className="text-gray-600 hover:text-blue-600">
-                둘러보기
-              </Link>
-              <Link href="/profile" className="text-gray-600 hover:text-blue-600">
-                마이페이지
-              </Link>
-            </nav>
-
-            <div className="flex items-center space-x-4">
-              <Link href="/profile">
-                <Button variant="ghost" size="sm">
-                  <Settings className="w-4 h-4 mr-2" />
-                  설정
-                </Button>
-              </Link>
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">김</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">

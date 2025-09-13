@@ -3,11 +3,21 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api, { tokenManager } from '@/lib/api';
+import { useAuth } from '@/contexts/auth-context';
+import { getUserInfo } from '@/lib/auth';
 
 export default function OAuth2RedirectPage() {
   const router = useRouter();
+  const { login: contextLogin, isLoggedIn } = useAuth();
   const [status, setStatus] = useState<string>('소셜 로그인 처리 중...');
   const [isLoading, setIsLoading] = useState(true);
+
+  // 로그인 상태 변화 감지해서 자동 리다이렉트
+  useEffect(() => {
+    if (isLoggedIn) {
+      router.push("/");
+    }
+  }, [isLoggedIn, router]);
 
   useEffect(() => {
     const handleSocialLoginSuccess = async () => {
@@ -22,15 +32,17 @@ export default function OAuth2RedirectPage() {
         const accessToken = response.headers['access'];
         
         if (accessToken) {
-          // localStorage에 access 토큰 저장
+          // 메모리에 access 토큰 저장 (보안 강화)
           tokenManager.setAccessToken(accessToken);
-          
+
           setStatus('로그인 성공! 홈으로 이동 중...');
-          
-          // 잠시 후 홈으로 이동
-          setTimeout(() => {
-            router.push('/trips');
-          }, 1000);
+
+          // Context에 사용자 정보 업데이트
+          const userInfo = await getUserInfo();
+          if (userInfo) {
+            contextLogin(userInfo);
+            // isLoggedIn 상태 변화를 useEffect에서 감지해서 자동 리다이렉트
+          }
         } else {
           throw new Error('Access 토큰을 받지 못했습니다');
         }
