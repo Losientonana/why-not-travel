@@ -179,7 +179,7 @@ export default function TripsPage() {
             <p className="text-gray-600">나의 여행을 관리하고 새로운 여행을 발견해보세요</p>
           </div>
 
-          <Link href="/trips/create">
+          <Link href="/trip/create">
             <Button className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600 text-white mt-4 md:mt-0">
               <Plus className="w-4 h-4 mr-2" />새 여행 만들기
             </Button>
@@ -271,7 +271,7 @@ export default function TripsPage() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">여행이 없습니다</h3>
                 <p className="text-gray-600 mb-4">첫 번째 여행을 계획해보세요!</p>
-                <Link href="/trips/create">
+                <Link href="/trip/create">
                   <Button className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600 text-white">
                     <Plus className="w-4 h-4 mr-2" />새 여행 만들기
                   </Button>

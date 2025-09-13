@@ -29,7 +29,7 @@ export default function OAuth2RedirectPage() {
           
           // 잠시 후 홈으로 이동
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push('/trips');
           }, 1000);
         } else {
           throw new Error('Access 토큰을 받지 못했습니다');
