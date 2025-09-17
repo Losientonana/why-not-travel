@@ -35,6 +35,9 @@ export default function Header() {
             <Link href="/trips" className="text-neutral-600 hover:text-primary-600 transition-colors">
               내 여행
             </Link>
+            <Link href="/trip/create" className="text-neutral-600 hover:text-primary-600 transition-colors">
+              여행 만들기
+            </Link>
             <Link href="/explore" className="text-neutral-600 hover:text-primary-600 transition-colors">
               둘러보기
             </Link>
@@ -107,6 +110,9 @@ export default function Header() {
                 <>
                   <Link href="/trips" className="text-neutral-600 hover:text-primary-600 transition-colors">
                     내 여행
+                  </Link>
+                  <Link href="/trip/create" className="text-neutral-600 hover:text-primary-600 transition-colors">
+                    여행 만들기
                   </Link>
                   <Link href="/explore" className="text-neutral-600 hover:text-primary-600 transition-colors">
                     둘러보기

@@ -1,5 +1,7 @@
 package forproject.spring_oauth2_jwt.entity;
 
+import forproject.spring_oauth2_jwt.enums.BudgetLevel;
+import forproject.spring_oauth2_jwt.enums.TravelStyle;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -51,5 +53,16 @@ public class TravelPlanEntity {
 
     @Column(nullable = false)
     private boolean isDeleted = false;
+
+    @Column(columnDefinition = "JSON", nullable = true)
+    private String tags;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true, length = 30)
+    private TravelStyle travelStyle;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true, length = 20)
+    private BudgetLevel budgetLevel;
 }
 

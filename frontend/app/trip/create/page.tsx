@@ -29,6 +29,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
+import api, { tokenManager } from "@/lib/api"
+import { toast } from "sonner"
 
 // 여행 템플릿 데이터
 const tripTemplates = [
@@ -101,27 +103,81 @@ export default function CreateTripPage() {
   const [emailInput, setEmailInput] = useState("")
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isImageUploading, setIsImageUploading] = useState(false)
+
+  const validateAndSetImage = (file: File) => {
+    // 파일 크기 검증 (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("파일 크기가 너무 큽니다. 10MB 이하의 파일을 선택해주세요.")
+      return false
+    }
+
+    // 파일 형식 검증
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("지원하지 않는 파일 형식입니다. JPG, PNG, WEBP 파일만 업로드 가능합니다.")
+      return false
+    }
+
+    setFormData({ ...formData, coverImage: file })
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setCoverImagePreview(e.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+    return true
+  }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      setFormData({ ...formData, coverImage: file })
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setCoverImagePreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+      validateAndSetImage(file)
     }
   }
 
-  const handleAddEmail = () => {
-    if (emailInput && !formData.inviteEmails.includes(emailInput)) {
-      setFormData({
-        ...formData,
-        inviteEmails: [...formData.inviteEmails, emailInput],
-      })
-      setEmailInput("")
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const file = event.dataTransfer.files?.[0]
+    if (file) {
+      validateAndSetImage(file)
     }
+  }
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+  }
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+  }
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  const handleAddEmail = () => {
+    if (!emailInput) {
+      toast.error("이메일을 입력해주세요.")
+      return
+    }
+
+    if (!validateEmail(emailInput)) {
+      toast.error("올바른 이메일 형식이 아닙니다.")
+      return
+    }
+
+    if (formData.inviteEmails.includes(emailInput)) {
+      toast.error("이미 추가된 이메일입니다.")
+      return
+    }
+
+    setFormData({
+      ...formData,
+      inviteEmails: [...formData.inviteEmails, emailInput],
+    })
+    setEmailInput("")
+    toast.success("동행자가 추가되었습니다.")
   }
 
   const handleRemoveEmail = (email: string) => {
@@ -136,7 +192,15 @@ export default function CreateTripPage() {
       case 1:
         return formData.template !== ""
       case 2:
-        return formData.title && formData.destination && formData.startDate && formData.endDate
+        // 기본 필드 검증
+        if (!formData.title || !formData.destination || !formData.startDate || !formData.endDate) {
+          return false
+        }
+        // 날짜 관계 검증
+        if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) {
+          return false
+        }
+        return true
       case 3:
         return true
       default:
@@ -161,14 +225,138 @@ export default function CreateTripPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
-      console.log("여행 생성 데이터:", formData)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      router.push("/trip/1")
-    } catch (error) {
-      console.error("여행 생성 실패:", error)
+      // 토큰 확인
+      const hasToken = tokenManager.hasToken()
+      if (!hasToken) {
+        toast.error("로그인이 필요합니다. 다시 로그인해주세요.")
+        router.push("/login")
+        return
+      }
+
+      // 1. 이미지 업로드 (있는 경우)
+      let imageUri = ""
+      if (formData.coverImage) {
+        setIsImageUploading(true)
+        try {
+          const imageFormData = new FormData()
+          imageFormData.append("image", formData.coverImage)
+          imageFormData.append("purpose", "trip_cover")
+
+          const imageResponse = await api.post("/api/upload/image", imageFormData, {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          })
+
+          if (imageResponse.data?.success === true) {
+            imageUri = imageResponse.data.data.imageUrl
+            console.log("✅ 이미지 업로드 성공:", imageUri)
+          } else {
+            toast.error("이미지 업로드에 실패했습니다.")
+            return
+          }
+        } catch (imageError: any) {
+          console.error("❌ 이미지 업로드 실패:", imageError)
+          toast.error("이미지 업로드에 실패했습니다.")
+          return
+        } finally {
+          setIsImageUploading(false)
+        }
+      }
+
+      // 2. 템플릿에서 태그 추출
+      const selectedTemplate = tripTemplates.find(t => t.id === formData.template)
+      const tags = selectedTemplate?.features.map(feature => ({
+        name: feature,
+        category: getFeatureCategory(feature),
+        weight: 1
+      })) || []
+
+      // 3. 여행 생성 API 호출
+      const response = await api.post("/api/trips", {
+        title: formData.title,
+        startDate: formData.startDate ? format(formData.startDate, "yyyy-MM-dd") : "",
+        endDate: formData.endDate ? format(formData.endDate, "yyyy-MM-dd") : "",
+        description: formData.description || "",
+        destination: formData.destination,
+        estimatedCost: formData.budget ? parseInt(formData.budget) : null,
+        tags: tags,
+        travelStyle: getTravelStyleFromTemplate(formData.template),
+        budgetLevel: getBudgetLevelFromBudget(formData.budget),
+        visibility: formData.isPublic ? "PUBLIC" : "PRIVATE",
+        imageUri: imageUri, // 업로드된 이미지 URL
+        inviteEmails: formData.inviteEmails
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      // 응답 확인
+      if (response.status === 200 && response.data?.success === true) {
+        toast.success("여행이 성공적으로 생성되었습니다!")
+        router.push("/trips")
+      } else {
+        console.warn("⚠️ 예상과 다른 응답:", response.data)
+        toast.error("여행 업로드 실패")
+      }
+
+    } catch (error: any) {
+      console.error("❌ 여행 생성 실패:", error)
+      const errorMessage = error.response?.data?.message || "여행 생성에 실패했습니다."
+      toast.error(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // 템플릿에서 여행 스타일 추출
+  const getTravelStyleFromTemplate = (templateId: string): string => {
+    const styleMap: { [key: string]: string } = {
+      healing: "HEALING",
+      food: "GOURMET",
+      culture: "CULTURE",
+      adventure: "ADVENTURE",
+      city: "CITY",
+      custom: "HEALING" // 기본값
+    }
+    return styleMap[templateId] || "HEALING"
+  }
+
+  // 예산에서 예산 수준 추출
+  const getBudgetLevelFromBudget = (budget: string): string => {
+    if (!budget) return "MID_RANGE"
+    const budgetNumber = parseInt(budget)
+    if (budgetNumber < 300000) return "BUDGET"
+    if (budgetNumber > 1000000) return "LUXURY"
+    return "MID_RANGE"
+  }
+
+  // 특성에서 카테고리 추출
+  const getFeatureCategory = (feature: string): string => {
+    const categoryMap: { [key: string]: string } = {
+      "자연 명소": "NATURE",
+      "스파/온천": "WELLNESS",
+      "조용한 숙소": "WELLNESS",
+      "느린 여행": "WELLNESS",
+      "유명 맛집": "FOOD",
+      "현지 음식": "FOOD",
+      "요리 체험": "FOOD",
+      "시장 투어": "FOOD",
+      "박물관": "CULTURE",
+      "역사 유적": "CULTURE",
+      "전통 체험": "CULTURE",
+      "문화 공연": "CULTURE",
+      "등산/트레킹": "ACTIVITY",
+      "수상 스포츠": "ACTIVITY",
+      "익스트림 스포츠": "ACTIVITY",
+      "야외 활동": "ACTIVITY",
+      "쇼핑": "ACTIVITY",
+      "카페 투어": "FOOD",
+      "야경 명소": "ACTIVITY",
+      "도시 문화": "CULTURE"
+    }
+    return categoryMap[feature] || "OTHER"
   }
 
   const selectedTemplate = tripTemplates.find((t) => t.id === formData.template)
@@ -315,11 +503,16 @@ export default function CreateTripPage() {
                 {/* 커버 이미지 업로드 */}
                 <div className="space-y-2">
                   <Label className="text-base font-medium text-gray-700">커버 이미지</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                  <div
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors relative"
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                  >
                     {coverImagePreview ? (
                       <div className="relative">
                         <img
-                          src={coverImagePreview || "/placeholder.svg"}
+                          src={coverImagePreview}
                           alt="Cover preview"
                           className="w-full h-48 object-cover rounded-lg"
                         />
@@ -340,19 +533,25 @@ export default function CreateTripPage() {
                       <div>
                         <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-600 mb-2">여행을 대표할 이미지를 업로드하세요</p>
-                        <p className="text-sm text-gray-500 mb-4">JPG, PNG 파일 (최대 10MB)</p>
+                        <p className="text-sm text-gray-500 mb-4">JPG, PNG, WEBP 파일 (최대 10MB)</p>
+                        <p className="text-sm text-gray-500 mb-4">드래그 앤 드롭 또는 버튼을 클릭하세요</p>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/jpeg,image/jpg,image/png,image/webp"
                           onChange={handleImageUpload}
                           className="hidden"
                           id="cover-image"
+                          disabled={isImageUploading || isSubmitting}
                         />
-                        <Label htmlFor="cover-image">
-                          <Button type="button" variant="outline" className="cursor-pointer bg-transparent">
-                            이미지 선택
-                          </Button>
-                        </Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="cursor-pointer bg-transparent"
+                          disabled={isImageUploading || isSubmitting}
+                          onClick={() => document.getElementById('cover-image')?.click()}
+                        >
+                          {isImageUploading ? "업로드 중..." : "이미지 선택"}
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -560,7 +759,7 @@ export default function CreateTripPage() {
                     />
                     <Button
                       onClick={handleAddEmail}
-                      disabled={!emailInput || !emailInput.includes("@")}
+                      disabled={!emailInput || !validateEmail(emailInput)}
                       className="h-12 px-6"
                     >
                       <Plus className="w-4 h-4 mr-2" />
