@@ -22,5 +22,17 @@ public class TravelPlaceEntity {
 
     private String location;
 
+    @Column(nullable = true)
+    private Double latitude; // 위도
+
+    @Column(nullable = true)
+    private Double longitude; // 경도
+
+    @Column(nullable = true, length = 50)
+    private String placeType; // 장소 유형 (관광지, 맛집, 숙박 등)
+
+    @Column(nullable = true)
+    private Integer orderIndex; // 방문 순서
+
     private String memo;
 }

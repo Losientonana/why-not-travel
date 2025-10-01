@@ -47,6 +47,16 @@ dependencies {
     //validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    //quartz
+    implementation 'org.springframework.boot:spring-boot-starter-quartz'
+
+    // 아파치 파일처리를 위한 commons IO
+    implementation 'commons-io:commons-io:2.11.0'
+
+    // CLI 명령어 파싱을 위한 Apache Commons CLI
+    implementation 'commons-cli:commons-cli:1.5.0'
+
+    // json 처리
 }
 
 tasks.named('test') {

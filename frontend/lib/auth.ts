@@ -55,9 +55,9 @@ export const logout = async () => {
   }
 };
 
-// 로그인 상태 확인
+// 로그인 상태 확인 (메모리 기반)
 export const isAuthenticated = (): boolean => {
-  return !!tokenManager.getAccessToken();
+  return tokenManager.hasToken();
 };
 
 // 사용자 정보 인터페이스 (백엔드 UserDTO 기반)
@@ -102,7 +102,7 @@ export const signup = async (formData: any) => {
 // 이메일 중복 확인 API
 export const checkEmail = async (email: string) => {
   try {
-    const response = await api.post('/api/join/check-email', { email });
+    const response = await api.get(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
     return response.data; // { isAvailable: boolean }
   } catch (error: any) {
     console.error('❌ 이메일 중복 확인 실패:', error.response?.data);
@@ -113,7 +113,7 @@ export const checkEmail = async (email: string) => {
 // 닉네임 중복 확인 API
 export const checkUsername = async (username: string) => {
   try {
-    const response = await api.post('/api/join/check-username', { username });
+    const response = await api.get(`/api/auth/check-username?username=${encodeURIComponent(username)}`);
     return response.data; // { isAvailable: boolean }
   } catch (error: any) {
     console.error('❌ 닉네임 중복 확인 실패:', error.response?.data);

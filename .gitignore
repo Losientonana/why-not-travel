@@ -3,3 +3,44 @@ node_modules/
 dist/
 .env
 npm-debug.log
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 백업 파일들
+*_backup_*/
+backend_backup_*/
+*backup*
+
+# 업로드 파일들
+uploads/
+backend/uploads/
+frontend/public/uploads/
+
+# 로그 파일들
+*.log
+logs/
+
+# 임시 파일들
+temp/
+tmp/
+*.tmp
+*.temp
+
+# IDE 설정 파일들 (추가)
+.vscode/
+.idea/
+
+# 환경 설정 파일들 (추가 보안)
+*.properties
+*.yml
+*.yaml
+!*-example.properties
+!*-template.properties
+!*-sample.properties

@@ -68,11 +68,12 @@ public class ReissueController {
         log.info("Refresh token is valid for user: {}", email);
 
         String role = jwtUtil.getRole(refresh);
-        String newAccess = jwtUtil.createJwt("access", email, role, 600_000L);
-        String newRefresh = jwtUtil.createJwt("refresh", email, role, 86_400_000L);
+        // 실무 표준: Access 15분, Refresh 7일
+        String newAccess = jwtUtil.createJwt("access", email, role, 900_000L);      // 15분
+        String newRefresh = jwtUtil.createJwt("refresh", email, role, 604_800_000L); // 7일
 
         refreshTokenService.delete(email);
-        refreshTokenService.save(email, newRefresh, 86_400_000L);
+        refreshTokenService.save(email, newRefresh, 604_800_000L); // 7일
 
         response.setHeader("access", newAccess);
         response.addCookie(createCookie("refresh", newRefresh));
@@ -83,7 +84,7 @@ public class ReissueController {
 
     private Cookie createCookie(String key, String value) {
         Cookie cookie = new Cookie(key, value);
-        cookie.setMaxAge(86_400);
+        cookie.setMaxAge(604_800); // 7일
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         return cookie;

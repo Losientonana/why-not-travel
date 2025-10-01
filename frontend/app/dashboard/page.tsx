@@ -35,7 +35,7 @@ import {
   RefreshCw,
   Eye,
 } from "lucide-react"
-import { getUserInfo, UserInfo } from "@/lib/auth";
+import { useAuth } from "@/contexts/auth-context";
 
 // Enhanced Mock Data with more realistic content
 const mockUser = {
@@ -343,22 +343,12 @@ const userStats = {
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const { user, isLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("")
   const [currentRecommendation, setCurrentRecommendation] = useState(0)
   const [selectedFilter, setSelectedFilter] = useState("all")
-  const [isLoading, setIsLoading] = useState(true)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [selectedDestination, setSelectedDestination] = useState(null)
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const userInfo = await getUserInfo();
-      setUser(userInfo);
-      setIsLoading(false);
-    };
-    fetchUser();
-  }, []);
 
   // Auto-rotate recommendations
   useEffect(() => {
@@ -421,76 +411,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
-      {/* Enhanced Header */}
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50"
-      >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.5 }}
-                className="w-8 h-8 bg-gradient-to-r from-blue-600 to-orange-500 rounded-lg flex items-center justify-center"
-              >
-                <MapPin className="w-5 h-5 text-white" />
-              </motion.div>
-              <span className="text-xl font-bold text-gray-900">TravelMate</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link href="/dashboard" className="text-blue-600 font-medium relative">
-                홈
-                <motion.div layoutId="activeTab" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-600" />
-              </Link>
-              <Link href="/trips" className="text-gray-600 hover:text-blue-600 transition-colors">
-                내 여행
-              </Link>
-              <Link href="/explore" className="text-gray-600 hover:text-blue-600 transition-colors">
-                둘러보기
-              </Link>
-              <Link href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors">
-                마이페이지
-              </Link>
-            </nav>
-
-            <div className="flex items-center space-x-4">
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="ghost" size="sm" className="relative">
-                  <Bell className="w-4 h-4" />
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"
-                  />
-                </Button>
-              </motion.div>
-
-              <div className="flex items-center space-x-2 bg-gray-100 rounded-full px-3 py-1">
-                <Zap className="w-4 h-4 text-yellow-500" />
-                <span className="text-sm font-medium">{displayUser.points}</span>
-              </div>
-
-              <Link href="/profile">
-                <motion.div whileHover={{ scale: 1.05 }} className="flex items-center space-x-2">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={displayUser.avatar || "/placeholder.svg"} />
-                    <AvatarFallback>{displayUser.name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="hidden md:block">
-                    <div className="text-sm font-medium">{displayUser.name}</div>
-                    <div className="text-xs text-gray-500">Level {displayUser.level}</div>
-                  </div>
-                </motion.div>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </motion.header>
-
-      <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4">
         {/* Enhanced Hero Section */}
         <motion.section variants={containerVariants} initial="hidden" animate="visible" className="py-12 lg:py-20">
           <div className="text-center mb-12">
