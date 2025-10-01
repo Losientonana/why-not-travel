@@ -1,6 +1,7 @@
 package forproject.spring_oauth2_jwt.dto;
 
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 

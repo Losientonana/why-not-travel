@@ -13,11 +13,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/upload")
 public class ImageUploadController {
 
     private final ImageUploadService imageUploadService;
+
+    public ImageUploadController(ImageUploadService imageUploadService) {
+        this.imageUploadService = imageUploadService;
+    }
 
     @PostMapping("/image")
     public ResponseEntity<ApiResponse<ImageUploadResponse>> uploadImage(

@@ -36,3 +36,31 @@ out/
 ### VS Code ###
 .vscode/
 src/main/resources/application.properties
+
+### Additional Security ###
+# 업로드 파일들
+uploads/
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+
+# 로그 파일들
+*.log
+logs/
+
+# 임시 파일들
+temp/
+tmp/
+*.tmp
+*.temp
+
+# 백업 파일들
+*backup*
+*_backup_*/
+
+# 환경 설정 파일들 (추가 보안)
+src/main/resources/application-*.properties
+!src/main/resources/application-example.properties
+!src/main/resources/application-template.properties

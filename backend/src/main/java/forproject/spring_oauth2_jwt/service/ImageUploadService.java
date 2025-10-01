@@ -41,11 +41,11 @@ public class ImageUploadService {
                     : "";
             String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
 
-            // 파일 저장
+            // 실제로 디스크에 파일이 생기는 코드
             Path filePath = uploadPath.resolve(uniqueFileName);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // URL 생성
+            // 겹치지 않게 랜덤한 url 생성
             String imageUrl = baseUrl + "/images/" + purpose + "/" + uniqueFileName;
 
             log.info("이미지 업로드 성공: {} -> {}", originalFileName, imageUrl);

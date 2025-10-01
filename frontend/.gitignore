@@ -25,3 +25,30 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# 로그 파일들
+*.log
+logs/
+
+# 임시 파일들
+temp/
+tmp/
+*.tmp
+*.temp
+
+# 백업 파일들
+*backup*
+*_backup_*/
