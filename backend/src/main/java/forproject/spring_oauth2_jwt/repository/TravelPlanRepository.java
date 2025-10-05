@@ -15,6 +15,7 @@ public interface TravelPlanRepository extends JpaRepository<TravelPlanEntity,Lon
 
     Optional<TravelPlanEntity> findByIdAndIsDeletedFalse(Long tripId);
 
+
     /**
      * 특정 파일명이 포함된 이미지를 사용하는 여행 계획 . 조회
      *
@@ -30,4 +31,12 @@ public interface TravelPlanRepository extends JpaRepository<TravelPlanEntity,Lon
      */
     @Query("SELECT t FROM TravelPlanEntity t WHERE t.imageUrl LIKE CONCAT('%', :fileName, '%')")
     List<TravelPlanEntity> findByImageUrlContaining(@Param("fileName") String fileName);
+
+    /**
+     * 여행 상태들을 리스트로 반환
+     * @param tripIds
+     * @param userId
+     * @return
+     */
+    List<TravelPlanEntity> findByIdInAndUser_IdAndIsDeletedFalse(List<Long> tripIds, Long userId);
 }

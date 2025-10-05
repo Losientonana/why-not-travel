@@ -64,5 +64,6 @@ public class TravelPlanEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = true, length = 20)
     private BudgetLevel budgetLevel;
+
 }
 

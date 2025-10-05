@@ -171,4 +171,25 @@ api.interceptors.response.use(
   }
 );
 
+// 타입 import
+import { TravelPlanResponse, TravelPlanStatusResponse } from './types';
+
 export default api;
+
+// 여행 계획 API 함수
+export const getTravelPlans = async (): Promise<TravelPlanResponse[]> => {
+  const response = await api.get('/api/trips');
+  return response.data;
+};
+
+// 단일 여행 계획 상태 조회
+export const getTravelPlanStatus = async (tripId: number): Promise<TravelPlanStatusResponse> => {
+  const response = await api.get(`/api/trips/${tripId}/status`);
+  return response.data;
+};
+
+// 여러 여행 계획 상태 배치 조회
+export const getTravelPlanStatuses = async (tripIds: number[]): Promise<TravelPlanStatusResponse[]> => {
+  const response = await api.post('/api/trips/statuses', tripIds);
+  return response.data;
+};
