@@ -114,6 +114,8 @@ public class TravelPlanService {
             resp.setDescription(plan.getDescription());
             resp.setName(plan.getUser().getName());
             resp.setVisibility(plan.getVisibility());
+            resp.setDestination(plan.getDestination());
+            resp.setImageUrl(plan.getImageUrl());
             return resp;
         }).collect(Collectors.toList());
 
@@ -128,6 +130,9 @@ public class TravelPlanService {
             throw new IllegalArgumentException("이 여행 계획을 조회할 권한이 없습니다.");
         }
 
+        /**
+         * 이때 status의 대해서는 재활용성이 높기에 개별 서비스로 분리
+         */
         TravelPlanResponse resp = new TravelPlanResponse();
         resp.setId(plan.getId());
         resp.setTitle(plan.getTitle());
@@ -135,7 +140,10 @@ public class TravelPlanService {
         resp.setEndDate(plan.getEndDate());
         resp.setDescription(plan.getDescription());
         resp.setName(plan.getUser().getName());
+        resp.setDestination(plan.getDestination());
         resp.setVisibility(plan.getVisibility());
+//        resp.setCoverImage(plan.getImageUrl());
+
         return resp;
     }
 
@@ -180,4 +188,8 @@ public class TravelPlanService {
         travelPlanEntity.setDeleted(true);
         // @Transactional 어노테이션에 의해 메소드 종료 시 자동으로 DB에 반영됩니다.
     }
+
+    /**
+     * DB에서 imageURL에 해당하는 이미지 갖고오는
+     */
 }

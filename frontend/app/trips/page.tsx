@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,10 +21,13 @@ import {
   Star,
   TrendingUp,
   Clock,
+  Loader2,
 } from "lucide-react"
+import { TravelPlanResponse, TravelPlanStatusResponse, TravelPlanStatus } from "@/lib/types"
+import { getTravelPlans, getTravelPlanStatuses } from "@/lib/api"
 
-// Mock data
-const mockTrips = [
+// Mock data for popular trips (keeping this as is)
+const mockTripsForDisplay = [
   {
     id: 1,
     title: "제주도 힐링 여행",
@@ -103,6 +106,10 @@ const popularTrips = [
 ]
 
 const statusConfig = {
+  PLANNING: { label: "계획중", color: "bg-yellow-100 text-yellow-800" },
+  ONGOING: { label: "여행중", color: "bg-green-100 text-green-800" },
+  COMPLETED: { label: "완료", color: "bg-gray-100 text-gray-800" },
+  // Legacy status for mock data
   planning: { label: "계획중", color: "bg-yellow-100 text-yellow-800" },
   upcoming: { label: "예정", color: "bg-blue-100 text-blue-800" },
   ongoing: { label: "여행중", color: "bg-green-100 text-green-800" },
@@ -115,12 +122,54 @@ export default function TripsPage() {
   const [activeTab, setActiveTab] = useState("my-trips")
   const [statusFilter, setStatusFilter] = useState("all")
 
-  const filteredTrips = mockTrips.filter((trip) => {
+  // Real data states
+  const [trips, setTrips] = useState<TravelPlanResponse[]>([])
+  const [statuses, setStatuses] = useState<Record<number, TravelPlanStatusResponse>>({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch trips and statuses
+  useEffect(() => {
+    const fetchTripsAndStatuses = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // 1. 여행 계획 목록 조회
+        const tripsData = await getTravelPlans()
+        setTrips(tripsData)
+
+        // 2. 상태 정보 배치 조회
+        if (tripsData.length > 0) {
+          const tripIds = tripsData.map(trip => trip.id)
+          const statusesData = await getTravelPlanStatuses(tripIds)
+
+          // 상태 정보를 tripId를 키로 하는 객체로 변환
+          const statusMap = statusesData.reduce((acc, status) => {
+            acc[status.tripId] = status
+            return acc
+          }, {} as Record<number, TravelPlanStatusResponse>)
+
+          setStatuses(statusMap)
+        }
+      } catch (err) {
+        setError('여행 계획을 불러오는데 실패했습니다.')
+        console.error('Error fetching trips and statuses:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTripsAndStatuses()
+  }, [])
+
+  const filteredTrips = trips.filter((trip) => {
     const matchesSearch =
       trip.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      trip.destination.toLowerCase().includes(searchQuery.toLowerCase())
+      trip.destination?.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesStatus = statusFilter === "all" || trip.status === statusFilter
+    const tripStatus = statuses[trip.id]?.status
+    const matchesStatus = statusFilter === "all" || tripStatus === statusFilter
 
     return matchesSearch && matchesStatus
   })
@@ -130,6 +179,14 @@ export default function TripsPage() {
       trip.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       trip.destination.toLowerCase().includes(searchQuery.toLowerCase()),
   )
+
+  const getStatusColor = (status: string) => {
+    return statusConfig[status as keyof typeof statusConfig]?.color || 'bg-gray-100 text-gray-800'
+  }
+
+  const getStatusLabel = (status: string) => {
+    return statusConfig[status as keyof typeof statusConfig]?.label || status
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -209,10 +266,9 @@ export default function TripsPage() {
             <div className="flex space-x-2 overflow-x-auto pb-2">
               {[
                 { key: "all", label: "전체" },
-                { key: "planning", label: "계획중" },
-                { key: "upcoming", label: "예정" },
-                { key: "ongoing", label: "여행중" },
-                { key: "completed", label: "완료" },
+                { key: "PLANNING", label: "계획중" },
+                { key: "ONGOING", label: "여행중" },
+                { key: "COMPLETED", label: "완료" },
               ].map((status) => (
                 <Button
                   key={status.key}
@@ -226,7 +282,23 @@ export default function TripsPage() {
               ))}
             </div>
 
-            {filteredTrips.length === 0 ? (
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <span className="ml-2 text-gray-600">여행 계획을 불러오는 중...</span>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MapPin className="w-8 h-8 text-red-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">오류가 발생했습니다</h3>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <Button onClick={() => window.location.reload()} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  다시 시도
+                </Button>
+              </div>
+            ) : filteredTrips.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <MapPin className="w-8 h-8 text-gray-400" />
@@ -243,35 +315,89 @@ export default function TripsPage() {
               <div
                 className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}
               >
-                {filteredTrips.map((trip) => (
-                  <Link key={trip.id} href={`/trips/${trip.id}`}>
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer border-0 shadow-md">
-                      <CardContent className="p-0">
-                        {viewMode === "grid" ? (
-                          <>
-                            <div className="relative">
-                              <img
-                                src={trip.coverImage || "/placeholder.svg"}
-                                alt={trip.title}
-                                className="w-full h-48 object-cover rounded-t-lg"
-                              />
-                              <Badge
-                                className={`absolute top-3 right-3 ${statusConfig[trip.status as keyof typeof statusConfig].color}`}
-                              >
-                                {statusConfig[trip.status as keyof typeof statusConfig].label}
-                              </Badge>
-                              {trip.isOwner && (
+                {filteredTrips.map((trip) => {
+                  const status = statuses[trip.id]
+
+                  return (
+                    <Link key={trip.id} href={`/trips/${trip.id}`}>
+                      <Card className="hover:shadow-lg transition-shadow cursor-pointer border-0 shadow-md">
+                        <CardContent className="p-0">
+                          {viewMode === "grid" ? (
+                            <>
+                              <div className="relative">
+                                <img
+                                  src={trip.imageUrl || "/placeholder.svg"}
+                                  alt={trip.title}
+                                  className="w-full h-48 object-cover rounded-t-lg"
+                                />
+                                {status && (
+                                  <Badge
+                                    className={`absolute top-3 right-3 ${getStatusColor(status.status)}`}
+                                  >
+                                    {status.statusDescription}
+                                  </Badge>
+                                )}
                                 <Badge className="absolute top-3 left-3 bg-blue-600 text-white">내 여행</Badge>
-                              )}
-                            </div>
-                            <div className="p-4">
-                              <h3 className="font-semibold text-gray-900 mb-1">{trip.title}</h3>
-                              <p className="text-sm text-gray-600 mb-3 flex items-center">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                {trip.destination}
-                              </p>
-                              <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                                <div className="flex items-center space-x-4">
+                              </div>
+                              <div className="p-4">
+                                <h3 className="font-semibold text-gray-900 mb-1">{trip.title}</h3>
+                                <p className="text-sm text-gray-600 mb-3 flex items-center">
+                                  <MapPin className="w-3 h-3 mr-1" />
+                                  {trip.destination}
+                                </p>
+                                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                                  <div className="flex items-center space-x-4">
+                                    <div className="flex items-center">
+                                      <Calendar className="w-3 h-3 mr-1" />
+                                      {new Date(trip.startDate).toLocaleDateString("ko-KR", {
+                                        month: "short",
+                                        day: "numeric",
+                                      })}
+                                    </div>
+                                    <div className="flex items-center">
+                                      <Users className="w-3 h-3 mr-1" />
+                                      1
+                                    </div>
+                                    <div className="flex items-center">
+                                      <Camera className="w-3 h-3 mr-1" />
+                                      0
+                                    </div>
+                                  </div>
+                                </div>
+                                {trip.estimatedCost && (
+                                  <div className="text-xs text-gray-600">
+                                    <span>예상 비용: {trip.estimatedCost.toLocaleString()}원</span>
+                                  </div>
+                                )}
+                                {trip.description && (
+                                  <p className="text-xs text-gray-500 mt-2 line-clamp-2 overflow-hidden">{trip.description}</p>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center p-4 space-x-4">
+                              <img
+                                src={trip.imageUrl || "/placeholder.svg"}
+                                alt={trip.title}
+                                className="w-16 h-16 object-cover rounded-lg"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-1">
+                                  <h3 className="font-semibold text-gray-900">{trip.title}</h3>
+                                  <div className="flex space-x-2">
+                                    <Badge className="bg-blue-600 text-white text-xs">내 여행</Badge>
+                                    {status && (
+                                      <Badge className={getStatusColor(status.status)}>
+                                        {status.statusDescription}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-2 flex items-center">
+                                  <MapPin className="w-3 h-3 mr-1" />
+                                  {trip.destination}
+                                </p>
+                                <div className="flex items-center space-x-4 text-xs text-gray-500">
                                   <div className="flex items-center">
                                     <Calendar className="w-3 h-3 mr-1" />
                                     {new Date(trip.startDate).toLocaleDateString("ko-KR", {
@@ -281,76 +407,24 @@ export default function TripsPage() {
                                   </div>
                                   <div className="flex items-center">
                                     <Users className="w-3 h-3 mr-1" />
-                                    {trip.participants}
+                                    1
                                   </div>
                                   <div className="flex items-center">
                                     <Camera className="w-3 h-3 mr-1" />
-                                    {trip.photos}
+                                    0
                                   </div>
-                                </div>
-                              </div>
-                              {/* Budget Progress */}
-                              {trip.budget > 0 && (
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-xs text-gray-600">
-                                    <span>예산 사용</span>
-                                    <span>{Math.round((trip.spent / trip.budget) * 100)}%</span>
-                                  </div>
-                                  <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                    <div
-                                      className="bg-blue-600 h-1.5 rounded-full"
-                                      style={{ width: `${Math.min((trip.spent / trip.budget) * 100, 100)}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex items-center p-4 space-x-4">
-                            <img
-                              src={trip.coverImage || "/placeholder.svg"}
-                              alt={trip.title}
-                              className="w-16 h-16 object-cover rounded-lg"
-                            />
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between mb-1">
-                                <h3 className="font-semibold text-gray-900">{trip.title}</h3>
-                                <div className="flex space-x-2">
-                                  {trip.isOwner && <Badge className="bg-blue-600 text-white text-xs">내 여행</Badge>}
-                                  <Badge className={statusConfig[trip.status as keyof typeof statusConfig].color}>
-                                    {statusConfig[trip.status as keyof typeof statusConfig].label}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <p className="text-sm text-gray-600 mb-2 flex items-center">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                {trip.destination}
-                              </p>
-                              <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                <div className="flex items-center">
-                                  <Calendar className="w-3 h-3 mr-1" />
-                                  {new Date(trip.startDate).toLocaleDateString("ko-KR", {
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
-                                </div>
-                                <div className="flex items-center">
-                                  <Users className="w-3 h-3 mr-1" />
-                                  {trip.participants}
-                                </div>
-                                <div className="flex items-center">
-                                  <Camera className="w-3 h-3 mr-1" />
-                                  {trip.photos}
+                                  {trip.estimatedCost && (
+                                    <span>{trip.estimatedCost.toLocaleString()}원</span>
+                                  )}
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
+                          )}
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  )
+                })}
               </div>
             )}
           </TabsContent>
@@ -370,7 +444,7 @@ export default function TripsPage() {
                   <Link href={`/explore/${trip.id}`}>
                     <div className="relative">
                       <img
-                        src={trip.coverImage || "/placeholder.svg"}
+                        src={trip.imageUrl || "/placeholder.svg"}
                         alt={trip.title}
                         className="w-full h-48 object-cover"
                       />
