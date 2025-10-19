@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Repository
-public interface TravelPhotoRepository extends JpaRepository<TravelChecklist, Long> {
+public interface TravelPhotoRepository extends JpaRepository<TravelPhoto, Long> {
 
 
     /**

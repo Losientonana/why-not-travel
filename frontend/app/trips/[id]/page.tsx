@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { getTripDetail } from "@/lib/api"
 import {
   ArrowLeft,
   Calendar,
@@ -234,6 +235,30 @@ const activityTypeConfig = {
 export default function TripDetailPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState("overview")
   const [likedPhotos, setLikedPhotos] = useState<string[]>([])
+  const [tripData, setTripData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // API 호출
+  useEffect(() => {
+    const fetchTripDetail = async () => {
+      try {
+        setLoading(true)
+        console.log('🔥 프론트엔드: API 호출 시작 - tripId:', params.id)
+        const data = await getTripDetail(Number(params.id))
+        console.log('✅ 프론트엔드: API 응답 받음:', data)
+        setTripData(data)
+        setError(null)
+      } catch (err: any) {
+        console.error('❌ 프론트엔드: API 호출 실패:', err)
+        setError(err.response?.data?.message || '여행 정보를 불러오는데 실패했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTripDetail()
+  }, [params.id])
 
   const handleLikePhoto = (photoId: string) => {
     setLikedPhotos((prev) => (prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId]))
@@ -242,6 +267,35 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   const completedTasks = mockTrip.checklist.filter((item) => item.completed).length
   const totalTasks = mockTrip.checklist.length
   const budgetProgress = (mockTrip.spent / mockTrip.budget) * 100
+
+  // 로딩 중
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">여행 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 에러 발생
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Link href="/trips">
+            <button className="text-blue-600 hover:text-blue-700">여행 목록으로 돌아가기</button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // API 응답 데이터 확인
+  console.log('📊 프론트엔드: 렌더링 데이터:', tripData)
 
   return (
     <div className="min-h-screen bg-gray-50">

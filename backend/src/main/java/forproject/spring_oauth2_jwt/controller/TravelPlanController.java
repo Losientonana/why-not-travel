@@ -1,10 +1,7 @@
 package forproject.spring_oauth2_jwt.controller;
 
-import forproject.spring_oauth2_jwt.dto.ApiResponse;
-import forproject.spring_oauth2_jwt.dto.TravelPlanCreateRequestDTO;
-import forproject.spring_oauth2_jwt.dto.UserPrincipal;
+import forproject.spring_oauth2_jwt.dto.*;
 import forproject.spring_oauth2_jwt.service.TravelPlanService;
-import forproject.spring_oauth2_jwt.dto.TravelPlanResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -68,12 +65,32 @@ public class TravelPlanController {
         return ResponseEntity.ok(result);
     }
 
-    // 특정 일정 조회
-    @GetMapping("/{tripId}")
-    public ResponseEntity<TravelPlanResponse> getPlan(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user) {
-        TravelPlanResponse result = travelPlanService.getTravelPlan(tripId, user.getId());
-        return ResponseEntity.ok(result);
+    @GetMapping("/{tripId}/detail")
+    public ResponseEntity<TravelDetailResponse> getPlanDetail(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user) {
+        log.info("GET /api/trips/{}/detail - userId: {}", tripId, user.getId());
+
+        TravelDetailResponse response = travelPlanService.getTravelDetail(tripId, user.getId());
+        return ResponseEntity.ok(response);
     }
+
+    /**
+     * 옵션 B: 일정 조회 (일정 탭 클릭 시)
+     *
+     * GET /api/trips/{tripId}/itineraries
+     */
+    @GetMapping("/{tripId}/itineraries")
+    public ResponseEntity<List<ItineraryResponse>> getItineraries(@PathVariable Long tripId) {
+        log.info("GET /api/trips/{}/itineraries", tripId);
+
+        List<ItineraryResponse> itineraries = travelPlanService.getItineraries(tripId);
+        return ResponseEntity.ok(itineraries);
+    }
+    // 특정 일정 조회
+//    @GetMapping("/{tripId}")
+//    public ResponseEntity<TravelPlanResponse> getPlan(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user) {
+//        TravelPlanResponse result = travelPlanService.getTravelPlan(tripId, user.getId());
+//        return ResponseEntity.ok(result);
+//    }
 
     @PatchMapping("/{tripId}")
     public ResponseEntity<TravelPlanResponse> update(

@@ -193,3 +193,10 @@ export const getTravelPlanStatuses = async (tripIds: number[]): Promise<TravelPl
   const response = await api.post('/api/trips/statuses', tripIds);
   return response.data;
 };
+
+// 여행 상세 정보 조회
+export const getTripDetail = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/detail`);
+  return response.data;
+};
+
