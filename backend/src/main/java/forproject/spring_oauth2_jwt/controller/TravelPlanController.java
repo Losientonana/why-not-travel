@@ -85,28 +85,64 @@ public class TravelPlanController {
         List<ItineraryResponse> itineraries = travelPlanService.getItineraries(tripId);
         return ResponseEntity.ok(itineraries);
     }
-    // 특정 일정 조회
-//    @GetMapping("/{tripId}")
-//    public ResponseEntity<TravelPlanResponse> getPlan(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user) {
-//        TravelPlanResponse result = travelPlanService.getTravelPlan(tripId, user.getId());
+
+
+    /**
+     * 옵션 B: 사진 조회 (사진 탭 클릭 시)
+     *
+     * GET /api/trips/{tripId}/photos
+     */
+    @GetMapping("/{tripId}/photos")
+    public ResponseEntity<List<PhotoResponse>> getPhotos(@PathVariable Long tripId) {
+        log.info("GET /api/trips/{}/photos", tripId);
+
+        List<PhotoResponse> photos = travelPlanService.getPhotos(tripId);
+        return ResponseEntity.ok(photos);
+    }
+
+    /**
+     * 옵션 B: 체크리스트 조회 (체크리스트 탭 클릭 시)
+     *
+     * GET /api/trips/{tripId}/checklists
+     */
+    @GetMapping("/{tripId}/checklists")
+    public ResponseEntity<List<ChecklistResponse>> getChecklists(@PathVariable Long tripId) {
+        log.info("GET /api/trips/{}/checklists", tripId);
+
+        List<ChecklistResponse> checklists = travelPlanService.getChecklists(tripId);
+        return ResponseEntity.ok(checklists);
+    }
+
+    /**
+     * 옵션 B: 경비 조회 (경비 탭 클릭 시)
+     *
+     * GET /api/trips/{tripId}/expenses
+     */
+    @GetMapping("/{tripId}/expenses")
+    public ResponseEntity<List<ExpenseResponse>> getExpenses(@PathVariable Long tripId) {
+        log.info("GET /api/trips/{}/expenses", tripId);
+
+        List<ExpenseResponse> expenses = travelPlanService.getExpenses(tripId);
+        return ResponseEntity.ok(expenses);
+    }
+
+//
+//    @PatchMapping("/{tripId}")
+//    public ResponseEntity<TravelPlanResponse> update(
+//            @PathVariable Long tripId,
+//            @RequestBody TravelPlanCreateRequestDTO req,
+//            @AuthenticationPrincipal UserPrincipal user
+//    ) {
+//
+//        TravelPlanResponse result = travelPlanService.updateTravelPlan(tripId, req, user.getId());
 //        return ResponseEntity.ok(result);
 //    }
-
-    @PatchMapping("/{tripId}")
-    public ResponseEntity<TravelPlanResponse> update(
-            @PathVariable Long tripId,
-            @RequestBody TravelPlanCreateRequestDTO req,
-            @AuthenticationPrincipal UserPrincipal user
-    ){
-        TravelPlanResponse result = travelPlanService.updateTravelPlan(tripId,req,user.getId());
-        return ResponseEntity.ok(result);
-    }
-
-    @DeleteMapping("/{tripId}")
-    public ResponseEntity<Void> deletePlan(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user){
-        travelPlanService.deleteTravelPlan(tripId, user.getId());
-        return ResponseEntity.noContent().build();
-    }
+//
+//    @DeleteMapping("/{tripId}")
+//    public ResponseEntity<Void> deletePlan(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user){
+//        travelPlanService.deleteTravelPlan(tripId, user.getId());
+//        return ResponseEntity.noContent().build();
+//    }
 
 }
 

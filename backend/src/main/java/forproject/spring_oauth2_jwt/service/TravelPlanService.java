@@ -372,5 +372,108 @@ public class TravelPlanService {
     }
 
 
+    /**
+     * 사진 조회 (옵션 B: 사진 탭 클릭 시)
+     */
+    @Transactional(readOnly = true)
+    public List<PhotoResponse> getPhotos(Long tripId) {
+        List<TravelPhoto> photos = photoRepository.findByTripIdOrderByCreatedAtDesc(tripId);
 
+        // 사용자 정보 한 번에 조회
+        List<Long> userIds = photos.stream()
+                .map(TravelPhoto::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, UserEntity> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserEntity::getId, user -> user));
+
+        return photos.stream()
+                .map(photo -> {
+                    UserEntity user = userMap.get(photo.getUserId());
+                    return PhotoResponse.builder()
+                            .id(photo.getId())
+                            .imageUrl(photo.getImageUrl())
+                            .caption(photo.getCaption())
+                            .takenAt(photo.getTakenAt())
+                            .likesCount(photo.getLikesCount())
+                            .userId(photo.getUserId())
+                            .userName(user != null ? user.getUsername() : "Unknown")
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+
+    /**
+     * 체크리스트 조회 (옵션 B)
+     */
+    @Transactional(readOnly = true)
+    public List<ChecklistResponse> getChecklists(Long tripId) {
+        List<TravelChecklist> checklists = checklistRepository.findByTripIdOrderByDisplayOrderAsc(tripId);
+
+        // 담당자 정보 조회
+        List<Long> assigneeIds = checklists.stream()
+                .map(TravelChecklist::getAssigneeUserId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, UserEntity> userMap = userRepository.findAllById(assigneeIds).stream()
+                .collect(Collectors.toMap(UserEntity::getId, user -> user));
+
+        return checklists.stream()
+                .map(checklist -> {
+                    UserEntity assignee = checklist.getAssigneeUserId() != null
+                            ? userMap.get(checklist.getAssigneeUserId())
+                            : null;
+
+                    return ChecklistResponse.builder()
+                            .id(checklist.getId())
+                            .task(checklist.getTask())
+                            .completed(checklist.getCompleted())
+                            .assigneeUserId(checklist.getAssigneeUserId())
+                            .assigneeName(assignee != null ? assignee.getUsername() : null)
+                            .completedAt(checklist.getCompletedAt())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+   /**
+    * * 경비 조회 (옵션 B)
+     */
+    @Transactional(readOnly = true)
+    public List<ExpenseResponse> getExpenses(Long tripId) {
+        List<TravelExpense> expenses = expenseRepository.findByTripIdOrderByExpenseDateDescCreatedAtDesc(tripId);
+
+        // 지불자 정보 조회
+        List<Long> paidByIds = expenses.stream()
+                .map(TravelExpense::getPaidByUserId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, UserEntity> userMap = userRepository.findAllById(paidByIds).stream()
+                .collect(Collectors.toMap(UserEntity::getId, user -> user));
+
+        return expenses.stream()
+                .map(expense -> {
+                    UserEntity paidBy = expense.getPaidByUserId() != null
+                            ? userMap.get(expense.getPaidByUserId())
+                            : null;
+
+                    return ExpenseResponse.builder()
+                            .id(expense.getId())
+                            .category(expense.getCategory())
+                            .item(expense.getItem())
+                            .amount(expense.getAmount())
+                            .paidByUserId(expense.getPaidByUserId())
+                            .paidByUserName(paidBy != null ? paidBy.getUsername() : null)
+                            .expenseDate(expense.getExpenseDate())
+                            .notes(expense.getNotes())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
 }
