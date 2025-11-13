@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import forproject.spring_oauth2_jwt.dto.*;
 import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
+import forproject.spring_oauth2_jwt.dto.response.UpdateChecklistResponse;
 import forproject.spring_oauth2_jwt.entity.*;
 import forproject.spring_oauth2_jwt.enums.BudgetLevel;
 import forproject.spring_oauth2_jwt.enums.TravelStyle;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -527,6 +529,29 @@ public class TravelPlanService {
                 .assigneeName(assigneeName)
                 .completedAt(saved.getCompletedAt())
                 .displayOrder(saved.getDisplayOrder())
+                .build();
+    }
+
+
+    @Transactional
+    public UpdateChecklistResponse toggleChecklist(Long checklistId, Long userId){
+        TravelChecklist checklist =
+                checklistRepository.findById(checklistId)
+                        .orElseThrow(() -> new RuntimeException("체크리스트를 찾을 수 없습니다."));
+        TravelParticipant member = participantRepository.findByTripIdAndUserId(checklist.getTripId(), userId).orElseThrow(() -> new RuntimeException("여행 참여자만 체크리스트를 수정할 수 있습니다."));
+        Boolean currentValue = checklist.getCompleted();
+        checklist.setCompleted(!currentValue);
+
+        if(!currentValue){
+            checklist.setCompletedAt(LocalDateTime.now());
+        }else {
+            checklist.setCompletedAt(null);
+        }
+
+        return UpdateChecklistResponse.builder()
+                .id(checklist.getId())
+                .completed(checklist.getCompleted())
+                .completedAt(checklist.getCompletedAt())
                 .build();
     }
 }

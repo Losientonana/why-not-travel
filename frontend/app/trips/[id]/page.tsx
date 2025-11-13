@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { getTripDetail, getItineraries, getPhotos, getChecklists, getExpenses } from "@/lib/api"
+import { getTripDetail, getItineraries, getPhotos, getChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
 import {
   ArrowLeft,
   Calendar,
@@ -18,6 +19,10 @@ import {
   Heart,
   MessageCircle,
   Download,
+  Trash2,
+  X,
+  CheckCircle2,
+  Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +30,10 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 
 // Mock data for trip details
 const mockTrip = {
@@ -233,6 +242,7 @@ const activityTypeConfig = {
 }
 
 export default function TripDetailPage({ params }: { params: { id: string } }) {
+  const { user } = useAuth() // 현재 로그인한 사용자 정보
   const [activeTab, setActiveTab] = useState("overview")
   const [likedPhotos, setLikedPhotos] = useState<string[]>([])
   const [tripData, setTripData] = useState<any>(null)
@@ -245,6 +255,11 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   const [checklistsData, setChecklistsData] = useState<any[]>([])
   const [expensesData, setExpensesData] = useState<any[]>([])
   const [tabLoading, setTabLoading] = useState(false)
+
+  // 체크리스트 관련 상태
+  const [showAddChecklist, setShowAddChecklist] = useState(false)
+  const [newChecklistTask, setNewChecklistTask] = useState("")
+  const [addingChecklist, setAddingChecklist] = useState(false)
 
   // API 호출
   useEffect(() => {
@@ -324,6 +339,78 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     setLikedPhotos((prev) => (prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId]))
   }
 
+  // 체크리스트 항목 추가
+  const handleAddChecklist = async () => {
+    if (!newChecklistTask.trim()) return
+    if (!user?.id) {
+      alert('로그인이 필요합니다.')
+      return
+    }
+
+    try {
+      setAddingChecklist(true)
+
+      // 현재 체크리스트의 최대 displayOrder 계산
+      const maxOrder = checklistsData.length > 0
+        ? Math.max(...checklistsData.map((item: any) => item.displayOrder || 0))
+        : 0
+
+      const newItem = await createChecklist(
+        Number(params.id),
+        newChecklistTask.trim(),
+        user.id, // 현재 로그인한 사용자 ID
+        maxOrder + 1 // 새로운 항목은 마지막에 추가
+      )
+
+      // 성공하면 체크리스트 데이터 새로고침
+      const updatedChecklists = await getChecklists(Number(params.id))
+      setChecklistsData(updatedChecklists)
+
+      // 입력 필드 초기화
+      setNewChecklistTask("")
+      setShowAddChecklist(false)
+    } catch (err) {
+      console.error('체크리스트 추가 실패:', err)
+      alert('체크리스트 추가에 실패했습니다.')
+    } finally {
+      setAddingChecklist(false)
+    }
+  }
+
+  // 체크리스트 항목 체크/체크 해제
+  const handleToggleChecklist = async (checklistId: number) => {
+    try {
+      const updatedItem = await toggleChecklist(checklistId)
+
+      // 로컬 상태 업데이트
+      setChecklistsData((prev) =>
+        prev.map((item) =>
+          item.id === checklistId
+            ? { ...item, completed: updatedItem.completed, completedAt: updatedItem.completedAt }
+            : item
+        )
+      )
+    } catch (err) {
+      console.error('체크리스트 토글 실패:', err)
+      alert('체크리스트 수정에 실패했습니다.')
+    }
+  }
+
+  // 체크리스트 항목 삭제
+  const handleDeleteChecklist = async (checklistId: number) => {
+    if (!confirm('이 항목을 삭제하시겠습니까?')) return
+
+    try {
+      await deleteChecklist(checklistId)
+
+      // 로컬 상태에서 삭제
+      setChecklistsData((prev) => prev.filter((item) => item.id !== checklistId))
+    } catch (err) {
+      console.error('체크리스트 삭제 실패:', err)
+      alert('체크리스트 삭제에 실패했습니다.')
+    }
+  }
+
   // 백엔드 데이터를 프론트엔드 형식으로 변환
   const transformItinerary = (data: any[]) => {
     return data.map((item, index) => ({
@@ -356,14 +443,17 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   }
 
   const transformChecklist = (data: any[]) => {
-    return data.map((item) => ({
-      id: item.id,
-      text: item.task,
-      completed: item.completed,
-      assignee: item.assigneeName || '미지정',
-      assigneeUserId: item.assigneeUserId,
-      completedAt: item.completedAt
-    }))
+    return data
+      .map((item) => ({
+        id: item.id,
+        text: item.task,
+        completed: item.completed,
+        assignee: item.assigneeName || '미지정',
+        assigneeUserId: item.assigneeUserId,
+        completedAt: item.completedAt,
+        displayOrder: item.displayOrder || 0
+      }))
+      .sort((a, b) => a.displayOrder - b.displayOrder) // displayOrder로 정렬
   }
 
   const transformExpenses = (data: any[]) => {
@@ -781,49 +871,194 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                   {completedTasks}/{totalTasks} 완료 ({Math.round((completedTasks / totalTasks) * 100)}%)
                 </p>
               </div>
-              <Button className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600">
+              <Button
+                className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600 shadow-md hover:shadow-lg transition-all"
+                onClick={() => setShowAddChecklist(true)}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 항목 추가
               </Button>
             </div>
 
+            {/* 항목 추가 Dialog */}
+            <Dialog open={showAddChecklist} onOpenChange={setShowAddChecklist}>
+              <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-gradient-to-br from-blue-50 via-white to-orange-50">
+                {/* 장식 요소 */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-orange-400/20 rounded-full blur-3xl -z-10" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-400/20 to-blue-400/20 rounded-full blur-3xl -z-10" />
+
+                <DialogHeader className="p-6 pb-4 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-orange-500 shadow-lg">
+                      <Sparkles className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-orange-600 bg-clip-text text-transparent">
+                        새로운 할 일 추가
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-600">
+                        여행 준비를 위한 항목을 추가해보세요
+                      </DialogDescription>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                <div className="px-6 py-4 space-y-6">
+                  {/* 입력 필드 */}
+                  <div className="space-y-3">
+                    <Label htmlFor="task" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                      <span>할 일 내용</span>
+                    </Label>
+                    <Input
+                      id="task"
+                      placeholder="예) 여권 유효기간 확인하기"
+                      value={newChecklistTask}
+                      onChange={(e) => setNewChecklistTask(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !addingChecklist && newChecklistTask.trim()) {
+                          handleAddChecklist()
+                        }
+                      }}
+                      disabled={addingChecklist}
+                      className="h-12 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* 사용자 정보 표시 */}
+                  <div className="flex items-center space-x-3 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm">
+                    <Avatar className="w-10 h-10 border-2 border-white shadow-md">
+                      <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-semibold">
+                        {user?.name?.[0] || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">담당자</p>
+                      <p className="text-sm text-gray-600">{user?.name || '알 수 없음'}</p>
+                    </div>
+                  </div>
+
+                  {/* 힌트 */}
+                  <div className="flex items-start space-x-2 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                    <Sparkles className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-blue-700">
+                      <strong>Tip:</strong> Enter 키를 눌러 빠르게 추가할 수 있어요!
+                    </p>
+                  </div>
+                </div>
+
+                <DialogFooter className="p-6 pt-0 flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddChecklist(false)
+                      setNewChecklistTask("")
+                    }}
+                    disabled={addingChecklist}
+                    className="w-full sm:w-auto border-2 hover:bg-gray-50"
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    onClick={handleAddChecklist}
+                    disabled={addingChecklist || !newChecklistTask.trim()}
+                    className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600 shadow-md hover:shadow-lg transition-all"
+                  >
+                    {addingChecklist ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        추가 중...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        추가하기
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <Card>
               <CardContent className="p-6">
-                <div className="space-y-4">
-                  {displayChecklist.map((item: any) => (
-                    <div
-                      key={item.id}
-                      className={`flex items-center space-x-4 p-3 rounded-lg transition-colors ${
-                        item.completed ? "bg-green-50 border border-green-200" : "bg-gray-50 hover:bg-gray-100"
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={item.completed}
-                          className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                          readOnly
-                        />
+                {/* 체크리스트 항목들 */}
+                <div className="space-y-3">
+                  {displayChecklist.length === 0 ? (
+                    <div className="text-center py-16">
+                      <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-orange-100 mb-4">
+                        <CheckCircle2 className="w-10 h-10 text-gray-400" />
                       </div>
-                      <div className="flex-1">
-                        <span
-                          className={`font-medium ${item.completed ? "text-green-800 line-through" : "text-gray-900"}`}
-                        >
-                          {item.text}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="w-6 h-6">
-                          <AvatarImage src="/placeholder.svg?height=24&width=24" />
-                          <AvatarFallback className="text-xs">{item.assignee[0]}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm text-gray-600">{item.assignee}</span>
-                      </div>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="w-4 h-4" />
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">아직 체크리스트가 없습니다</h3>
+                      <p className="text-sm text-gray-500 mb-6">
+                        여행 준비를 위한 할 일을 추가하고<br />체계적으로 관리해보세요!
+                      </p>
+                      <Button
+                        onClick={() => setShowAddChecklist(true)}
+                        variant="outline"
+                        className="border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-all"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        첫 번째 항목 추가하기
                       </Button>
                     </div>
-                  ))}
+                  ) : (
+                    displayChecklist.map((item: any) => (
+                      <div
+                        key={item.id}
+                        className={`flex items-center space-x-3 p-4 rounded-xl transition-all ${
+                          item.completed
+                            ? "bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200"
+                            : "bg-white border-2 border-gray-200 hover:border-blue-300 hover:shadow-md"
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={item.completed}
+                            onChange={() => handleToggleChecklist(item.id)}
+                            className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:ring-offset-0 cursor-pointer transition-all"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span
+                            className={`font-medium ${
+                              item.completed ? "text-gray-500 line-through" : "text-gray-900"
+                            }`}
+                          >
+                            {item.text}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <Avatar className="w-8 h-8 border-2 border-white shadow-sm">
+                            <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                            <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-500 text-white font-semibold">
+                              {item.assignee[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-gray-600 font-medium hidden sm:inline">{item.assignee}</span>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full">
+                              <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteChecklist(item.id)}
+                              className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              삭제하기
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

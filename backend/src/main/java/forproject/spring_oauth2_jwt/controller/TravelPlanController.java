@@ -2,6 +2,7 @@ package forproject.spring_oauth2_jwt.controller;
 
 import forproject.spring_oauth2_jwt.dto.*;
 import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
+import forproject.spring_oauth2_jwt.dto.response.UpdateChecklistResponse;
 import forproject.spring_oauth2_jwt.service.TravelPlanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -134,8 +135,11 @@ public class TravelPlanController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @PatchMapping("{id}/checlists/")
-    public ResponseEntity<ApiResponse<UpdateChecklistResponse>>
+    @PatchMapping("{id}/checklists/")
+    public ResponseEntity<ApiResponse<UpdateChecklistResponse>> updateChecklist(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal user) {
+        UpdateChecklistResponse response = travelPlanService.toggleChecklist(id,user.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 
 
 }

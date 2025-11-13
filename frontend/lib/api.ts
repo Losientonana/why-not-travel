@@ -224,3 +224,26 @@ export const getExpenses = async (tripId: number) => {
   return response.data;
 };
 
+// 체크리스트 항목 추가
+export const createChecklist = async (tripId: number, task: string, assigneeUserId?: number, displayOrder?: number) => {
+  const response = await api.post('/api/trips/detail/checklists', {
+    tripId,
+    task,
+    assigneeUserId,
+    displayOrder,
+  });
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 체크리스트 항목 체크 토글 (완료/미완료)
+export const toggleChecklist = async (checklistId: number) => {
+  const response = await api.patch(`/api/trips/${checklistId}/checklists/`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 체크리스트 항목 삭제 (곧 구현 예정)
+export const deleteChecklist = async (checklistId: number) => {
+  const response = await api.delete(`/api/trips/checklists/${checklistId}`);
+  return response.data;
+};
+
