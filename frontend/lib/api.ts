@@ -193,3 +193,34 @@ export const getTravelPlanStatuses = async (tripIds: number[]): Promise<TravelPl
   const response = await api.post('/api/trips/statuses', tripIds);
   return response.data;
 };
+
+// 여행 상세 정보 조회
+export const getTripDetail = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/detail`);
+  return response.data;
+};
+
+// 여행 일정 조회
+export const getItineraries = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/itineraries`);
+  return response.data;
+};
+
+// 여행 사진 조회
+export const getPhotos = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/photos`);
+  return response.data;
+};
+
+// 여행 체크리스트 조회
+export const getChecklists = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/checklists`);
+  return response.data;
+};
+
+// 여행 경비 조회
+export const getExpenses = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/expenses`);
+  return response.data;
+};
+

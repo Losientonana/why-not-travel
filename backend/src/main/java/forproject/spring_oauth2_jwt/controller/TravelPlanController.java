@@ -1,10 +1,8 @@
 package forproject.spring_oauth2_jwt.controller;
 
-import forproject.spring_oauth2_jwt.dto.ApiResponse;
-import forproject.spring_oauth2_jwt.dto.TravelPlanCreateRequestDTO;
-import forproject.spring_oauth2_jwt.dto.UserPrincipal;
+import forproject.spring_oauth2_jwt.dto.*;
+import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
 import forproject.spring_oauth2_jwt.service.TravelPlanService;
-import forproject.spring_oauth2_jwt.dto.TravelPlanResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +27,7 @@ public class TravelPlanController {
             @AuthenticationPrincipal UserPrincipal user,
             BindingResult bindingResult
     ) {
+        log.info("data = {}", req);
         try {
             // 유효성 검사 실패 처리
             if (bindingResult.hasErrors()) {
@@ -63,33 +62,81 @@ public class TravelPlanController {
     @GetMapping
     public ResponseEntity<List<TravelPlanResponse>> myPlans(
             @AuthenticationPrincipal UserPrincipal user) {
-        log.info("show trip {}",user);
+        log.info("show trip {}", user);
         List<TravelPlanResponse> result = travelPlanService.listMyPlans(user.getId());
         return ResponseEntity.ok(result);
     }
 
-    // 특정 일정 조회
-    @GetMapping("/{tripId}")
-    public ResponseEntity<TravelPlanResponse> getPlan(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user) {
-        TravelPlanResponse result = travelPlanService.getTravelPlan(tripId, user.getId());
-        return ResponseEntity.ok(result);
+    @GetMapping("/{tripId}/detail")
+    public ResponseEntity<TravelDetailResponse> getPlanDetail(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user) {
+        log.info("GET /api/trips/{}/detail - userId: {}", tripId, user.getId());
+
+        TravelDetailResponse response = travelPlanService.getTravelDetail(tripId, user.getId());
+        log.info("response : {}", response);
+        return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/{tripId}")
-    public ResponseEntity<TravelPlanResponse> update(
-            @PathVariable Long tripId,
-            @RequestBody TravelPlanCreateRequestDTO req,
+    /**
+     * 옵션 B: 일정 조회 (일정 탭 클릭 시)
+     * GET /api/trips/{tripId}/itineraries
+     */
+    @GetMapping("/{tripId}/itineraries")
+    public ResponseEntity<List<ItineraryResponse>> getItineraries(@PathVariable Long tripId) {
+        log.info("GET /api/trips/{}/itineraries", tripId);
+
+        List<ItineraryResponse> itineraries = travelPlanService.getItineraries(tripId);
+        return ResponseEntity.ok(itineraries);
+    }
+
+
+    /**
+     * 옵션 B: 사진 조회 (사진 탭 클릭 시)
+     * GET /api/trips/{tripId}/photos
+     */
+    @GetMapping("/{tripId}/photos")
+    public ResponseEntity<List<PhotoResponse>> getPhotos(@PathVariable Long tripId) {
+        log.info("GET /api/trips/{}/photos", tripId);
+
+        List<PhotoResponse> photos = travelPlanService.getPhotos(tripId);
+        return ResponseEntity.ok(photos);
+    }
+
+    /**
+     * 옵션 B: 체크리스트 조회 (체크리스트 탭 클릭 시)
+     * GET /api/trips/{tripId}/checklists
+     */
+    @GetMapping("/{tripId}/checklists")
+    public ResponseEntity<List<ChecklistResponse>> getChecklists(@PathVariable Long tripId) {
+        log.info("GET /api/trips/{}/checklists", tripId);
+
+        List<ChecklistResponse> checklists = travelPlanService.getChecklists(tripId);
+        return ResponseEntity.ok(checklists);
+    }
+
+    /**
+     * 옵션 B: 경비 조회 (경비 탭 클릭 시)
+     * GET /api/trips/{tripId}/expenses
+     */
+    @GetMapping("/{tripId}/expenses")
+    public ResponseEntity<List<ExpenseResponse>> getExpenses(@PathVariable Long tripId) {
+        log.info("GET /api/trips/{}/expenses", tripId);
+
+        List<ExpenseResponse> expenses = travelPlanService.getExpenses(tripId);
+        return ResponseEntity.ok(expenses);
+    }
+
+    @PostMapping("/detail/checklists")
+    public ResponseEntity<ApiResponse<ChecklistResponse>> createChecklist(
+            @RequestBody @Valid ChecklistCreateRequestDTO request,
             @AuthenticationPrincipal UserPrincipal user
-    ){
-        TravelPlanResponse result = travelPlanService.updateTravelPlan(tripId,req,user.getId());
-        return ResponseEntity.ok(result);
+            ){
+        ChecklistResponse response = travelPlanService.createChecklist(request, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @DeleteMapping("/{tripId}")
-    public ResponseEntity<Void> deletePlan(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user){
-        travelPlanService.deleteTravelPlan(tripId, user.getId());
-        return ResponseEntity.noContent().build();
-    }
+    @PatchMapping("{id}/checlists/")
+    public ResponseEntity<ApiResponse<UpdateChecklistResponse>>
+
 
 }
 

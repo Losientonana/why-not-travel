@@ -11,6 +11,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Slf4j
 public class MyController {
+
+    /**
+     *
+     * @param user
+     * 이름
+     * 소개
+     * 이메일
+     * 가입일
+     * 총여행
+     * 프로필사진
+     *
+     * @return
+     */
     @GetMapping("/api/user/me")
     public ResponseEntity<?> myAPI(@AuthenticationPrincipal UserPrincipal user) {
         UserDTO dto = new UserDTO();

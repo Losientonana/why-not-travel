@@ -188,6 +188,23 @@ export default function TripsPage() {
     return statusConfig[status as keyof typeof statusConfig]?.label || status
   }
 
+  const formatDateRange = (startDate: string, endDate: string) => {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+
+    const startFormatted = start.toLocaleDateString("ko-KR", {
+      month: "short",
+      day: "numeric",
+    })
+
+    const endFormatted = end.toLocaleDateString("ko-KR", {
+      month: "short",
+      day: "numeric",
+    })
+
+    return `${startFormatted} ~ ${endFormatted}`
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -349,10 +366,7 @@ export default function TripsPage() {
                                   <div className="flex items-center space-x-4">
                                     <div className="flex items-center">
                                       <Calendar className="w-3 h-3 mr-1" />
-                                      {new Date(trip.startDate).toLocaleDateString("ko-KR", {
-                                        month: "short",
-                                        day: "numeric",
-                                      })}
+                                      {formatDateRange(trip.startDate, trip.endDate)}
                                     </div>
                                     <div className="flex items-center">
                                       <Users className="w-3 h-3 mr-1" />
@@ -400,10 +414,7 @@ export default function TripsPage() {
                                 <div className="flex items-center space-x-4 text-xs text-gray-500">
                                   <div className="flex items-center">
                                     <Calendar className="w-3 h-3 mr-1" />
-                                    {new Date(trip.startDate).toLocaleDateString("ko-KR", {
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
+                                    {formatDateRange(trip.startDate, trip.endDate)}
                                   </div>
                                   <div className="flex items-center">
                                     <Users className="w-3 h-3 mr-1" />

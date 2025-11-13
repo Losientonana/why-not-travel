@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { getTripDetail, getItineraries, getPhotos, getChecklists, getExpenses } from "@/lib/api"
 import {
   ArrowLeft,
   Calendar,
@@ -234,14 +235,188 @@ const activityTypeConfig = {
 export default function TripDetailPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState("overview")
   const [likedPhotos, setLikedPhotos] = useState<string[]>([])
+  const [tripData, setTripData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // 탭별 실제 데이터 상태 (API에서 불러온 데이터)
+  const [itinerariesData, setItinerariesData] = useState<any[]>([])
+  const [photosData, setPhotosData] = useState<any[]>([])
+  const [checklistsData, setChecklistsData] = useState<any[]>([])
+  const [expensesData, setExpensesData] = useState<any[]>([])
+  const [tabLoading, setTabLoading] = useState(false)
+
+  // API 호출
+  useEffect(() => {
+    const fetchTripDetail = async () => {
+      try {
+        setLoading(true)
+        console.log('🔥 프론트엔드: API 호출 시작 - tripId:', params.id)
+        const data = await getTripDetail(Number(params.id))
+        console.log('✅ 프론트엔드: API 응답 받음:', data)
+        setTripData(data)
+        setError(null)
+      } catch (err: any) {
+        console.error('❌ 프론트엔드: API 호출 실패:', err)
+        setError(err.response?.data?.message || '여행 정보를 불러오는데 실패했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTripDetail()
+  }, [params.id])
+
+  // 탭 전환 시 해당 탭 데이터 로드
+  useEffect(() => {
+    const loadTabData = async () => {
+      if (!params.id) return
+
+      try {
+        setTabLoading(true)
+
+        switch (activeTab) {
+          case 'itinerary':
+            if (itinerariesData.length === 0) {
+              console.log('🔥 일정 데이터 로딩 시작')
+              const data = await getItineraries(Number(params.id))
+              console.log('✅ 일정 데이터 로딩 완료:', data)
+              setItinerariesData(data || [])
+            }
+            break
+          case 'photos':
+            if (photosData.length === 0) {
+              console.log('🔥 사진 데이터 로딩 시작')
+              const data = await getPhotos(Number(params.id))
+              console.log('✅ 사진 데이터 로딩 완료:', data)
+              setPhotosData(data || [])
+            }
+            break
+          case 'checklist':
+            if (checklistsData.length === 0) {
+              console.log('🔥 체크리스트 데이터 로딩 시작')
+              const data = await getChecklists(Number(params.id))
+              console.log('✅ 체크리스트 데이터 로딩 완료:', data)
+              setChecklistsData(data || [])
+            }
+            break
+          case 'expenses':
+            if (expensesData.length === 0) {
+              console.log('🔥 경비 데이터 로딩 시작')
+              const data = await getExpenses(Number(params.id))
+              console.log('✅ 경비 데이터 로딩 완료:', data)
+              setExpensesData(data || [])
+            }
+            break
+        }
+      } catch (err) {
+        console.error(`❌ ${activeTab} 탭 데이터 로딩 실패:`, err)
+        // 에러 발생해도 mock 데이터 사용하므로 무시
+      } finally {
+        setTabLoading(false)
+      }
+    }
+
+    loadTabData()
+  }, [activeTab, params.id])
 
   const handleLikePhoto = (photoId: string) => {
     setLikedPhotos((prev) => (prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId]))
   }
 
-  const completedTasks = mockTrip.checklist.filter((item) => item.completed).length
-  const totalTasks = mockTrip.checklist.length
-  const budgetProgress = (mockTrip.spent / mockTrip.budget) * 100
+  // 백엔드 데이터를 프론트엔드 형식으로 변환
+  const transformItinerary = (data: any[]) => {
+    return data.map((item, index) => ({
+      date: item.date,
+      day: `Day ${item.dayNumber}`,
+      dayNumber: item.dayNumber,
+      title: item.title,
+      activities: (item.activities || []).map((act: any) => ({
+        id: act.id,
+        time: act.time,
+        title: act.title,
+        location: act.location,
+        type: act.activityType?.toLowerCase() || 'activity',
+        duration: `${act.durationMinutes || 0}분`,
+        cost: act.cost || 0,
+        notes: act.notes
+      }))
+    }))
+  }
+
+  const transformPhotos = (data: any[]) => {
+    return data.map((item) => ({
+      id: item.id,
+      url: item.imageUrl,
+      caption: item.caption,
+      date: item.takenAt,
+      likes: item.likesCount || 0,
+      author: item.userName || '알 수 없음'
+    }))
+  }
+
+  const transformChecklist = (data: any[]) => {
+    return data.map((item) => ({
+      id: item.id,
+      text: item.task,
+      completed: item.completed,
+      assignee: item.assigneeName || '미지정',
+      assigneeUserId: item.assigneeUserId,
+      completedAt: item.completedAt
+    }))
+  }
+
+  const transformExpenses = (data: any[]) => {
+    return data.map((item) => ({
+      id: item.id,
+      category: item.category,
+      item: item.item,
+      amount: item.amount,
+      paidBy: item.paidByUserName || '알 수 없음',
+      date: item.expenseDate,
+      notes: item.notes
+    }))
+  }
+
+  // 실제 데이터 또는 mock 데이터 사용 (fallback)
+  const displayTrip = tripData || mockTrip
+  const displayItinerary = itinerariesData.length > 0 ? transformItinerary(itinerariesData) : mockTrip.itinerary
+  const displayPhotos = photosData.length > 0 ? transformPhotos(photosData) : mockTrip.photos
+  const displayChecklist = checklistsData.length > 0 ? transformChecklist(checklistsData) : mockTrip.checklist
+  const displayExpenses = expensesData.length > 0 ? transformExpenses(expensesData) : mockTrip.expenses
+
+  const completedTasks = tripData?.statistics?.completedChecklistCount ?? displayChecklist.filter((item: any) => item.completed).length
+  const totalTasks = tripData?.statistics?.totalChecklistCount ?? displayChecklist.length
+  const budgetProgress = tripData?.statistics?.budgetUsagePercentage || (mockTrip.spent / mockTrip.budget) * 100
+
+  // 로딩 중
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">여행 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 에러 발생
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Link href="/trips">
+            <button className="text-blue-600 hover:text-blue-700">여행 목록으로 돌아가기</button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // API 응답 데이터 확인
+  console.log('📊 프론트엔드: 렌더링 데이터:', tripData)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -262,7 +437,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 <Share2 className="w-4 h-4 mr-2" />
                 공유
               </Button>
-              {mockTrip.isOwner && (
+              {displayTrip.isOwner && (
                 <Button variant="outline" size="sm">
                   <Edit className="w-4 h-4 mr-2" />
                   편집
@@ -279,8 +454,8 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
       {/* Hero Section */}
       <div className="relative">
         <img
-          src={mockTrip.coverImage || "/placeholder.svg"}
-          alt={mockTrip.title}
+          src={displayTrip.imageUrl || displayTrip.coverImage || "/placeholder.svg"}
+          alt={displayTrip.title}
           className="w-full h-64 md:h-80 object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
@@ -289,38 +464,38 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-end justify-between">
               <div>
                 <div className="flex items-center space-x-3 mb-2">
-                  <Badge className={statusConfig[mockTrip.status as keyof typeof statusConfig].color}>
-                    {statusConfig[mockTrip.status as keyof typeof statusConfig].label}
+                  <Badge className={statusConfig[(displayTrip.status || 'planning') as keyof typeof statusConfig]?.color || 'bg-gray-100'}>
+                    {statusConfig[(displayTrip.status || 'planning') as keyof typeof statusConfig]?.label || displayTrip.statusDescription || '계획중'}
                   </Badge>
-                  {mockTrip.isOwner && <Badge className="bg-blue-600 text-white">내 여행</Badge>}
+                  {displayTrip.isOwner && <Badge className="bg-blue-600 text-white">내 여행</Badge>}
                   <Badge variant="outline" className="text-white border-white/50">
-                    {mockTrip.isPublic ? "공개" : "비공개"}
+                    {(displayTrip.visibility === 'PUBLIC' || displayTrip.isPublic) ? "공개" : "비공개"}
                   </Badge>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-3">{mockTrip.title}</h1>
+                <h1 className="text-3xl md:text-4xl font-bold mb-3">{displayTrip.title}</h1>
                 <div className="flex items-center space-x-6 text-lg">
                   <div className="flex items-center">
                     <MapPin className="w-5 h-5 mr-2" />
-                    {mockTrip.destination}
+                    {displayTrip.destination}
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-5 h-5 mr-2" />
-                    {new Date(mockTrip.startDate).toLocaleDateString("ko-KR")} -{" "}
-                    {new Date(mockTrip.endDate).toLocaleDateString("ko-KR")}
+                    {new Date(displayTrip.startDate).toLocaleDateString("ko-KR")} -{" "}
+                    {new Date(displayTrip.endDate).toLocaleDateString("ko-KR")}
                   </div>
                   <div className="flex items-center">
                     <Users className="w-5 h-5 mr-2" />
-                    {mockTrip.participants.length}명
+                    {displayTrip.participants?.length || 0}명
                   </div>
                 </div>
               </div>
 
               {/* Participant Avatars */}
               <div className="flex -space-x-2">
-                {mockTrip.participants.map((participant) => (
-                  <Avatar key={participant.id} className="w-10 h-10 border-2 border-white">
-                    <AvatarImage src={participant.avatar || "/placeholder.svg"} alt={participant.name} />
-                    <AvatarFallback>{participant.name[0]}</AvatarFallback>
+                {(displayTrip.participants || mockTrip.participants).map((participant: any) => (
+                  <Avatar key={participant.participantId || participant.id} className="w-10 h-10 border-2 border-white">
+                    <AvatarImage src={participant.avatar || "/placeholder.svg"} alt={participant.userName || participant.name} />
+                    <AvatarFallback>{(participant.userName || participant.name)?.[0]}</AvatarFallback>
                   </Avatar>
                 ))}
               </div>
@@ -334,13 +509,13 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{mockTrip.itinerary.length}</div>
+              <div className="text-2xl font-bold text-blue-600">{displayItinerary.length}</div>
               <div className="text-sm text-gray-600">일정</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{mockTrip.photos.length}</div>
+              <div className="text-2xl font-bold text-green-600">{displayPhotos.length}</div>
               <div className="text-sm text-gray-600">사진</div>
             </CardContent>
           </Card>
@@ -380,20 +555,20 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                   <CardTitle>여행 정보</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-600 mb-6">{mockTrip.description}</p>
+                  <p className="text-gray-600 mb-6">{displayTrip.description}</p>
 
                   {/* Budget Overview */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <h4 className="font-medium">예산 현황</h4>
                       <span className="text-sm text-gray-600">
-                        ₩{mockTrip.spent.toLocaleString()} / ₩{mockTrip.budget.toLocaleString()}
+                        ₩{(tripData?.statistics?.totalExpenses || mockTrip.spent).toLocaleString()} / ₩{(tripData?.statistics?.estimatedBudget || mockTrip.budget).toLocaleString()}
                       </span>
                     </div>
                     <Progress value={budgetProgress} className="h-2" />
                     <div className="flex justify-between text-sm text-gray-600">
                       <span>사용: {Math.round(budgetProgress)}%</span>
-                      <span>남은 예산: ₩{(mockTrip.budget - mockTrip.spent).toLocaleString()}</span>
+                      <span>남은 예산: ₩{((tripData?.statistics?.estimatedBudget || mockTrip.budget) - (tripData?.statistics?.totalExpenses || mockTrip.spent)).toLocaleString()}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -472,7 +647,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             <div className="space-y-6">
-              {mockTrip.itinerary.map((day, dayIndex) => (
+              {displayItinerary.map((day: any, dayIndex: number) => (
                 <Card key={dayIndex}>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
@@ -546,7 +721,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {mockTrip.photos.map((photo) => (
+              {displayPhotos.map((photo: any) => (
                 <Card key={photo.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
                   <div className="relative">
                     <img
@@ -615,7 +790,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
             <Card>
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  {mockTrip.checklist.map((item) => (
+                  {displayChecklist.map((item: any) => (
                     <div
                       key={item.id}
                       className={`flex items-center space-x-4 p-3 rounded-lg transition-colors ${
@@ -673,19 +848,19 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 <CardContent>
                   <div className="space-y-4">
                     <div className="text-center">
-                      <p className="text-3xl font-bold text-blue-600">₩{mockTrip.spent.toLocaleString()}</p>
+                      <p className="text-3xl font-bold text-blue-600">₩{(tripData?.statistics?.totalExpenses || mockTrip.spent).toLocaleString()}</p>
                       <p className="text-sm text-gray-600">사용 금액</p>
                     </div>
                     <Progress value={budgetProgress} className="h-3" />
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span>총 예산</span>
-                        <span className="font-medium">₩{mockTrip.budget.toLocaleString()}</span>
+                        <span className="font-medium">₩{(tripData?.statistics?.estimatedBudget || mockTrip.budget).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>남은 예산</span>
                         <span className="font-medium text-green-600">
-                          ₩{(mockTrip.budget - mockTrip.spent).toLocaleString()}
+                          ₩{((tripData?.statistics?.estimatedBudget || mockTrip.budget) - (tripData?.statistics?.totalExpenses || mockTrip.spent)).toLocaleString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -704,7 +879,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {mockTrip.expenses.map((expense) => (
+                    {displayExpenses.map((expense: any) => (
                       <div
                         key={expense.id}
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -751,33 +926,33 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {mockTrip.participants.map((participant) => (
-                <Card key={participant.id}>
+              {(displayTrip.participants || mockTrip.participants).map((participant: any) => (
+                <Card key={participant.participantId || participant.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center space-x-4">
                       <Avatar className="w-12 h-12">
-                        <AvatarImage src={participant.avatar || "/placeholder.svg"} alt={participant.name} />
-                        <AvatarFallback>{participant.name[0]}</AvatarFallback>
+                        <AvatarImage src={participant.avatar || "/placeholder.svg"} alt={participant.userName || participant.name} />
+                        <AvatarFallback>{(participant.userName || participant.name)?.[0]}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-medium text-gray-900">{participant.name}</h3>
+                          <h3 className="font-medium text-gray-900">{participant.userName || participant.name}</h3>
                           <Badge
                             variant={
-                              participant.role === "owner"
+                              (participant.role === "OWNER" || participant.role === "owner")
                                 ? "default"
-                                : participant.role === "editor"
+                                : (participant.role === "EDITOR" || participant.role === "editor")
                                   ? "secondary"
                                   : "outline"
                             }
                             className="text-xs"
                           >
-                            {participant.role === "owner" ? "방장" : participant.role === "editor" ? "편집자" : "뷰어"}
+                            {(participant.role === "OWNER" || participant.role === "owner") ? "방장" : (participant.role === "EDITOR" || participant.role === "editor") ? "편집자" : "뷰어"}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">{participant.email}</p>
+                        <p className="text-sm text-gray-600">{participant.userEmail || participant.email}</p>
                       </div>
-                      {participant.role !== "owner" && (
+                      {participant.role !== "OWNER" && participant.role !== "owner" && (
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>

@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class TravelPlanCreateRequestDTO {
 
     private String imageUri;
 
-    private Integer estimatedCost;
+    private BigDecimal estimatedCost;
 
     @Valid
     @Size(max = 10, message = "태그는 최대 10개까지 선택 가능합니다")

@@ -3,10 +3,6 @@ package forproject.spring_oauth2_jwt.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 @Entity
 @Table(name = "travel_days")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

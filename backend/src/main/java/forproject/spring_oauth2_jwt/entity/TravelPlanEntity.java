@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -43,7 +44,7 @@ public class TravelPlanEntity {
     private String imageUrl; // 여행 대표 이미지
 
     @Column(nullable = true)
-    private Integer estimatedCost; // 예상 비용
+    private BigDecimal estimatedCost; // 예상 비용
 
     @CreationTimestamp
     private LocalDateTime createdAt;
