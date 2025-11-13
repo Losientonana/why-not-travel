@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * 여행 체크리스트 엔티티
  */
 @Entity
-@Table(name = "trip_checklists")
+@Table(name = "travel_checklists")
 @Getter
 @Setter
 @NoArgsConstructor

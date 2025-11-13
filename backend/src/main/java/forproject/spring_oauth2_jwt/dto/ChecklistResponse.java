@@ -18,4 +18,5 @@ public class ChecklistResponse {
     private Long assigneeUserId;
     private String assigneeName;
     private LocalDateTime completedAt;
+    private Integer displayOrder;
 }

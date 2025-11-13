@@ -1,6 +1,7 @@
 package forproject.spring_oauth2_jwt.controller;
 
 import forproject.spring_oauth2_jwt.dto.*;
+import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
 import forproject.spring_oauth2_jwt.service.TravelPlanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class TravelPlanController {
             @AuthenticationPrincipal UserPrincipal user,
             BindingResult bindingResult
     ) {
+        log.info("data = {}", req);
         try {
             // 유효성 검사 실패 처리
             if (bindingResult.hasErrors()) {
@@ -60,7 +62,7 @@ public class TravelPlanController {
     @GetMapping
     public ResponseEntity<List<TravelPlanResponse>> myPlans(
             @AuthenticationPrincipal UserPrincipal user) {
-        log.info("show trip {}",user);
+        log.info("show trip {}", user);
         List<TravelPlanResponse> result = travelPlanService.listMyPlans(user.getId());
         return ResponseEntity.ok(result);
     }
@@ -70,12 +72,12 @@ public class TravelPlanController {
         log.info("GET /api/trips/{}/detail - userId: {}", tripId, user.getId());
 
         TravelDetailResponse response = travelPlanService.getTravelDetail(tripId, user.getId());
+        log.info("response : {}", response);
         return ResponseEntity.ok(response);
     }
 
     /**
      * 옵션 B: 일정 조회 (일정 탭 클릭 시)
-     *
      * GET /api/trips/{tripId}/itineraries
      */
     @GetMapping("/{tripId}/itineraries")
@@ -89,7 +91,6 @@ public class TravelPlanController {
 
     /**
      * 옵션 B: 사진 조회 (사진 탭 클릭 시)
-     *
      * GET /api/trips/{tripId}/photos
      */
     @GetMapping("/{tripId}/photos")
@@ -102,7 +103,6 @@ public class TravelPlanController {
 
     /**
      * 옵션 B: 체크리스트 조회 (체크리스트 탭 클릭 시)
-     *
      * GET /api/trips/{tripId}/checklists
      */
     @GetMapping("/{tripId}/checklists")
@@ -115,7 +115,6 @@ public class TravelPlanController {
 
     /**
      * 옵션 B: 경비 조회 (경비 탭 클릭 시)
-     *
      * GET /api/trips/{tripId}/expenses
      */
     @GetMapping("/{tripId}/expenses")
@@ -126,23 +125,18 @@ public class TravelPlanController {
         return ResponseEntity.ok(expenses);
     }
 
-//
-//    @PatchMapping("/{tripId}")
-//    public ResponseEntity<TravelPlanResponse> update(
-//            @PathVariable Long tripId,
-//            @RequestBody TravelPlanCreateRequestDTO req,
-//            @AuthenticationPrincipal UserPrincipal user
-//    ) {
-//
-//        TravelPlanResponse result = travelPlanService.updateTravelPlan(tripId, req, user.getId());
-//        return ResponseEntity.ok(result);
-//    }
-//
-//    @DeleteMapping("/{tripId}")
-//    public ResponseEntity<Void> deletePlan(@PathVariable Long tripId, @AuthenticationPrincipal UserPrincipal user){
-//        travelPlanService.deleteTravelPlan(tripId, user.getId());
-//        return ResponseEntity.noContent().build();
-//    }
+    @PostMapping("/detail/checklists")
+    public ResponseEntity<ApiResponse<ChecklistResponse>> createChecklist(
+            @RequestBody @Valid ChecklistCreateRequestDTO request,
+            @AuthenticationPrincipal UserPrincipal user
+            ){
+        ChecklistResponse response = travelPlanService.createChecklist(request, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PatchMapping("{id}/checlists/")
+    public ResponseEntity<ApiResponse<UpdateChecklistResponse>>
+
 
 }
 

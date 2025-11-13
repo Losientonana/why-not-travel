@@ -3,12 +3,14 @@ package forproject.spring_oauth2_jwt.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import forproject.spring_oauth2_jwt.dto.*;
+import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
 import forproject.spring_oauth2_jwt.entity.*;
 import forproject.spring_oauth2_jwt.enums.BudgetLevel;
 import forproject.spring_oauth2_jwt.enums.TravelStyle;
 import forproject.spring_oauth2_jwt.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.annotations.Check;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,6 +34,7 @@ public class TravelPlanService {
     private final TravelPhotoRepository photoRepository;
     private final TravelChecklistRepository checklistRepository;
     private final TravelExpenseRepository expenseRepository;
+    private final TravelParticipantRepository participantRepository;
 
     // 일정 생성
     public TravelPlanResponse createTravelPlan(TravelPlanCreateRequestDTO req, Long userId) {
@@ -81,6 +85,15 @@ public class TravelPlanService {
                     .build();
 
             TravelPlanEntity saved = travelPlanRepository.save(entity);
+
+
+            TravelParticipant participant = TravelParticipant.builder()
+                    .tripId(saved.getId())
+                    .userId(saved.getUser().getId())
+                    .build();
+
+            travelParticipantRepository.save(participant);
+
 
             // 초대 이메일 처리 (현재는 로그만 출력)
             if (req.getInviteEmails() != null && !req.getInviteEmails().isEmpty()) {
@@ -435,6 +448,7 @@ public class TravelPlanService {
                             .assigneeUserId(checklist.getAssigneeUserId())
                             .assigneeName(assignee != null ? assignee.getUsername() : null)
                             .completedAt(checklist.getCompletedAt())
+                            .displayOrder(checklist.getDisplayOrder())
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -475,5 +489,44 @@ public class TravelPlanService {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ChecklistResponse createChecklist(ChecklistCreateRequestDTO request, Long userId){
+        TravelParticipant member = participantRepository.findByTripIdAndUserId(request.getTripId(),
+                        userId).orElseThrow(() -> new RuntimeException("여행 참여자만 체크리스트를 추가할 수 있습니다"));
+
+        Integer order = request.getDisplayOrder();
+        if (order == null) {
+            // 해당 여행의 마지막 순서 + 1
+            Integer maxOrder = checklistRepository.findMaxDisplayOrderByTripId(request.getTripId());
+            order = (maxOrder == null) ? 0 : maxOrder + 1;
+        }
+
+        TravelChecklist checklist = TravelChecklist.builder()
+                .tripId(request.getTripId())
+                .task(request.getTask())
+                .completed(false)
+                .assigneeUserId(request.getAssigneeUserId())
+                .displayOrder(order)
+                .build();
+
+        TravelChecklist saved = checklistRepository.save(checklist);
+
+        String assigneeName = null;
+        if (saved.getAssigneeUserId() != null) {
+            assigneeName = userRepository.findById(saved.getAssigneeUserId())
+                    .map(UserEntity::getUsername)
+                    .orElse(null);
+        }
+        return ChecklistResponse.builder()
+                .id(saved.getId())
+                .task(saved.getTask())
+                .completed(saved.getCompleted())
+                .assigneeUserId(saved.getAssigneeUserId())
+                .assigneeName(assigneeName)
+                .completedAt(saved.getCompletedAt())
+                .displayOrder(saved.getDisplayOrder())
+                .build();
     }
 }

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * 여행 사진 엔티티
  */
 @Entity
-@Table(name = "trip_photos")
+@Table(name = "travel_photos")
 @Getter
 @Setter
 @NoArgsConstructor

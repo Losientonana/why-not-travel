@@ -14,7 +14,7 @@ import java.time.LocalTime;
  * - 09:00 공항 도착, 11:00 렌터카 픽업 등
  */
 @Entity
-@Table(name = "trip_activities")
+@Table(name = "travel_activities")
 @Getter
 @Setter
 @NoArgsConstructor

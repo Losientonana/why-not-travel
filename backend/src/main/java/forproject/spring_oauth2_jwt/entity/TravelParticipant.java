@@ -26,7 +26,7 @@ public class TravelParticipant {
 
     @Column(name = "role", nullable = false, length = 20)
     @Builder.Default
-    private String role = "VIEWER";
+    private String role = "OWNER";
 
     @CreationTimestamp
     @Column(name = "joined_at", nullable = false, updatable = false)
