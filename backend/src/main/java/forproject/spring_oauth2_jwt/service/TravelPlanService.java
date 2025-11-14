@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import forproject.spring_oauth2_jwt.dto.*;
 import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
+import forproject.spring_oauth2_jwt.dto.response.DeleteChecklistResponse;
 import forproject.spring_oauth2_jwt.dto.response.UpdateChecklistResponse;
 import forproject.spring_oauth2_jwt.entity.*;
 import forproject.spring_oauth2_jwt.enums.BudgetLevel;
@@ -552,6 +553,34 @@ public class TravelPlanService {
                 .id(checklist.getId())
                 .completed(checklist.getCompleted())
                 .completedAt(checklist.getCompletedAt())
+                .build();
+    }
+
+    @Transactional
+    public DeleteChecklistResponse toggleDelete(Long checklistId, Long userId){
+        TravelChecklist target = checklistRepository.findById(checklistId)
+                .orElseThrow(() -> new RuntimeException("체크리스트를 찾을 수 없습니다."));
+
+        // 2️⃣ 사용자 검증 (여행 참여자인지 확인)
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(target.getTripId(), userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 삭제할 수 있습니다."));
+
+        Long tripId = target.getTripId();
+        Integer deletedOrder = target.getDisplayOrder();
+
+        checklistRepository.delete(target);
+
+        List<TravelChecklist> remaining = checklistRepository.findByTripIdOrderByDisplayOrderAsc(tripId);
+        for (TravelChecklist c : remaining) {
+            if (c.getDisplayOrder() > deletedOrder) {
+                c.setDisplayOrder(c.getDisplayOrder() - 1);
+            }
+        }
+        return DeleteChecklistResponse.builder()
+                .deletedChecklistId(checklistId)
+                .tripId(tripId)
+                .newTotalCount(remaining.size())
                 .build();
     }
 }

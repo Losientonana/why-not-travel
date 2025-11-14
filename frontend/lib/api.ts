@@ -237,13 +237,13 @@ export const createChecklist = async (tripId: number, task: string, assigneeUser
 
 // 체크리스트 항목 체크 토글 (완료/미완료)
 export const toggleChecklist = async (checklistId: number) => {
-  const response = await api.patch(`/api/trips/${checklistId}/checklists/`);
+  const response = await api.patch(`/api/trips/${checklistId}/checklists`);
   return response.data.data; // ApiResponse의 data 필드
 };
 
-// 체크리스트 항목 삭제 (곧 구현 예정)
+// 체크리스트 항목 삭제
 export const deleteChecklist = async (checklistId: number) => {
-  const response = await api.delete(`/api/trips/checklists/${checklistId}`);
-  return response.data;
+  const response = await api.delete(`/api/trips/${checklistId}/checklists`);
+  return response.data.data; // ApiResponse의 data 필드
 };
 

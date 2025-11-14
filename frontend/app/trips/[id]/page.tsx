@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Mock data for trip details
 const mockTrip = {
@@ -259,6 +260,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   // 체크리스트 관련 상태
   const [showAddChecklist, setShowAddChecklist] = useState(false)
   const [newChecklistTask, setNewChecklistTask] = useState("")
+  const [selectedPriority, setSelectedPriority] = useState<string>("")
   const [addingChecklist, setAddingChecklist] = useState(false)
 
   // API 호출
@@ -350,16 +352,24 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     try {
       setAddingChecklist(true)
 
-      // 현재 체크리스트의 최대 displayOrder 계산
-      const maxOrder = checklistsData.length > 0
-        ? Math.max(...checklistsData.map((item: any) => item.displayOrder || 0))
-        : 0
+      // 우선순위 결정
+      let displayOrder: number
+      if (selectedPriority === "last" || !selectedPriority) {
+        // 마지막에 추가
+        const maxOrder = checklistsData.length > 0
+          ? Math.max(...checklistsData.map((item: any) => item.displayOrder || 0))
+          : 0
+        displayOrder = maxOrder + 1
+      } else {
+        // 선택한 위치에 추가
+        displayOrder = parseInt(selectedPriority)
+      }
 
       const newItem = await createChecklist(
         Number(params.id),
         newChecklistTask.trim(),
         user.id, // 현재 로그인한 사용자 ID
-        maxOrder + 1 // 새로운 항목은 마지막에 추가
+        displayOrder
       )
 
       // 성공하면 체크리스트 데이터 새로고침
@@ -368,6 +378,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
       // 입력 필드 초기화
       setNewChecklistTask("")
+      setSelectedPriority("")
       setShowAddChecklist(false)
     } catch (err) {
       console.error('체크리스트 추가 실패:', err)
@@ -926,6 +937,50 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                     />
                   </div>
 
+                  {/* 우선순위 선택 */}
+                  <div className="space-y-3">
+                    <Label htmlFor="priority" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-orange-500 flex items-center justify-center text-[8px] text-white font-bold">
+                        #
+                      </div>
+                      <span>우선순위</span>
+                    </Label>
+                    <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                      <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-400 transition-all">
+                        <SelectValue placeholder="우선순위를 선택하세요 (기본: 마지막)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-orange-500 flex items-center justify-center text-xs text-white font-bold">
+                              1
+                            </div>
+                            <span>최우선 (맨 위)</span>
+                          </div>
+                        </SelectItem>
+                        {displayChecklist.length > 0 && displayChecklist.map((item: any, index: number) => (
+                          <SelectItem key={item.id} value={String((item.displayOrder || index + 1) + 1)}>
+                            <div className="flex items-center space-x-3">
+                              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-700 font-bold">
+                                {(item.displayOrder || index + 1) + 1}
+                              </div>
+                              <span className="text-gray-600 truncate max-w-[200px]">{item.text} 다음</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="last">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs text-gray-600 font-bold">
+                              {displayChecklist.length + 1}
+                            </div>
+                            <span>마지막 (기본)</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">선택하지 않으면 마지막에 추가됩니다</p>
+                  </div>
+
                   {/* 사용자 정보 표시 */}
                   <div className="flex items-center space-x-3 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm">
                     <Avatar className="w-10 h-10 border-2 border-white shadow-md">
@@ -1005,7 +1060,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                       </Button>
                     </div>
                   ) : (
-                    displayChecklist.map((item: any) => (
+                    displayChecklist.map((item: any, index: number) => (
                       <div
                         key={item.id}
                         className={`flex items-center space-x-3 p-4 rounded-xl transition-all ${
@@ -1014,6 +1069,17 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                             : "bg-white border-2 border-gray-200 hover:border-blue-300 hover:shadow-md"
                         }`}
                       >
+                        {/* 우선순위 번호 */}
+                        <div className="flex items-center justify-center flex-shrink-0">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                            item.completed
+                              ? "bg-green-200 text-green-700"
+                              : "bg-gradient-to-br from-blue-500 to-orange-500 text-white shadow-sm"
+                          }`}>
+                            {item.displayOrder || index + 1}
+                          </div>
+                        </div>
+
                         <div className="flex items-center">
                           <input
                             type="checkbox"
