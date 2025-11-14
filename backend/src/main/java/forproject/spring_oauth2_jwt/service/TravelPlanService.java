@@ -4,7 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import forproject.spring_oauth2_jwt.dto.*;
 import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
+import forproject.spring_oauth2_jwt.dto.request.ItineraryCreateRequestDTO;
 import forproject.spring_oauth2_jwt.dto.response.DeleteChecklistResponse;
+import forproject.spring_oauth2_jwt.dto.response.DeleteItineraryResponse;
+import forproject.spring_oauth2_jwt.dto.response.ItineraryCreateResponseDTO;
 import forproject.spring_oauth2_jwt.dto.response.UpdateChecklistResponse;
 import forproject.spring_oauth2_jwt.entity.*;
 import forproject.spring_oauth2_jwt.enums.BudgetLevel;
@@ -38,6 +41,8 @@ public class TravelPlanService {
     private final TravelChecklistRepository checklistRepository;
     private final TravelExpenseRepository expenseRepository;
     private final TravelParticipantRepository participantRepository;
+    private final TravelItineraryRepository travelItineraryRepository;
+
 
     // 일정 생성
     public TravelPlanResponse createTravelPlan(TravelPlanCreateRequestDTO req, Long userId) {
@@ -360,8 +365,6 @@ public class TravelPlanService {
                         .id(itinerary.getId())
                         .dayNumber(itinerary.getDayNumber())
                         .date(itinerary.getDate())
-                        .title(itinerary.getTitle())
-                        .notes(itinerary.getNotes())
                         .activities(toActivityDtos(activitiesByItinerary.get(itinerary.getId())))
                         .build())
                 .collect(Collectors.toList());
@@ -581,6 +584,43 @@ public class TravelPlanService {
                 .deletedChecklistId(checklistId)
                 .tripId(tripId)
                 .newTotalCount(remaining.size())
+                .build();
+    }
+
+
+    @Transactional
+    public ItineraryCreateResponseDTO createItinerary(ItineraryCreateRequestDTO request, Long userId) {
+        TravelParticipant member = participantRepository.findByTripIdAndUserId(request.getTripId(),
+                userId).orElseThrow(() -> new RuntimeException("여행 참여자만 일정을 추가할 수 있습니다"));
+
+        TravelItinerary build = TravelItinerary.builder()
+                .tripId(request.getTripId())
+                .dayNumber(request.getDayNumber())
+                .date(request.getDate())
+                .build();
+
+        TravelItinerary save = travelItineraryRepository.save(build);
+
+        return ItineraryCreateResponseDTO.builder()
+                .id(save.getId())
+                .tripId(save.getTripId())
+                .dayNumber(save.getDayNumber())
+                .date(save.getDate())
+                .createdAt(save.getCreatedAt())
+                .build();
+    }
+
+    @Transactional
+    public DeleteItineraryResponse deleteItineraries(Long id, Long userId) {
+        TravelItinerary travelItinerary = travelItineraryRepository.findById(id).orElseThrow(() -> new RuntimeException("일정이 존재하지 않습니다."));
+        TravelParticipant participant = travelParticipantRepository.findByTripIdAndUserId(travelItinerary.getTripId(), userId).orElseThrow(() -> new RuntimeException("여행 참여자만 일정을 추가할 수 있습니다"));
+
+        travelItineraryRepository.delete(travelItinerary);
+        return DeleteItineraryResponse.builder()
+                .deletedItineraryId(travelItinerary.getId())
+                .tripId(travelItinerary.getTripId())
+                .dayNumber(travelItinerary.getDayNumber())
+                .date(travelItinerary.getDate())
                 .build();
     }
 }

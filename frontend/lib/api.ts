@@ -8,34 +8,61 @@ const api = axios.create({
   timeout: 10000, // 10초 타임아웃
 });
 
-// 메모리 기반 보안 토큰 관리 (XSS 공격으로부터 안전)
+// localStorage 기반 토큰 관리 (새로고침 시에도 유지)
 class SecureTokenManager {
-  private accessToken: string | null = null;
+  private readonly TOKEN_KEY = 'accessToken';
 
   getAccessToken(): string | null {
-    return this.accessToken;
+    if (typeof window === 'undefined') {
+      console.log('🔴 [TokenManager] getAccessToken: window가 undefined (SSR 환경)');
+      return null;
+    }
+    const token = localStorage.getItem(this.TOKEN_KEY);
+    console.log('🔑 [TokenManager] getAccessToken:', token ? `토큰 존재 (길이: ${token.length})` : '토큰 없음');
+    return token;
   }
 
   setAccessToken(token: string): void {
-    this.accessToken = token;
+    if (typeof window === 'undefined') {
+      console.log('🔴 [TokenManager] setAccessToken: window가 undefined (SSR 환경)');
+      return;
+    }
+    console.log('✅ [TokenManager] setAccessToken: 토큰 저장 중... (길이:', token.length, ')');
+    localStorage.setItem(this.TOKEN_KEY, token);
+    console.log('✅ [TokenManager] setAccessToken: 토큰 저장 완료');
+    // 저장 후 즉시 확인
+    const saved = localStorage.getItem(this.TOKEN_KEY);
+    console.log('🔍 [TokenManager] setAccessToken: 저장 확인 -', saved ? '성공' : '실패');
   }
 
   removeAccessToken(): void {
-    this.accessToken = null;
+    if (typeof window === 'undefined') {
+      console.log('🔴 [TokenManager] removeAccessToken: window가 undefined (SSR 환경)');
+      return;
+    }
+    console.log('🗑️ [TokenManager] removeAccessToken: 토큰 삭제 중...');
+    localStorage.removeItem(this.TOKEN_KEY);
+    console.log('🗑️ [TokenManager] removeAccessToken: 토큰 삭제 완료');
   }
 
   clearAll(): void {
-    this.accessToken = null;
-    // localStorage의 기존 토큰들도 정리
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('access');
-      localStorage.removeItem('token');
+    if (typeof window === 'undefined') {
+      console.log('🔴 [TokenManager] clearAll: window가 undefined (SSR 환경)');
+      return;
     }
+    console.log('🧹 [TokenManager] clearAll: 모든 토큰 정리 중...');
+    // 모든 토큰 관련 항목 정리
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem('access');
+    localStorage.removeItem('token');
+    console.log('🧹 [TokenManager] clearAll: 정리 완료');
   }
 
   hasToken(): boolean {
-    return !!this.accessToken;
+    const token = this.getAccessToken();
+    const result = !!token;
+    console.log('❓ [TokenManager] hasToken:', result);
+    return result;
   }
 }
 

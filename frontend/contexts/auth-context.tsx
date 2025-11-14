@@ -29,59 +29,71 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // 인증 상태 확인 및 사용자 정보 가져오기
   const checkAuthStatus = async () => {
+    console.log('🔍 [AuthContext] checkAuthStatus 시작')
     try {
       setIsLoading(true)
+      console.log('⏳ [AuthContext] isLoading = true')
+
       const authenticated = isAuthenticated()
+      console.log('🔐 [AuthContext] isAuthenticated() 결과:', authenticated)
 
       if (authenticated) {
+        console.log('✅ [AuthContext] 인증됨 - 사용자 정보 가져오는 중...')
         const userInfo = await getUserInfo()
+        console.log('👤 [AuthContext] getUserInfo() 결과:', userInfo)
+
         if (userInfo) {
           setIsLoggedIn(true)
           setUser(userInfo)
-          console.log('✅ 로그인 상태 확인됨:', userInfo.name)
+          console.log('✅ [AuthContext] 로그인 상태 확인됨:', userInfo.name, '(ID:', userInfo.id, ')')
         } else {
           // 토큰은 있지만 사용자 정보를 가져올 수 없는 경우 (만료된 토큰 등)
           setIsLoggedIn(false)
           setUser(null)
-          console.log('❌ 토큰이 유효하지 않음')
+          console.log('❌ [AuthContext] 토큰이 유효하지 않음 - 사용자 정보 없음')
         }
       } else {
         setIsLoggedIn(false)
         setUser(null)
-        console.log('🔓 로그인되지 않음')
+        console.log('🔓 [AuthContext] 로그인되지 않음 - 토큰 없음')
       }
     } catch (error) {
-      console.error('인증 상태 확인 중 오류:', error)
+      console.error('❌ [AuthContext] 인증 상태 확인 중 오류:', error)
       setIsLoggedIn(false)
       setUser(null)
     } finally {
       setIsLoading(false)
+      console.log('✅ [AuthContext] checkAuthStatus 완료 - isLoading = false')
     }
   }
 
   // 로그인 함수 (로그인 성공 후 호출)
   const login = (userData: UserInfo) => {
+    console.log('🔐 [AuthContext] login() 호출됨:', userData)
     setIsLoggedIn(true)
     setUser(userData)
-    console.log('✅ 로그인 상태 업데이트:', userData.name)
+    console.log('✅ [AuthContext] 로그인 상태 업데이트:', userData.name, '(ID:', userData.id, ')')
   }
 
   // 로그아웃 함수
   const logout = async () => {
+    console.log('🚪 [AuthContext] logout() 호출됨')
     try {
       await authLogout() // 백엔드 로그아웃 API 호출
       setIsLoggedIn(false)
       setUser(null)
-      console.log('🔓 로그아웃 완료')
+      console.log('🔓 [AuthContext] 로그아웃 완료')
 
       // 홈페이지로 리다이렉트 이벤트 발생
       window.dispatchEvent(new CustomEvent('auth-logout-redirect'))
+      console.log('📤 [AuthContext] auth-logout-redirect 이벤트 발생')
     } catch (error) {
-      console.error('로그아웃 중 오류:', error)
+      console.error('❌ [AuthContext] 로그아웃 중 오류:', error)
       // 오류가 발생해도 로컬 상태는 초기화하고 리다이렉트
       setIsLoggedIn(false)
       setUser(null)
       window.dispatchEvent(new CustomEvent('auth-logout-redirect'))
+      console.log('📤 [AuthContext] auth-logout-redirect 이벤트 발생 (에러 후)')
     }
   }
 

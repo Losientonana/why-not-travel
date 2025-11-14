@@ -2,8 +2,12 @@ package forproject.spring_oauth2_jwt.controller;
 
 import forproject.spring_oauth2_jwt.dto.*;
 import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
+import forproject.spring_oauth2_jwt.dto.request.ItineraryCreateRequestDTO;
 import forproject.spring_oauth2_jwt.dto.response.DeleteChecklistResponse;
+import forproject.spring_oauth2_jwt.dto.response.DeleteItineraryResponse;
+import forproject.spring_oauth2_jwt.dto.response.ItineraryCreateResponseDTO;
 import forproject.spring_oauth2_jwt.dto.response.UpdateChecklistResponse;
+import forproject.spring_oauth2_jwt.entity.TravelActivity;
 import forproject.spring_oauth2_jwt.service.TravelPlanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -149,6 +153,18 @@ public class TravelPlanController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+
+    @PostMapping("/detail/itineraries")
+    public ResponseEntity<ApiResponse<ItineraryCreateResponseDTO>> createItinerary(@RequestBody @Valid ItineraryCreateRequestDTO request, @AuthenticationPrincipal UserPrincipal user){
+        ItineraryCreateResponseDTO response = travelPlanService.createItinerary(request,user.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("{id}/itineraries")
+    public ResponseEntity<ApiResponse<DeleteItineraryResponse>> deleteItineraries(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal user){
+        DeleteItineraryResponse response = travelPlanService.deleteItineraries(id, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 
 }
 

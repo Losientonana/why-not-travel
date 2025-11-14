@@ -23,6 +23,7 @@ import {
   X,
   CheckCircle2,
   Sparkles,
+  // GripVertical, // TODO: 드래그 앤 드롭 기능용 - 나중에 구현
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -35,6 +36,24 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// TODO: 드래그 앤 드롭 기능 - 나중에 구현
+// import {
+//   DndContext,
+//   closestCenter,
+//   KeyboardSensor,
+//   PointerSensor,
+//   useSensor,
+//   useSensors,
+//   DragEndEvent,
+// } from '@dnd-kit/core'
+// import {
+//   arrayMove,
+//   SortableContext,
+//   sortableKeyboardCoordinates,
+//   useSortable,
+//   verticalListSortingStrategy,
+// } from '@dnd-kit/sortable'
+// import { CSS } from '@dnd-kit/utilities'
 
 // Mock data for trip details
 const mockTrip = {
@@ -242,6 +261,92 @@ const activityTypeConfig = {
   rest: { icon: "😴", color: "bg-gray-100 text-gray-800", label: "휴식" },
 }
 
+// TODO: 드래그 앤 드롭 기능 - 나중에 구현
+// // 드래그 가능한 활동 아이템 컴포넌트
+// function SortableActivityItem({ activity, onDelete }: { activity: any; onDelete: (id: string) => void }) {
+//   const {
+//     attributes,
+//     listeners,
+//     setNodeRef,
+//     transform,
+//     transition,
+//     isDragging,
+//   } = useSortable({ id: activity.id })
+
+//   const style = {
+//     transform: CSS.Transform.toString(transform),
+//     transition,
+//     opacity: isDragging ? 0.5 : 1,
+//   }
+
+//   return (
+//     <div
+//       ref={setNodeRef}
+//       style={style}
+//       className={`flex items-start space-x-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors ${
+//         isDragging ? 'shadow-lg z-50' : ''
+//       }`}
+//     >
+//       {/* 드래그 핸들 */}
+//       <div
+//         {...attributes}
+//         {...listeners}
+//         className="cursor-grab active:cursor-grabbing pt-1 text-gray-400 hover:text-gray-600 transition-colors"
+//       >
+//         <GripVertical className="w-5 h-5" />
+//       </div>
+
+//       <div className="text-sm font-medium text-blue-600 min-w-[60px] pt-1">{activity.time}</div>
+//       <div className="flex-1">
+//         <div className="flex items-center space-x-2 mb-1">
+//           <h4 className="font-medium text-gray-900">{activity.title}</h4>
+//           <Badge className={activityTypeConfig[activity.type as keyof typeof activityTypeConfig].color}>
+//             {activityTypeConfig[activity.type as keyof typeof activityTypeConfig].icon}
+//             {activityTypeConfig[activity.type as keyof typeof activityTypeConfig].label}
+//           </Badge>
+//         </div>
+//         <p className="text-sm text-gray-600 flex items-center mb-1">
+//           <MapPin className="w-3 h-3 mr-1" />
+//           {activity.location}
+//         </p>
+//         <div className="flex items-center space-x-4 text-xs text-gray-500">
+//           <div className="flex items-center">
+//             <Clock className="w-3 h-3 mr-1" />
+//             {activity.duration}
+//           </div>
+//           {activity.cost > 0 && (
+//             <div className="flex items-center">
+//               <DollarSign className="w-3 h-3 mr-1" />₩{activity.cost.toLocaleString()}
+//             </div>
+//           )}
+//         </div>
+//         {activity.notes && (
+//           <p className="text-xs text-gray-500 mt-2 flex items-start">
+//             <MessageCircle className="w-3 h-3 mr-1 mt-0.5 flex-shrink-0" />
+//             <span>{activity.notes}</span>
+//           </p>
+//         )}
+//       </div>
+//       <DropdownMenu>
+//         <DropdownMenuTrigger asChild>
+//           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-200 rounded-full">
+//             <MoreHorizontal className="w-4 h-4 text-gray-500" />
+//           </Button>
+//         </DropdownMenuTrigger>
+//         <DropdownMenuContent align="end" className="w-44">
+//           <DropdownMenuItem
+//             onClick={() => onDelete(activity.id)}
+//             className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+//           >
+//             <Trash2 className="w-4 h-4 mr-2" />
+//             삭제하기
+//           </DropdownMenuItem>
+//         </DropdownMenuContent>
+//       </DropdownMenu>
+//     </div>
+//   )
+// }
+
 export default function TripDetailPage({ params }: { params: { id: string } }) {
   const { user } = useAuth() // 현재 로그인한 사용자 정보
   const [activeTab, setActiveTab] = useState("overview")
@@ -262,6 +367,19 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   const [newChecklistTask, setNewChecklistTask] = useState("")
   const [selectedPriority, setSelectedPriority] = useState<string>("")
   const [addingChecklist, setAddingChecklist] = useState(false)
+
+  // 일정 관련 상태
+  const [showAddActivity, setShowAddActivity] = useState(false)
+  const [selectedDayForActivity, setSelectedDayForActivity] = useState<any>(null)
+  const [newActivity, setNewActivity] = useState({
+    time: "",
+    title: "",
+    location: "",
+    type: "activity",
+    duration: "",
+    cost: 0,
+    notes: ""
+  })
 
   // API 호출
   useEffect(() => {
@@ -421,6 +539,71 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
       alert('체크리스트 삭제에 실패했습니다.')
     }
   }
+
+  // 활동 추가 (Mock)
+  const handleAddActivity = () => {
+    if (!newActivity.title.trim() || !newActivity.time) {
+      alert('시간과 활동명은 필수입니다.')
+      return
+    }
+
+    console.log('활동 추가 (Mock):', newActivity, 'to day:', selectedDayForActivity?.day)
+    alert('Mock: 활동이 추가되었습니다!')
+
+    // 입력 필드 초기화
+    setNewActivity({
+      time: "",
+      title: "",
+      location: "",
+      type: "activity",
+      duration: "",
+      cost: 0,
+      notes: ""
+    })
+    setShowAddActivity(false)
+    setSelectedDayForActivity(null)
+  }
+
+  // 활동 삭제 (Mock)
+  const handleDeleteActivity = (activityId: string, dayIndex: number) => {
+    if (!confirm('이 활동을 삭제하시겠습니까?')) return
+    console.log('활동 삭제 (Mock):', activityId, 'from day:', dayIndex)
+    alert('Mock: 활동이 삭제되었습니다!')
+  }
+
+  // TODO: 드래그 앤 드롭 기능 - 나중에 구현
+  // // 드래그 앤 드롭 센서 설정
+  // const sensors = useSensors(
+  //   useSensor(PointerSensor),
+  //   useSensor(KeyboardSensor, {
+  //     coordinateGetter: sortableKeyboardCoordinates,
+  //   })
+  // )
+
+  // // 드래그 종료 핸들러 (활동 순서 변경)
+  // const handleDragEnd = (event: DragEndEvent, dayIndex: number) => {
+  //   const { active, over } = event
+
+  //   if (!over || active.id === over.id) {
+  //     return
+  //   }
+
+  //   console.log('드래그 종료 (Mock):', {
+  //     dayIndex,
+  //     movedId: active.id,
+  //     targetId: over.id,
+  //   })
+
+  //   // Mock: 실제로는 여기서 displayOrder 업데이트 API 호출
+  //   alert(`Mock: 활동 순서가 변경되었습니다! (${active.id} → ${over.id})`)
+
+  //   // TODO: 백엔드 연동 시 아래 로직 사용
+  //   // const dayActivities = displayItinerary[dayIndex].activities
+  //   // const oldIndex = dayActivities.findIndex((act: any) => act.id === active.id)
+  //   // const newIndex = dayActivities.findIndex((act: any) => act.id === over.id)
+  //   // const newOrder = arrayMove(dayActivities, oldIndex, newIndex)
+  //   // updateActivityOrder(dayIndex, newOrder) // API 호출
+  // }
 
   // 백엔드 데이터를 프론트엔드 형식으로 변환
   const transformItinerary = (data: any[]) => {
@@ -747,6 +930,204 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               </Button>
             </div>
 
+            {/* 활동 추가 Dialog */}
+            <Dialog open={showAddActivity} onOpenChange={setShowAddActivity}>
+              <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden bg-gradient-to-br from-blue-50 via-white to-orange-50 max-h-[90vh] overflow-y-auto">
+                {/* 장식 요소 */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-orange-400/20 rounded-full blur-3xl -z-10" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-400/20 to-blue-400/20 rounded-full blur-3xl -z-10" />
+
+                <DialogHeader className="p-6 pb-4 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-orange-500 shadow-lg">
+                      <Calendar className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-orange-600 bg-clip-text text-transparent">
+                        새로운 활동 추가
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-600">
+                        {selectedDayForActivity ? `${selectedDayForActivity.day}의 일정을 추가해보세요` : '일정을 추가해보세요'}
+                      </DialogDescription>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                <div className="px-6 py-4 space-y-5">
+                  {/* 시간 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-time" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <Clock className="w-4 h-4 text-blue-500" />
+                      <span>시간 *</span>
+                    </Label>
+                    <Input
+                      id="activity-time"
+                      type="time"
+                      value={newActivity.time}
+                      onChange={(e) => setNewActivity({...newActivity, time: e.target.value})}
+                      className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                    />
+                  </div>
+
+                  {/* 활동명 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-title" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <Sparkles className="w-4 h-4 text-orange-500" />
+                      <span>활동명 *</span>
+                    </Label>
+                    <Input
+                      id="activity-title"
+                      placeholder="예) 성산일출봉 트래킹"
+                      value={newActivity.title}
+                      onChange={(e) => setNewActivity({...newActivity, title: e.target.value})}
+                      className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* 장소 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-location" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <MapPin className="w-4 h-4 text-red-500" />
+                      <span>장소</span>
+                    </Label>
+                    <Input
+                      id="activity-location"
+                      placeholder="예) 성산일출봉"
+                      value={newActivity.location}
+                      onChange={(e) => setNewActivity({...newActivity, location: e.target.value})}
+                      className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                    />
+                  </div>
+
+                  {/* 활동 유형 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-type" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <Badge className="w-4 h-4 bg-purple-500" />
+                      <span>유형</span>
+                    </Label>
+                    <Select value={newActivity.type} onValueChange={(value) => setNewActivity({...newActivity, type: value})}>
+                      <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400">
+                        <SelectValue placeholder="활동 유형 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="activity">
+                          <div className="flex items-center space-x-2">
+                            <span>🎯</span>
+                            <span>관광/활동</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="food">
+                          <div className="flex items-center space-x-2">
+                            <span>🍽️</span>
+                            <span>식사</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="transport">
+                          <div className="flex items-center space-x-2">
+                            <span>🚗</span>
+                            <span>이동</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="accommodation">
+                          <div className="flex items-center space-x-2">
+                            <span>🏨</span>
+                            <span>숙박</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="rest">
+                          <div className="flex items-center space-x-2">
+                            <span>☕</span>
+                            <span>휴식</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* 소요시간과 비용 (2열 그리드) */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* 소요시간 */}
+                    <div className="space-y-2">
+                      <Label htmlFor="activity-duration" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                        <Clock className="w-4 h-4 text-green-500" />
+                        <span>소요시간</span>
+                      </Label>
+                      <Input
+                        id="activity-duration"
+                        placeholder="예) 2시간"
+                        value={newActivity.duration}
+                        onChange={(e) => setNewActivity({...newActivity, duration: e.target.value})}
+                        className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                      />
+                    </div>
+
+                    {/* 비용 */}
+                    <div className="space-y-2">
+                      <Label htmlFor="activity-cost" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                        <DollarSign className="w-4 h-4 text-yellow-500" />
+                        <span>비용 (원)</span>
+                      </Label>
+                      <Input
+                        id="activity-cost"
+                        type="number"
+                        placeholder="0"
+                        value={newActivity.cost || ""}
+                        onChange={(e) => setNewActivity({...newActivity, cost: parseInt(e.target.value) || 0})}
+                        className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 메모 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-notes" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <MessageCircle className="w-4 h-4 text-indigo-500" />
+                      <span>메모</span>
+                    </Label>
+                    <textarea
+                      id="activity-notes"
+                      placeholder="예) 사전 예약 필요, 일출 시간대 추천 등"
+                      value={newActivity.notes}
+                      onChange={(e) => setNewActivity({...newActivity, notes: e.target.value})}
+                      rows={3}
+                      className="w-full px-3 py-2 text-base border-2 border-gray-200 rounded-md focus:border-blue-400 focus:ring-blue-400 focus:outline-none transition-all resize-none"
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter className="p-6 pt-4 flex-col sm:flex-row gap-3 bg-gradient-to-r from-gray-50/50 to-orange-50/50">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddActivity(false)
+                      setSelectedDayForActivity(null)
+                      setNewActivity({
+                        time: "",
+                        title: "",
+                        location: "",
+                        type: "activity",
+                        duration: "",
+                        cost: 0,
+                        notes: ""
+                      })
+                    }}
+                    className="w-full sm:w-auto border-2 hover:bg-gray-50"
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    onClick={handleAddActivity}
+                    disabled={!newActivity.title.trim() || !newActivity.time}
+                    className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    추가하기
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <div className="space-y-6">
               {displayItinerary.map((day: any, dayIndex: number) => (
                 <Card key={dayIndex}>
@@ -760,14 +1141,23 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                           day: "numeric",
                         })}
                       </span>
-                      <Button variant="outline" size="sm">
-                        <Edit className="w-4 h-4" />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedDayForActivity(day)
+                          setShowAddActivity(true)
+                        }}
+                        className="bg-gradient-to-r from-blue-50 to-orange-50 hover:from-blue-100 hover:to-orange-100 border-2 border-blue-200 hover:border-blue-300 transition-all"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        활동 추가
                       </Button>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {day.activities.map((activity, activityIndex) => (
+                      {day.activities.map((activity: any, activityIndex: number) => (
                         <div
                           key={activityIndex}
                           className="flex items-start space-x-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -798,10 +1188,29 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                                 </div>
                               )}
                             </div>
+                            {activity.notes && (
+                              <p className="text-xs text-gray-500 mt-2 flex items-start">
+                                <MessageCircle className="w-3 h-3 mr-1 mt-0.5 flex-shrink-0" />
+                                <span>{activity.notes}</span>
+                              </p>
+                            )}
                           </div>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-200 rounded-full">
+                                <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteActivity(activity.id, dayIndex)}
+                                className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                삭제하기
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       ))}
                     </div>

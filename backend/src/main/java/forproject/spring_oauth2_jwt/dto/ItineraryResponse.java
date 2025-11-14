@@ -15,11 +15,9 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ItineraryResponse {private Long id;
+public class ItineraryResponse {
+    private Long id;
     private Integer dayNumber;
     private LocalDate date;
-    private String title;
-    private String notes;
     private List<ActivityResponse> activities;
-
 }
