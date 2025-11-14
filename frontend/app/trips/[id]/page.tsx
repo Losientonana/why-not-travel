@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { getTripDetail, getItineraries, getPhotos, getChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist } from "@/lib/api"
+import { getTripDetail, getItineraries, getPhotos, getChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist, createItinerary, deleteItinerary } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import {
   ArrowLeft,
@@ -368,7 +368,15 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   const [selectedPriority, setSelectedPriority] = useState<string>("")
   const [addingChecklist, setAddingChecklist] = useState(false)
 
-  // 일정 관련 상태
+  // 일정(하루) 관련 상태
+  const [showAddItinerary, setShowAddItinerary] = useState(false)
+  const [newItinerary, setNewItinerary] = useState({
+    dayNumber: 1,
+    date: ""
+  })
+  const [addingItinerary, setAddingItinerary] = useState(false)
+
+  // 활동 관련 상태
   const [showAddActivity, setShowAddActivity] = useState(false)
   const [selectedDayForActivity, setSelectedDayForActivity] = useState<any>(null)
   const [newActivity, setNewActivity] = useState({
@@ -540,6 +548,65 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  // 일정(하루) 추가
+  const handleAddItinerary = async () => {
+    if (!newItinerary.date) {
+      alert('날짜는 필수입니다.')
+      return
+    }
+
+    try {
+      setAddingItinerary(true)
+
+      const response = await createItinerary(
+        Number(params.id),
+        newItinerary.dayNumber,
+        newItinerary.date
+      )
+
+      console.log('일정 생성 성공:', response)
+
+      // 일정 목록 새로고침
+      const updatedItineraries = await getItineraries(Number(params.id))
+      setItinerariesData(updatedItineraries)
+
+      // 입력 필드 초기화
+      setNewItinerary({
+        dayNumber: displayItinerary.length + 1,
+        date: ""
+      })
+      setShowAddItinerary(false)
+
+      alert(`Day ${response.dayNumber} 일정이 추가되었습니다!`)
+    } catch (err: any) {
+      console.error('일정 추가 실패:', err)
+      alert(err.response?.data?.message || '일정 추가에 실패했습니다.')
+    } finally {
+      setAddingItinerary(false)
+    }
+  }
+
+  // 일정(하루) 삭제
+  const handleDeleteItinerary = async (itineraryId: number, dayNumber: number) => {
+    if (!confirm(`Day ${dayNumber} 일정을 삭제하시겠습니까?\n모든 활동도 함께 삭제됩니다.`)) {
+      return
+    }
+
+    try {
+      const response = await deleteItinerary(itineraryId)
+      console.log('일정 삭제 성공:', response)
+
+      // 일정 목록 새로고침
+      const updatedItineraries = await getItineraries(Number(params.id))
+      setItinerariesData(updatedItineraries)
+
+      alert(`Day ${response.dayNumber} 일정이 삭제되었습니다.`)
+    } catch (err: any) {
+      console.error('일정 삭제 실패:', err)
+      alert(err.response?.data?.message || '일정 삭제에 실패했습니다.')
+    }
+  }
+
   // 활동 추가 (Mock)
   const handleAddActivity = () => {
     if (!newActivity.title.trim() || !newActivity.time) {
@@ -608,6 +675,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   // 백엔드 데이터를 프론트엔드 형식으로 변환
   const transformItinerary = (data: any[]) => {
     return data.map((item, index) => ({
+      id: item.id,  // ✅ 일정 ID 추가 (삭제 시 필요)
       date: item.date,
       day: `Day ${item.dayNumber}`,
       dayNumber: item.dayNumber,
@@ -924,11 +992,109 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
           <TabsContent value="itinerary" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">여행 일정</h2>
-              <Button className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600">
+              <Button
+                onClick={() => {
+                  setNewItinerary({
+                    dayNumber: displayItinerary.length + 1,
+                    date: ""
+                  })
+                  setShowAddItinerary(true)
+                }}
+                className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 일정 추가
               </Button>
             </div>
+
+            {/* 일정(하루) 추가 Dialog */}
+            <Dialog open={showAddItinerary} onOpenChange={setShowAddItinerary}>
+              <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-gradient-to-br from-blue-50 via-white to-orange-50">
+                {/* 장식 요소 */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-orange-400/20 rounded-full blur-3xl -z-10" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-400/20 to-blue-400/20 rounded-full blur-3xl -z-10" />
+
+                <DialogHeader className="p-6 pb-4 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-orange-500 shadow-lg">
+                      <Calendar className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-orange-600 bg-clip-text text-transparent">
+                        새로운 일정 추가
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-600">
+                        여행의 하루를 추가해보세요
+                      </DialogDescription>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                <div className="px-6 py-4 space-y-5">
+                  {/* 일차 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="dayNumber" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-blue-500" />
+                      <span>Day {newItinerary.dayNumber}</span>
+                    </Label>
+                    <p className="text-xs text-gray-500">
+                      {displayItinerary.length + 1}일차로 자동 설정됩니다
+                    </p>
+                  </div>
+
+                  {/* 날짜 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="itinerary-date" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-orange-500" />
+                      <span>날짜 *</span>
+                    </Label>
+                    <Input
+                      id="itinerary-date"
+                      type="date"
+                      value={newItinerary.date}
+                      onChange={(e) => setNewItinerary({...newItinerary, date: e.target.value})}
+                      disabled={addingItinerary}
+                      className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter className="p-6 pt-4 flex-col sm:flex-row gap-3 bg-gradient-to-r from-gray-50/50 to-orange-50/50">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddItinerary(false)
+                      setNewItinerary({
+                        dayNumber: 1,
+                        date: ""
+                      })
+                    }}
+                    disabled={addingItinerary}
+                    className="w-full sm:w-auto border-2 hover:bg-gray-50"
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    onClick={handleAddItinerary}
+                    disabled={addingItinerary || !newItinerary.date}
+                    className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {addingItinerary ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        추가 중...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        추가하기
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* 활동 추가 Dialog */}
             <Dialog open={showAddActivity} onOpenChange={setShowAddActivity}>
@@ -1141,18 +1307,36 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                           day: "numeric",
                         })}
                       </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedDayForActivity(day)
-                          setShowAddActivity(true)
-                        }}
-                        className="bg-gradient-to-r from-blue-50 to-orange-50 hover:from-blue-100 hover:to-orange-100 border-2 border-blue-200 hover:border-blue-300 transition-all"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        활동 추가
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedDayForActivity(day)
+                            setShowAddActivity(true)
+                          }}
+                          className="bg-gradient-to-r from-blue-50 to-orange-50 hover:from-blue-100 hover:to-orange-100 border-2 border-blue-200 hover:border-blue-300 transition-all"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          활동 추가
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteItinerary(day.id, day.dayNumber)}
+                              className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              일정 삭제
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>

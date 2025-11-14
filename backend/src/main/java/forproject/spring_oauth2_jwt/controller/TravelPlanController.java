@@ -1,6 +1,7 @@
 package forproject.spring_oauth2_jwt.controller;
 
 import forproject.spring_oauth2_jwt.dto.*;
+import forproject.spring_oauth2_jwt.dto.request.ActivityCreateRequest;
 import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
 import forproject.spring_oauth2_jwt.dto.request.ItineraryCreateRequestDTO;
 import forproject.spring_oauth2_jwt.dto.response.DeleteChecklistResponse;
@@ -163,6 +164,12 @@ public class TravelPlanController {
     @DeleteMapping("{id}/itineraries")
     public ResponseEntity<ApiResponse<DeleteItineraryResponse>> deleteItineraries(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal user){
         DeleteItineraryResponse response = travelPlanService.deleteItineraries(id, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/detail/activities")
+    public ResponseEntity<ApiResponse<ActivityResponse>> createActivities(@RequestBody @Valid ActivityCreateRequest request, @AuthenticationPrincipal UserPrincipal user){
+        ActivityResponse response = travelPlanService.createActivities(request, user.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

@@ -274,3 +274,19 @@ export const deleteChecklist = async (checklistId: number) => {
   return response.data.data; // ApiResponse의 data 필드
 };
 
+// 일정(하루) 생성
+export const createItinerary = async (tripId: number, dayNumber: number, date: string) => {
+  const response = await api.post('/api/trips/detail/itineraries', {
+    tripId,
+    dayNumber,
+    date,
+  });
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 일정(하루) 삭제
+export const deleteItinerary = async (itineraryId: number) => {
+  const response = await api.delete(`/api/trips/${itineraryId}/itineraries`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+

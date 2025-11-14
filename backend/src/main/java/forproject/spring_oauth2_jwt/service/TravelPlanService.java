@@ -3,6 +3,7 @@ package forproject.spring_oauth2_jwt.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import forproject.spring_oauth2_jwt.dto.*;
+import forproject.spring_oauth2_jwt.dto.request.ActivityCreateRequest;
 import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
 import forproject.spring_oauth2_jwt.dto.request.ItineraryCreateRequestDTO;
 import forproject.spring_oauth2_jwt.dto.response.DeleteChecklistResponse;
@@ -379,6 +380,7 @@ public class TravelPlanService {
         return activities.stream()
                 .map(activity -> ActivityResponse.builder()
                         .id(activity.getId())
+                        .itineraryId(activity.getItineraryId())
                         .time(activity.getTime())
                         .title(activity.getTitle())
                         .location(activity.getLocation())
@@ -386,6 +388,7 @@ public class TravelPlanService {
                         .durationMinutes(activity.getDurationMinutes())
                         .cost(activity.getCost())
                         .notes(activity.getNotes())
+                        .displayOrder(activity.getDisplayOrder())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -622,5 +625,12 @@ public class TravelPlanService {
                 .dayNumber(travelItinerary.getDayNumber())
                 .date(travelItinerary.getDate())
                 .build();
+    }
+
+    @Transactional
+    public ActivityResponse createActivities(ActivityCreateRequest request, Long userId) {
+        TravelItinerary travelItinerary = travelItineraryRepository.findById(request.getItineraryId()).orElseThrow(() -> new RuntimeException("유효한 일정이 아닙니다."));
+        TravelParticipant participant = travelParticipantRepository.findByTripIdAndUserId(travelItinerary.getTripId(), userId).orElseThrow(() -> new RuntimeException("여행 참여자만 일정을 추가할 수 있습니다"));
+        return null;
     }
 }
