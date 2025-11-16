@@ -4,12 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import forproject.spring_oauth2_jwt.dto.*;
 import forproject.spring_oauth2_jwt.dto.request.ActivityCreateRequest;
+import forproject.spring_oauth2_jwt.dto.request.ActivityUpdateRequest;
 import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
 import forproject.spring_oauth2_jwt.dto.request.ItineraryCreateRequestDTO;
-import forproject.spring_oauth2_jwt.dto.response.DeleteChecklistResponse;
-import forproject.spring_oauth2_jwt.dto.response.DeleteItineraryResponse;
-import forproject.spring_oauth2_jwt.dto.response.ItineraryCreateResponseDTO;
-import forproject.spring_oauth2_jwt.dto.response.UpdateChecklistResponse;
+import forproject.spring_oauth2_jwt.dto.response.*;
 import forproject.spring_oauth2_jwt.entity.*;
 import forproject.spring_oauth2_jwt.enums.BudgetLevel;
 import forproject.spring_oauth2_jwt.enums.TravelStyle;
@@ -284,14 +282,7 @@ public class TravelPlanService {
         return participants.stream()
                 .map(participant -> {
                     UserEntity user = userMap.get(participant.getUserId());
-                    return ParticipantDTO.builder()
-                            .participantId(participant.getId())
-                            .userId(participant.getUserId())
-                            .userName(user != null ? user.getUsername() : "Unknown")
-                            .userEmail(user != null ? user.getEmail() : "")
-                            .role(participant.getRole())
-                            .joinedAt(participant.getJoinedAt())
-                            .build();
+                    return ParticipantDTO.fromEntity(participant, user);
                 })
                 .collect(Collectors.toList());
     }
@@ -364,34 +355,10 @@ public class TravelPlanService {
 
         // 4. DTO 변환
         return itineraries.stream()
-                .map(itinerary -> ItineraryResponse.builder()
-                        .id(itinerary.getId())
-                        .dayNumber(itinerary.getDayNumber())
-                        .date(itinerary.getDate())
-                        .activities(toActivityDtos(activitiesByItinerary.get(itinerary.getId())))
-                        .build())
-                .collect(Collectors.toList());
-
-    }
-
-    private List<ActivityResponse> toActivityDtos(List<TravelActivity> activities) {
-        if (activities == null) {
-            return List.of();
-        }
-
-        return activities.stream()
-                .map(activity -> ActivityResponse.builder()
-                        .id(activity.getId())
-                        .itineraryId(activity.getItineraryId())
-                        .time(activity.getTime())
-                        .title(activity.getTitle())
-                        .location(activity.getLocation())
-                        .activityType(activity.getActivityType())
-                        .durationMinutes(activity.getDurationMinutes())
-                        .cost(activity.getCost())
-                        .notes(activity.getNotes())
-                        .displayOrder(activity.getDisplayOrder())
-                        .build())
+                .map(itinerary -> ItineraryResponse.fromEntity(
+                        itinerary,
+                        activitiesByItinerary.get(itinerary.getId())
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -415,15 +382,7 @@ public class TravelPlanService {
         return photos.stream()
                 .map(photo -> {
                     UserEntity user = userMap.get(photo.getUserId());
-                    return PhotoResponse.builder()
-                            .id(photo.getId())
-                            .imageUrl(photo.getImageUrl())
-                            .caption(photo.getCaption())
-                            .takenAt(photo.getTakenAt())
-                            .likesCount(photo.getLikesCount())
-                            .userId(photo.getUserId())
-                            .userName(user != null ? user.getUsername() : "Unknown")
-                            .build();
+                    return PhotoResponse.fromEntity(photo, user);
                 })
                 .collect(Collectors.toList());
     }
@@ -451,16 +410,7 @@ public class TravelPlanService {
                     UserEntity assignee = checklist.getAssigneeUserId() != null
                             ? userMap.get(checklist.getAssigneeUserId())
                             : null;
-
-                    return ChecklistResponse.builder()
-                            .id(checklist.getId())
-                            .task(checklist.getTask())
-                            .completed(checklist.getCompleted())
-                            .assigneeUserId(checklist.getAssigneeUserId())
-                            .assigneeName(assignee != null ? assignee.getUsername() : null)
-                            .completedAt(checklist.getCompletedAt())
-                            .displayOrder(checklist.getDisplayOrder())
-                            .build();
+                    return ChecklistResponse.fromEntity(checklist, assignee);
                 })
                 .collect(Collectors.toList());
     }
@@ -487,17 +437,7 @@ public class TravelPlanService {
                     UserEntity paidBy = expense.getPaidByUserId() != null
                             ? userMap.get(expense.getPaidByUserId())
                             : null;
-
-                    return ExpenseResponse.builder()
-                            .id(expense.getId())
-                            .category(expense.getCategory())
-                            .item(expense.getItem())
-                            .amount(expense.getAmount())
-                            .paidByUserId(expense.getPaidByUserId())
-                            .paidByUserName(paidBy != null ? paidBy.getUsername() : null)
-                            .expenseDate(expense.getExpenseDate())
-                            .notes(expense.getNotes())
-                            .build();
+                    return ExpenseResponse.fromEntity(expense, paidBy);
                 })
                 .collect(Collectors.toList());
     }
@@ -507,12 +447,9 @@ public class TravelPlanService {
         TravelParticipant member = participantRepository.findByTripIdAndUserId(request.getTripId(),
                         userId).orElseThrow(() -> new RuntimeException("여행 참여자만 체크리스트를 추가할 수 있습니다"));
 
-        Integer order = request.getDisplayOrder();
-        if (order == null) {
-            // 해당 여행의 마지막 순서 + 1
-            Integer maxOrder = checklistRepository.findMaxDisplayOrderByTripId(request.getTripId());
-            order = (maxOrder == null) ? 0 : maxOrder + 1;
-        }
+        // 자동으로 마지막 순서 + 1로 설정 (활동과 동일한 로직)
+        Integer maxOrder = checklistRepository.findMaxDisplayOrderByTripId(request.getTripId());
+        Integer order = (maxOrder == null) ? 1 : maxOrder + 1;
 
         TravelChecklist checklist = TravelChecklist.builder()
                 .tripId(request.getTripId())
@@ -524,21 +461,11 @@ public class TravelPlanService {
 
         TravelChecklist saved = checklistRepository.save(checklist);
 
-        String assigneeName = null;
+        UserEntity assignee = null;
         if (saved.getAssigneeUserId() != null) {
-            assigneeName = userRepository.findById(saved.getAssigneeUserId())
-                    .map(UserEntity::getUsername)
-                    .orElse(null);
+            assignee = userRepository.findById(saved.getAssigneeUserId()).orElse(null);
         }
-        return ChecklistResponse.builder()
-                .id(saved.getId())
-                .task(saved.getTask())
-                .completed(saved.getCompleted())
-                .assigneeUserId(saved.getAssigneeUserId())
-                .assigneeName(assigneeName)
-                .completedAt(saved.getCompletedAt())
-                .displayOrder(saved.getDisplayOrder())
-                .build();
+        return ChecklistResponse.fromEntity(saved, assignee);
     }
 
 
@@ -557,11 +484,7 @@ public class TravelPlanService {
             checklist.setCompletedAt(null);
         }
 
-        return UpdateChecklistResponse.builder()
-                .id(checklist.getId())
-                .completed(checklist.getCompleted())
-                .completedAt(checklist.getCompletedAt())
-                .build();
+        return UpdateChecklistResponse.fromEntity(checklist);
     }
 
     @Transactional
@@ -604,15 +527,9 @@ public class TravelPlanService {
                 .date(request.getDate())
                 .build();
 
-        TravelItinerary save = travelItineraryRepository.save(build);
+        TravelItinerary saved = travelItineraryRepository.save(build);
 
-        return ItineraryCreateResponseDTO.builder()
-                .id(save.getId())
-                .tripId(save.getTripId())
-                .dayNumber(save.getDayNumber())
-                .date(save.getDate())
-                .createdAt(save.getCreatedAt())
-                .build();
+        return ItineraryCreateResponseDTO.fromEntity(saved);
     }
 
     @Transactional
@@ -621,12 +538,7 @@ public class TravelPlanService {
         TravelParticipant participant = travelParticipantRepository.findByTripIdAndUserId(travelItinerary.getTripId(), userId).orElseThrow(() -> new RuntimeException("여행 참여자만 일정을 추가할 수 있습니다"));
 
         travelItineraryRepository.delete(travelItinerary);
-        return DeleteItineraryResponse.builder()
-                .deletedItineraryId(travelItinerary.getId())
-                .tripId(travelItinerary.getTripId())
-                .dayNumber(travelItinerary.getDayNumber())
-                .date(travelItinerary.getDate())
-                .build();
+        return DeleteItineraryResponse.fromEntity(travelItinerary);
     }
 
     @Transactional
@@ -654,5 +566,66 @@ public class TravelPlanService {
         return ActivityResponse.fromEntity(saved);
     }
 
+    @Transactional
+    public ActivityUpdateResponse updateActivities(Long activityId, ActivityUpdateRequest request, Long userId){
+
+        TravelActivity activity = activityRepository.findById(activityId).orElseThrow(() -> new RuntimeException("활동이 존재하지 않습니다."));
+        TravelItinerary itinerary = travelItineraryRepository.findById(activity.getItineraryId())
+                .orElseThrow(() -> new RuntimeException("일정을 찾을 수 없습니다."));
+
+        // 3. 권한 검증
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(itinerary.getTripId(), userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 활동을 수정할 수 있습니다."));
+
+        if (request.getTime() != null) {
+            activity.setTime(request.getTime());
+        }
+        if (request.getTitle() != null) {
+            activity.setTitle(request.getTitle());
+        }
+        if (request.getLocation() != null) {
+            activity.setLocation(request.getLocation());
+        }
+        if (request.getActivityType() != null) {
+            activity.setActivityType(request.getActivityType());
+        }
+        if (request.getDurationMinutes() != null) {
+            activity.setDurationMinutes(request.getDurationMinutes());
+        }
+        if (request.getCost() != null) {
+            activity.setCost(request.getCost());
+        }
+        if (request.getNotes() != null) {
+            activity.setNotes(request.getNotes());
+        }
+
+        return ActivityUpdateResponse.fromEntity(activity);
+    }
+
+    @Transactional
+    public DeleteActivityResponse deleteActivities(Long activityId, Long userId) {
+        // 1. 활동 조회
+        TravelActivity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new RuntimeException("활동이 존재하지 않습니다."));
+
+        // 2. 일정 조회
+        TravelItinerary itinerary = travelItineraryRepository.findById(activity.getItineraryId())
+                .orElseThrow(() -> new RuntimeException("일정을 찾을 수 없습니다."));
+
+        // 3. 권한 검증
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(itinerary.getTripId(), userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 활동을 삭제할 수 있습니다."));
+
+        // 4. Response 준비 (삭제 전)
+        DeleteActivityResponse response = DeleteActivityResponse.fromEntity(activity);
+
+        // 5. 활동 삭제
+        activityRepository.delete(activity);
+
+        // 6. Response 반환
+        return response;
+    }
 
 }

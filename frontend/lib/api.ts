@@ -251,13 +251,13 @@ export const getExpenses = async (tripId: number) => {
   return response.data;
 };
 
-// 체크리스트 항목 추가
-export const createChecklist = async (tripId: number, task: string, assigneeUserId?: number, displayOrder?: number) => {
+// 체크리스트 항목 추가 (displayOrder는 백엔드에서 자동 할당)
+export const createChecklist = async (tripId: number, task: string, assigneeUserId?: number) => {
   const response = await api.post('/api/trips/detail/checklists', {
     tripId,
     task,
     assigneeUserId,
-    displayOrder,
+    // displayOrder는 백엔드에서 자동으로 마지막 순서 + 1로 설정됨
   });
   return response.data.data; // ApiResponse의 data 필드
 };
@@ -287,6 +287,43 @@ export const createItinerary = async (tripId: number, dayNumber: number, date: s
 // 일정(하루) 삭제
 export const deleteItinerary = async (itineraryId: number) => {
   const response = await api.delete(`/api/trips/${itineraryId}/itineraries`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 활동 추가
+export const createActivity = async (itineraryId: number, data: {
+  time: string;
+  title: string;
+  location?: string;
+  activityType?: string;
+  durationMinutes?: number;
+  cost?: number;
+  notes?: string;
+}) => {
+  const response = await api.post('/api/trips/detail/activities', {
+    itineraryId,
+    ...data,
+  });
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 활동 수정
+export const updateActivity = async (activityId: number, data: {
+  time?: string;
+  title?: string;
+  location?: string;
+  activityType?: string;
+  durationMinutes?: number;
+  cost?: number;
+  notes?: string;
+}) => {
+  const response = await api.patch(`/api/trips/${activityId}/activities`, data);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 활동 삭제
+export const deleteActivity = async (activityId: number) => {
+  const response = await api.delete(`/api/trips/${activityId}/activities`);
   return response.data.data; // ApiResponse의 data 필드
 };
 

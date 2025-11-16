@@ -1,5 +1,7 @@
 package forproject.spring_oauth2_jwt.dto;
 
+import forproject.spring_oauth2_jwt.entity.TravelExpense;
+import forproject.spring_oauth2_jwt.entity.UserEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,4 +27,17 @@ public class ExpenseResponse {
     private String paidByUserName;
     private LocalDate expenseDate;
     private String notes;
+
+    public static ExpenseResponse fromEntity(TravelExpense expense, UserEntity paidBy) {
+        return ExpenseResponse.builder()
+                .id(expense.getId())
+                .category(expense.getCategory())
+                .item(expense.getItem())
+                .amount(expense.getAmount())
+                .paidByUserId(expense.getPaidByUserId())
+                .paidByUserName(paidBy != null ? paidBy.getUsername() : null)
+                .expenseDate(expense.getExpenseDate())
+                .notes(expense.getNotes())
+                .build();
+    }
 }

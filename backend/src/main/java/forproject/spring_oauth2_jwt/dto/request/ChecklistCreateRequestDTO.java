@@ -20,6 +20,6 @@ public class ChecklistCreateRequestDTO {
     private String task;
 
     private Long assigneeUserId;
-    private Integer displayOrder;
+    // displayOrder는 백엔드에서 자동 할당 (제거됨)
 
 }

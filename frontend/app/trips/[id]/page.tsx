@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { getTripDetail, getItineraries, getPhotos, getChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist, createItinerary, deleteItinerary } from "@/lib/api"
+import { getTripDetail, getItineraries, getPhotos, getChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist, createItinerary, deleteItinerary, createActivity, updateActivity, deleteActivity } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import {
   ArrowLeft,
@@ -389,6 +389,11 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     notes: ""
   })
 
+  // 활동 수정 관련 상태
+  const [showEditActivity, setShowEditActivity] = useState(false)
+  const [editingActivity, setEditingActivity] = useState<any>(null)
+  const [updatingActivity, setUpdatingActivity] = useState(false)
+
   // API 호출
   useEffect(() => {
     const fetchTripDetail = async () => {
@@ -478,24 +483,11 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     try {
       setAddingChecklist(true)
 
-      // 우선순위 결정
-      let displayOrder: number
-      if (selectedPriority === "last" || !selectedPriority) {
-        // 마지막에 추가
-        const maxOrder = checklistsData.length > 0
-          ? Math.max(...checklistsData.map((item: any) => item.displayOrder || 0))
-          : 0
-        displayOrder = maxOrder + 1
-      } else {
-        // 선택한 위치에 추가
-        displayOrder = parseInt(selectedPriority)
-      }
-
+      // displayOrder는 백엔드에서 자동으로 마지막 순서 + 1로 설정됨
       const newItem = await createChecklist(
         Number(params.id),
         newChecklistTask.trim(),
-        user.id, // 현재 로그인한 사용자 ID
-        displayOrder
+        user.id  // 현재 로그인한 사용자 ID (assigneeUserId)
       )
 
       // 성공하면 체크리스트 데이터 새로고침
@@ -607,35 +599,129 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  // 활동 추가 (Mock)
-  const handleAddActivity = () => {
+  // 활동 추가
+  const handleAddActivity = async () => {
     if (!newActivity.title.trim() || !newActivity.time) {
       alert('시간과 활동명은 필수입니다.')
       return
     }
 
-    console.log('활동 추가 (Mock):', newActivity, 'to day:', selectedDayForActivity?.day)
-    alert('Mock: 활동이 추가되었습니다!')
+    if (!selectedDayForActivity?.id) {
+      alert('일정을 선택해주세요.')
+      return
+    }
 
-    // 입력 필드 초기화
-    setNewActivity({
-      time: "",
-      title: "",
-      location: "",
-      type: "activity",
-      duration: "",
-      cost: 0,
-      notes: ""
-    })
-    setShowAddActivity(false)
-    setSelectedDayForActivity(null)
+    try {
+      const activityData = {
+        time: newActivity.time + ":00", // 초 단위 추가 (HH:mm:ss 형식)
+        title: newActivity.title,
+        location: newActivity.location || null,
+        activityType: newActivity.type?.toUpperCase(),
+        durationMinutes: newActivity.duration ? parseInt(newActivity.duration) : null,
+        cost: newActivity.cost || 0,
+        notes: newActivity.notes || null,
+      }
+
+      await createActivity(selectedDayForActivity.id, activityData)
+
+      // 일정 목록 새로고침
+      const updatedItineraries = await getItineraries(Number(params.id))
+      setItinerariesData(updatedItineraries)
+
+      // 입력 필드 초기화
+      setNewActivity({
+        time: "",
+        title: "",
+        location: "",
+        type: "activity",
+        duration: "",
+        cost: 0,
+        notes: ""
+      })
+      setShowAddActivity(false)
+      setSelectedDayForActivity(null)
+
+      alert('활동이 추가되었습니다!')
+    } catch (err: any) {
+      console.error('활동 추가 실패:', err)
+      alert(err.response?.data?.message || '활동 추가에 실패했습니다.')
+    }
   }
 
-  // 활동 삭제 (Mock)
-  const handleDeleteActivity = (activityId: string, dayIndex: number) => {
-    if (!confirm('이 활동을 삭제하시겠습니까?')) return
-    console.log('활동 삭제 (Mock):', activityId, 'from day:', dayIndex)
-    alert('Mock: 활동이 삭제되었습니다!')
+  // 활동 수정 Dialog 열기
+  const handleOpenEditActivity = (activity: any) => {
+    setEditingActivity({
+      ...activity,
+      durationMinutes: activity.duration ? parseInt(activity.duration) : null,
+    })
+    setShowEditActivity(true)
+  }
+
+  // 활동 수정
+  const handleUpdateActivity = async () => {
+    if (!editingActivity?.title?.trim() || !editingActivity?.time) {
+      alert('시간과 활동명은 필수입니다.')
+      return
+    }
+
+    try {
+      setUpdatingActivity(true)
+
+      const updateData = {
+        time: editingActivity.time,
+        title: editingActivity.title,
+        location: editingActivity.location,
+        activityType: editingActivity.type?.toUpperCase(),
+        durationMinutes: editingActivity.durationMinutes || null,
+        cost: editingActivity.cost || 0,
+        notes: editingActivity.notes || null,
+      }
+
+      await updateActivity(editingActivity.id, updateData)
+
+      // 일정 목록 새로고침
+      const updatedItineraries = await getItineraries(Number(params.id))
+      setItinerariesData(updatedItineraries)
+
+      setShowEditActivity(false)
+      setEditingActivity(null)
+      alert('활동이 수정되었습니다!')
+    } catch (err: any) {
+      console.error('활동 수정 실패:', err)
+      alert(err.response?.data?.message || '활동 수정에 실패했습니다.')
+    } finally {
+      setUpdatingActivity(false)
+    }
+  }
+
+  // 활동 삭제
+  const handleDeleteActivity = async (activityId: number, activityTitle: string) => {
+    if (!confirm(`"${activityTitle}" 활동을 삭제하시겠습니까?`)) return
+
+    try {
+      await deleteActivity(activityId)
+
+      // 일정 목록 새로고침
+      const updatedItineraries = await getItineraries(Number(params.id))
+      setItinerariesData(updatedItineraries)
+
+      alert('활동이 삭제되었습니다!')
+    } catch (err: any) {
+      console.error('활동 삭제 실패:', err)
+      alert(err.response?.data?.message || '활동 삭제에 실패했습니다.')
+    }
+  }
+
+  // 시간을 오전/오후 형식으로 변환 (HH:mm:ss -> 오전/오후 HH:mm)
+  const formatTime = (time: string) => {
+    if (!time) return ''
+
+    const [hours, minutes] = time.split(':')
+    const hour = parseInt(hours)
+    const period = hour < 12 ? '오전' : '오후'
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+
+    return `${period} ${displayHour}:${minutes}`
   }
 
   // TODO: 드래그 앤 드롭 기능 - 나중에 구현
@@ -732,9 +818,10 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
   // 실제 데이터 또는 mock 데이터 사용 (fallback)
   const displayTrip = tripData || mockTrip
-  const displayItinerary = itinerariesData.length > 0 ? transformItinerary(itinerariesData) : mockTrip.itinerary
+  // 일정과 체크리스트는 Mock 데이터 사용 안 함 (실제 API 데이터만 사용)
+  const displayItinerary = itinerariesData.length > 0 ? transformItinerary(itinerariesData) : []  // mockTrip.itinerary
   const displayPhotos = photosData.length > 0 ? transformPhotos(photosData) : mockTrip.photos
-  const displayChecklist = checklistsData.length > 0 ? transformChecklist(checklistsData) : mockTrip.checklist
+  const displayChecklist = checklistsData.length > 0 ? transformChecklist(checklistsData) : []  // mockTrip.checklist
   const displayExpenses = expensesData.length > 0 ? transformExpenses(expensesData) : mockTrip.expenses
 
   const completedTasks = tripData?.statistics?.completedChecklistCount ?? displayChecklist.filter((item: any) => item.completed).length
@@ -1122,17 +1209,54 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 <div className="px-6 py-4 space-y-5">
                   {/* 시간 */}
                   <div className="space-y-2">
-                    <Label htmlFor="activity-time" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                       <Clock className="w-4 h-4 text-blue-500" />
                       <span>시간 *</span>
                     </Label>
-                    <Input
-                      id="activity-time"
-                      type="time"
-                      value={newActivity.time}
-                      onChange={(e) => setNewActivity({...newActivity, time: e.target.value})}
-                      className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-gray-500">시간</Label>
+                        <Select
+                          value={newActivity.time.split(':')[0] || ''}
+                          onValueChange={(value) => {
+                            const currentMinute = newActivity.time.split(':')[1] || '00'
+                            setNewActivity({...newActivity, time: `${value}:${currentMinute}`})
+                          }}
+                        >
+                          <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-blue-400">
+                            <SelectValue placeholder="시" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 24 }, (_, i) => i).map(hour => (
+                              <SelectItem key={hour} value={hour.toString().padStart(2, '0')}>
+                                {hour}시
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-gray-500">분</Label>
+                        <Select
+                          value={newActivity.time.split(':')[1] || ''}
+                          onValueChange={(value) => {
+                            const currentHour = newActivity.time.split(':')[0] || '00'
+                            setNewActivity({...newActivity, time: `${currentHour}:${value}`})
+                          }}
+                        >
+                          <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-blue-400">
+                            <SelectValue placeholder="분" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[0, 10, 20, 30, 40, 50].map(minute => (
+                              <SelectItem key={minute} value={minute.toString().padStart(2, '0')}>
+                                {minute}분
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
 
                   {/* 활동명 */}
@@ -1294,6 +1418,245 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               </DialogContent>
             </Dialog>
 
+            {/* 활동 수정 Dialog */}
+            <Dialog open={showEditActivity} onOpenChange={setShowEditActivity}>
+              <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden bg-gradient-to-br from-blue-50 via-white to-orange-50 max-h-[90vh] overflow-y-auto">
+                {/* 장식 요소 */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-orange-400/20 rounded-full blur-3xl -z-10" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-400/20 to-blue-400/20 rounded-full blur-3xl -z-10" />
+
+                <DialogHeader className="p-6 pb-4 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-orange-500 shadow-lg">
+                      <Edit className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-orange-600 bg-clip-text text-transparent">
+                        활동 수정
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-600">
+                        활동 정보를 수정해보세요
+                      </DialogDescription>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {editingActivity && (
+                  <div className="px-6 py-4 space-y-5">
+                    {/* 시간 */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                        <Clock className="w-4 h-4 text-blue-500" />
+                        <span>시간 *</span>
+                      </Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-gray-500">시간</Label>
+                          <Select
+                            value={editingActivity.time?.split(':')[0] || ''}
+                            onValueChange={(value) => {
+                              const currentMinute = editingActivity.time?.split(':')[1] || '00'
+                              setEditingActivity({...editingActivity, time: `${value}:${currentMinute}`})
+                            }}
+                          >
+                            <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-blue-400">
+                              <SelectValue placeholder="시" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 24 }, (_, i) => i).map(hour => (
+                                <SelectItem key={hour} value={hour.toString().padStart(2, '0')}>
+                                  {hour}시
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-gray-500">분</Label>
+                          <Select
+                            value={editingActivity.time?.split(':')[1] || ''}
+                            onValueChange={(value) => {
+                              const currentHour = editingActivity.time?.split(':')[0] || '00'
+                              setEditingActivity({...editingActivity, time: `${currentHour}:${value}`})
+                            }}
+                          >
+                            <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-blue-400">
+                              <SelectValue placeholder="분" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 10, 20, 30, 40, 50].map(minute => (
+                                <SelectItem key={minute} value={minute.toString().padStart(2, '0')}>
+                                  {minute}분
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 활동명 */}
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-activity-title" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                        <Sparkles className="w-4 h-4 text-orange-500" />
+                        <span>활동명 *</span>
+                      </Label>
+                      <Input
+                        id="edit-activity-title"
+                        placeholder="예) 성산일출봉 트래킹"
+                        value={editingActivity.title || ""}
+                        onChange={(e) => setEditingActivity({...editingActivity, title: e.target.value})}
+                        className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                        autoFocus
+                      />
+                    </div>
+
+                    {/* 장소 */}
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-activity-location" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                        <MapPin className="w-4 h-4 text-red-500" />
+                        <span>장소</span>
+                      </Label>
+                      <Input
+                        id="edit-activity-location"
+                        placeholder="예) 성산일출봉"
+                        value={editingActivity.location || ""}
+                        onChange={(e) => setEditingActivity({...editingActivity, location: e.target.value})}
+                        className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                      />
+                    </div>
+
+                    {/* 활동 유형 */}
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-activity-type" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                        <Badge className="w-4 h-4 bg-purple-500" />
+                        <span>유형</span>
+                      </Label>
+                      <Select value={editingActivity.type} onValueChange={(value) => setEditingActivity({...editingActivity, type: value})}>
+                        <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400">
+                          <SelectValue placeholder="활동 유형 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="activity">
+                            <div className="flex items-center space-x-2">
+                              <span>🎯</span>
+                              <span>관광/활동</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="food">
+                            <div className="flex items-center space-x-2">
+                              <span>🍽️</span>
+                              <span>식사</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="transport">
+                            <div className="flex items-center space-x-2">
+                              <span>🚗</span>
+                              <span>이동</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="accommodation">
+                            <div className="flex items-center space-x-2">
+                              <span>🏨</span>
+                              <span>숙박</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="rest">
+                            <div className="flex items-center space-x-2">
+                              <span>☕</span>
+                              <span>휴식</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* 소요시간과 비용 (2열 그리드) */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* 소요시간 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-activity-duration" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                          <Clock className="w-4 h-4 text-green-500" />
+                          <span>소요시간</span>
+                        </Label>
+                        <Input
+                          id="edit-activity-duration"
+                          type="number"
+                          placeholder="예) 120"
+                          value={editingActivity.durationMinutes || ""}
+                          onChange={(e) => setEditingActivity({...editingActivity, durationMinutes: parseInt(e.target.value) || null})}
+                          className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                        />
+                      </div>
+
+                      {/* 비용 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-activity-cost" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                          <DollarSign className="w-4 h-4 text-yellow-500" />
+                          <span>비용 (원)</span>
+                        </Label>
+                        <Input
+                          id="edit-activity-cost"
+                          type="number"
+                          placeholder="0"
+                          value={editingActivity.cost || ""}
+                          onChange={(e) => setEditingActivity({...editingActivity, cost: parseInt(e.target.value) || 0})}
+                          className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 메모 */}
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-activity-notes" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                        <MessageCircle className="w-4 h-4 text-indigo-500" />
+                        <span>메모</span>
+                      </Label>
+                      <textarea
+                        id="edit-activity-notes"
+                        placeholder="예) 사전 예약 필요, 일출 시간대 추천 등"
+                        value={editingActivity.notes || ""}
+                        onChange={(e) => setEditingActivity({...editingActivity, notes: e.target.value})}
+                        rows={3}
+                        className="w-full px-3 py-2 text-base border-2 border-gray-200 rounded-md focus:border-blue-400 focus:ring-blue-400 focus:outline-none transition-all resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <DialogFooter className="p-6 pt-4 flex-col sm:flex-row gap-3 bg-gradient-to-r from-gray-50/50 to-orange-50/50">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowEditActivity(false)
+                      setEditingActivity(null)
+                    }}
+                    disabled={updatingActivity}
+                    className="w-full sm:w-auto border-2 hover:bg-gray-50"
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    onClick={handleUpdateActivity}
+                    disabled={!editingActivity?.title?.trim() || !editingActivity?.time || updatingActivity}
+                    className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {updatingActivity ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        수정 중...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        수정 완료
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <div className="space-y-6">
               {displayItinerary.map((day: any, dayIndex: number) => (
                 <Card key={dayIndex}>
@@ -1346,7 +1709,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                           key={activityIndex}
                           className="flex items-start space-x-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
                         >
-                          <div className="text-sm font-medium text-blue-600 min-w-[60px]">{activity.time}</div>
+                          <div className="text-sm font-medium text-blue-600 min-w-[60px]">{formatTime(activity.time)}</div>
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">
                               <h4 className="font-medium text-gray-900">{activity.title}</h4>
@@ -1387,7 +1750,14 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-44">
                               <DropdownMenuItem
-                                onClick={() => handleDeleteActivity(activity.id, dayIndex)}
+                                onClick={() => handleOpenEditActivity(activity)}
+                                className="focus:bg-blue-50 cursor-pointer"
+                              >
+                                <Edit className="w-4 h-4 mr-2" />
+                                수정하기
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteActivity(activity.id, activity.title)}
                                 className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
@@ -1530,8 +1900,8 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                     />
                   </div>
 
-                  {/* 우선순위 선택 */}
-                  <div className="space-y-3">
+                  {/* 우선순위 선택 - displayOrder는 백엔드에서 자동 할당되므로 UI 제거 */}
+                  {/* <div className="space-y-3">
                     <Label htmlFor="priority" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                       <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-orange-500 flex items-center justify-center text-[8px] text-white font-bold">
                         #
@@ -1572,7 +1942,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-gray-500">선택하지 않으면 마지막에 추가됩니다</p>
-                  </div>
+                  </div> */}
 
                   {/* 사용자 정보 표시 */}
                   <div className="flex items-center space-x-3 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm">

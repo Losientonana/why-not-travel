@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 @AllArgsConstructor
@@ -29,8 +31,7 @@ public class ActivityResponse {
     private Integer displayOrder = 0;
     private LocalDateTime createdAt;
 
-    public static ActivityResponse fromEntity(TravelActivity
-                                                      entity) {
+    public static ActivityResponse fromEntity(TravelActivity entity) {
         return ActivityResponse.builder()
                 .id(entity.getId())
                 .itineraryId(entity.getItineraryId())
@@ -44,5 +45,14 @@ public class ActivityResponse {
                 .displayOrder(entity.getDisplayOrder())
                 .createdAt(entity.getCreatedAt())
                 .build();
+    }
+
+    public static List<ActivityResponse> fromEntities(List<TravelActivity> activities) {
+        if (activities == null) {
+            return List.of();
+        }
+        return activities.stream()
+                .map(ActivityResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 }

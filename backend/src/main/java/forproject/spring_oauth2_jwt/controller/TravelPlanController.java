@@ -2,17 +2,16 @@ package forproject.spring_oauth2_jwt.controller;
 
 import forproject.spring_oauth2_jwt.dto.*;
 import forproject.spring_oauth2_jwt.dto.request.ActivityCreateRequest;
+import forproject.spring_oauth2_jwt.dto.request.ActivityUpdateRequest;
 import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
 import forproject.spring_oauth2_jwt.dto.request.ItineraryCreateRequestDTO;
-import forproject.spring_oauth2_jwt.dto.response.DeleteChecklistResponse;
-import forproject.spring_oauth2_jwt.dto.response.DeleteItineraryResponse;
-import forproject.spring_oauth2_jwt.dto.response.ItineraryCreateResponseDTO;
-import forproject.spring_oauth2_jwt.dto.response.UpdateChecklistResponse;
+import forproject.spring_oauth2_jwt.dto.response.*;
 import forproject.spring_oauth2_jwt.entity.TravelActivity;
 import forproject.spring_oauth2_jwt.service.TravelPlanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
@@ -170,6 +169,21 @@ public class TravelPlanController {
     @PostMapping("/detail/activities")
     public ResponseEntity<ApiResponse<ActivityResponse>> createActivities(@RequestBody @Valid ActivityCreateRequest request, @AuthenticationPrincipal UserPrincipal user){
         ActivityResponse response = travelPlanService.createActivities(request, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PatchMapping("{id}/activities")
+    public ResponseEntity<ApiResponse<ActivityUpdateResponse>> updateActivities(@PathVariable Long id, @RequestBody @Valid ActivityUpdateRequest request, @AuthenticationPrincipal UserPrincipal user) {
+        ActivityUpdateResponse response = travelPlanService.updateActivities(id, request,user.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("{id}/activities")
+    public ResponseEntity<ApiResponse<DeleteActivityResponse>> deleteActivities(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        DeleteActivityResponse response = travelPlanService.deleteActivities(id, user.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
