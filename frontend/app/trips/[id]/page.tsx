@@ -384,7 +384,8 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     title: "",
     location: "",
     type: "activity",
-    duration: "",
+    durationHours: 0,
+    durationMinutes: 0,
     cost: 0,
     notes: ""
   })
@@ -612,12 +613,15 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     }
 
     try {
+      // 소요시간을 분 단위로 변환
+      const totalMinutes = (newActivity.durationHours * 60) + newActivity.durationMinutes
+
       const activityData = {
         time: newActivity.time + ":00", // 초 단위 추가 (HH:mm:ss 형식)
         title: newActivity.title,
         location: newActivity.location || null,
         activityType: newActivity.type?.toUpperCase(),
-        durationMinutes: newActivity.duration ? parseInt(newActivity.duration) : null,
+        durationMinutes: totalMinutes > 0 ? totalMinutes : null,
         cost: newActivity.cost || 0,
         notes: newActivity.notes || null,
       }
@@ -634,7 +638,8 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
         title: "",
         location: "",
         type: "activity",
-        duration: "",
+        durationHours: 0,
+        durationMinutes: 0,
         cost: 0,
         notes: ""
       })
@@ -650,9 +655,19 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
   // 활동 수정 Dialog 열기
   const handleOpenEditActivity = (activity: any) => {
+    // HH:mm:ss 형식에서 HH:mm만 추출
+    const timeWithoutSeconds = activity.time ? activity.time.substring(0, 5) : ''
+
+    // 소요시간(분)을 시간과 분으로 분리
+    const totalMinutes = activity.duration ? parseInt(activity.duration) : 0
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+
     setEditingActivity({
       ...activity,
-      durationMinutes: activity.duration ? parseInt(activity.duration) : null,
+      time: timeWithoutSeconds,
+      durationHours: hours,
+      durationMinutes: minutes,
     })
     setShowEditActivity(true)
   }
@@ -667,12 +682,15 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     try {
       setUpdatingActivity(true)
 
+      // 소요시간을 분 단위로 변환
+      const totalMinutes = (editingActivity.durationHours * 60) + editingActivity.durationMinutes
+
       const updateData = {
-        time: editingActivity.time,
+        time: editingActivity.time + ":00", // 초 단위 추가 (HH:mm:ss 형식)
         title: editingActivity.title,
         location: editingActivity.location,
         activityType: editingActivity.type?.toUpperCase(),
-        durationMinutes: editingActivity.durationMinutes || null,
+        durationMinutes: totalMinutes > 0 ? totalMinutes : null,
         cost: editingActivity.cost || 0,
         notes: editingActivity.notes || null,
       }
@@ -724,6 +742,22 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     return `${period} ${displayHour}:${minutes}`
   }
 
+  // 소요시간(분)을 "~시간 ~분" 형식으로 변환
+  const formatDuration = (minutes: number | null | undefined) => {
+    if (!minutes || minutes === 0) return ''
+
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+
+    if (hours > 0 && mins > 0) {
+      return `${hours}시간 ${mins}분`
+    } else if (hours > 0) {
+      return `${hours}시간`
+    } else {
+      return `${mins}분`
+    }
+  }
+
   // TODO: 드래그 앤 드롭 기능 - 나중에 구현
   // // 드래그 앤 드롭 센서 설정
   // const sensors = useSensors(
@@ -772,7 +806,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
         title: act.title,
         location: act.location,
         type: act.activityType?.toLowerCase() || 'activity',
-        duration: `${act.durationMinutes || 0}분`,
+        duration: act.durationMinutes || 0,
         cost: act.cost || 0,
         notes: act.notes
       }))
@@ -1335,38 +1369,66 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                     </Select>
                   </div>
 
-                  {/* 소요시간과 비용 (2열 그리드) */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* 소요시간 */}
-                    <div className="space-y-2">
-                      <Label htmlFor="activity-duration" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                        <Clock className="w-4 h-4 text-green-500" />
-                        <span>소요시간</span>
-                      </Label>
-                      <Input
-                        id="activity-duration"
-                        placeholder="예) 2시간"
-                        value={newActivity.duration}
-                        onChange={(e) => setNewActivity({...newActivity, duration: e.target.value})}
-                        className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
-                      />
+                  {/* 소요시간 */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <Clock className="w-4 h-4 text-green-500" />
+                      <span>소요시간</span>
+                    </Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-gray-500">시간</Label>
+                        <Select
+                          value={newActivity.durationHours.toString()}
+                          onValueChange={(value) => setNewActivity({...newActivity, durationHours: parseInt(value)})}
+                        >
+                          <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-blue-400">
+                            <SelectValue placeholder="시간" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 25 }, (_, i) => i).map(hour => (
+                              <SelectItem key={hour} value={hour.toString()}>
+                                {hour}시간
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-gray-500">분</Label>
+                        <Select
+                          value={newActivity.durationMinutes.toString()}
+                          onValueChange={(value) => setNewActivity({...newActivity, durationMinutes: parseInt(value)})}
+                        >
+                          <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-blue-400">
+                            <SelectValue placeholder="분" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[0, 10, 20, 30, 40, 50].map(minute => (
+                              <SelectItem key={minute} value={minute.toString()}>
+                                {minute}분
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
+                  </div>
 
-                    {/* 비용 */}
-                    <div className="space-y-2">
-                      <Label htmlFor="activity-cost" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                        <DollarSign className="w-4 h-4 text-yellow-500" />
-                        <span>비용 (원)</span>
-                      </Label>
-                      <Input
-                        id="activity-cost"
-                        type="number"
-                        placeholder="0"
-                        value={newActivity.cost || ""}
-                        onChange={(e) => setNewActivity({...newActivity, cost: parseInt(e.target.value) || 0})}
-                        className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
-                      />
-                    </div>
+                  {/* 비용 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-cost" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <DollarSign className="w-4 h-4 text-yellow-500" />
+                      <span>비용 (원)</span>
+                    </Label>
+                    <Input
+                      id="activity-cost"
+                      type="number"
+                      placeholder="0"
+                      value={newActivity.cost || ""}
+                      onChange={(e) => setNewActivity({...newActivity, cost: parseInt(e.target.value) || 0})}
+                      className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                    />
                   </div>
 
                   {/* 메모 */}
@@ -1571,39 +1633,66 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                       </Select>
                     </div>
 
-                    {/* 소요시간과 비용 (2열 그리드) */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* 소요시간 */}
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-activity-duration" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                          <Clock className="w-4 h-4 text-green-500" />
-                          <span>소요시간</span>
-                        </Label>
-                        <Input
-                          id="edit-activity-duration"
-                          type="number"
-                          placeholder="예) 120"
-                          value={editingActivity.durationMinutes || ""}
-                          onChange={(e) => setEditingActivity({...editingActivity, durationMinutes: parseInt(e.target.value) || null})}
-                          className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
-                        />
+                    {/* 소요시간 */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                        <Clock className="w-4 h-4 text-green-500" />
+                        <span>소요시간</span>
+                      </Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-gray-500">시간</Label>
+                          <Select
+                            value={editingActivity.durationHours?.toString() || '0'}
+                            onValueChange={(value) => setEditingActivity({...editingActivity, durationHours: parseInt(value)})}
+                          >
+                            <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-blue-400">
+                              <SelectValue placeholder="시간" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 25 }, (_, i) => i).map(hour => (
+                                <SelectItem key={hour} value={hour.toString()}>
+                                  {hour}시간
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-gray-500">분</Label>
+                          <Select
+                            value={editingActivity.durationMinutes?.toString() || '0'}
+                            onValueChange={(value) => setEditingActivity({...editingActivity, durationMinutes: parseInt(value)})}
+                          >
+                            <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-blue-400">
+                              <SelectValue placeholder="분" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 10, 20, 30, 40, 50].map(minute => (
+                                <SelectItem key={minute} value={minute.toString()}>
+                                  {minute}분
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
+                    </div>
 
-                      {/* 비용 */}
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-activity-cost" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                          <DollarSign className="w-4 h-4 text-yellow-500" />
-                          <span>비용 (원)</span>
-                        </Label>
-                        <Input
-                          id="edit-activity-cost"
-                          type="number"
-                          placeholder="0"
-                          value={editingActivity.cost || ""}
-                          onChange={(e) => setEditingActivity({...editingActivity, cost: parseInt(e.target.value) || 0})}
-                          className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
-                        />
-                      </div>
+                    {/* 비용 */}
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-activity-cost" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                        <DollarSign className="w-4 h-4 text-yellow-500" />
+                        <span>비용 (원)</span>
+                      </Label>
+                      <Input
+                        id="edit-activity-cost"
+                        type="number"
+                        placeholder="0"
+                        value={editingActivity.cost || ""}
+                        onChange={(e) => setEditingActivity({...editingActivity, cost: parseInt(e.target.value) || 0})}
+                        className="h-11 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400 transition-all"
+                      />
                     </div>
 
                     {/* 메모 */}
@@ -1725,10 +1814,12 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                               {activity.location}
                             </p>
                             <div className="flex items-center space-x-4 text-xs text-gray-500">
-                              <div className="flex items-center">
-                                <Clock className="w-3 h-3 mr-1" />
-                                {activity.duration}
-                              </div>
+                              {activity.duration > 0 && (
+                                <div className="flex items-center">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  {formatDuration(activity.duration)}
+                                </div>
+                              )}
                               {activity.cost > 0 && (
                                 <div className="flex items-center">
                                   <DollarSign className="w-3 h-3 mr-1" />₩{activity.cost.toLocaleString()}
