@@ -17,6 +17,7 @@ import forproject.spring_oauth2_jwt.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Check;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +44,7 @@ public class TravelPlanService {
     private final TravelExpenseRepository expenseRepository;
     private final TravelParticipantRepository participantRepository;
     private final TravelItineraryRepository travelItineraryRepository;
+
 
 
     // 일정 생성
@@ -629,8 +631,28 @@ public class TravelPlanService {
 
     @Transactional
     public ActivityResponse createActivities(ActivityCreateRequest request, Long userId) {
-        TravelItinerary travelItinerary = travelItineraryRepository.findById(request.getItineraryId()).orElseThrow(() -> new RuntimeException("유효한 일정이 아닙니다."));
-        TravelParticipant participant = travelParticipantRepository.findByTripIdAndUserId(travelItinerary.getTripId(), userId).orElseThrow(() -> new RuntimeException("여행 참여자만 일정을 추가할 수 있습니다"));
-        return null;
+        TravelItinerary itinerary = travelItineraryRepository.findById(request.getItineraryId()).orElseThrow(() -> new RuntimeException("유효한 일정이 아닙니다."));
+        TravelParticipant participant = travelParticipantRepository.findByTripIdAndUserId(itinerary.getTripId(), userId).orElseThrow(() -> new RuntimeException("여행 참여자만 일정을 추가할 수 있습니다"));
+
+        Integer maxOrder = activityRepository.findMaxDisplayOrderByItineraryId(request.getItineraryId())
+                .orElse(0);
+
+        TravelActivity activity = TravelActivity.builder()
+                .itineraryId(itinerary.getId())
+                .time(request.getTime())
+                .title(request.getTitle())
+                .location(request.getLocation())
+                .activityType(request.getActivityType())
+                .durationMinutes(request.getDurationMinutes())
+                .cost(request.getCost())
+                .notes(request.getNotes())
+                .displayOrder(maxOrder+1)
+                .build();
+
+        TravelActivity saved = activityRepository.save(activity);
+
+        return ActivityResponse.fromEntity(saved);
     }
+
+
 }

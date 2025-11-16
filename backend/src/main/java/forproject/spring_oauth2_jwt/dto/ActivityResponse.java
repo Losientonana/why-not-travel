@@ -1,6 +1,7 @@
 package forproject.spring_oauth2_jwt.dto;
 
 
+import forproject.spring_oauth2_jwt.entity.TravelActivity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,4 +28,21 @@ public class ActivityResponse {
     private String notes;
     private Integer displayOrder = 0;
     private LocalDateTime createdAt;
+
+    public static ActivityResponse fromEntity(TravelActivity
+                                                      entity) {
+        return ActivityResponse.builder()
+                .id(entity.getId())
+                .itineraryId(entity.getItineraryId())
+                .time(entity.getTime())
+                .title(entity.getTitle())
+                .location(entity.getLocation())
+                .activityType(entity.getActivityType())
+                .durationMinutes(entity.getDurationMinutes())
+                .cost(entity.getCost())
+                .notes(entity.getNotes())
+                .displayOrder(entity.getDisplayOrder())
+                .createdAt(entity.getCreatedAt())
+                .build();
+    }
 }
