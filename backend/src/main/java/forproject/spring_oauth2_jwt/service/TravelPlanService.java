@@ -3,10 +3,7 @@ package forproject.spring_oauth2_jwt.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import forproject.spring_oauth2_jwt.dto.*;
-import forproject.spring_oauth2_jwt.dto.request.ActivityCreateRequest;
-import forproject.spring_oauth2_jwt.dto.request.ActivityUpdateRequest;
-import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
-import forproject.spring_oauth2_jwt.dto.request.ItineraryCreateRequestDTO;
+import forproject.spring_oauth2_jwt.dto.request.*;
 import forproject.spring_oauth2_jwt.dto.response.*;
 import forproject.spring_oauth2_jwt.entity.*;
 import forproject.spring_oauth2_jwt.enums.BudgetLevel;
@@ -18,9 +15,11 @@ import org.hibernate.annotations.Check;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +41,8 @@ public class TravelPlanService {
     private final TravelExpenseRepository expenseRepository;
     private final TravelParticipantRepository participantRepository;
     private final TravelItineraryRepository travelItineraryRepository;
+    private final ImageUploadService imageUploadService;
+    private final PhotoAlbumRepository photoAlbumRepository;
 
 
 
@@ -366,11 +367,182 @@ public class TravelPlanService {
     /**
      * 사진 조회 (옵션 B: 사진 탭 클릭 시)
      */
-    @Transactional(readOnly = true)
-    public List<PhotoResponse> getPhotos(Long tripId) {
-        List<TravelPhoto> photos = photoRepository.findByTripIdOrderByCreatedAtDesc(tripId);
+//    @Transactional(readOnly = true)
+//    public List<PhotoResponse> getPhotos(Long tripId) {
+//        List<TravelPhoto> photos = photoRepository.findByTripIdOrderByCreatedAtDesc(tripId);
+//
+//        // 사용자 정보 한 번에 조회
+//        List<Long> userIds = photos.stream()
+//                .map(TravelPhoto::getUserId)
+//                .distinct()
+//                .collect(Collectors.toList());
+//
+//        Map<Long, UserEntity> userMap = userRepository.findAllById(userIds).stream()
+//                .collect(Collectors.toMap(UserEntity::getId, user -> user));
+//
+//        return photos.stream()
+//                .map(photo -> {
+//                    UserEntity user = userMap.get(photo.getUserId());
+//                    return PhotoResponse.fromEntity(photo, user);
+//                })
+//                .collect(Collectors.toList());
+//    }
 
-        // 사용자 정보 한 번에 조회
+    @Transactional
+    public AlbumResponse createAlbum(Long tripId, AlbumCreateRequest request, Long userId) {
+        log.info("앨범 생성 시작 - tripId: {}, userId: {}, title: {}", tripId, userId, request.getAlbumTitle());
+
+        // 1. 여행 계획 존재 확인
+        TravelPlanEntity trip = travelPlanRepository.findById(tripId)
+                .orElseThrow(() -> new RuntimeException("여행 계획을 찾을 수 없습니다."));
+
+        // 2. 참여자 권한 확인
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(tripId, userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 앨범을 생성할 수 있습니다."));
+
+        // 3. 앨범 생성
+        PhotoAlbum album = PhotoAlbum.builder()
+                .tripId(tripId)
+                .albumTitle(request.getAlbumTitle())
+                .albumDate(request.getAlbumDate())
+                .displayOrder(request.getDisplayOrder())
+                .build();
+
+        PhotoAlbum savedAlbum = photoAlbumRepository.save(album);
+
+        log.info("앨범 생성 완료 - albumId: {}", savedAlbum.getId());
+        return AlbumResponse.fromEntity(savedAlbum);
+    }
+
+    /**
+     * 앨범에 사진 업로드 (썸네일 포함)
+     *
+     * 동작 흐름:
+     * 1. 앨범 존재 확인
+     * 2. 권한 확인 (여행 참여자만)
+     * 3. MinIO 업로드 (원본 + 썸네일)
+     * 4. DB 저장 (두 URL 모두)
+     * 5. Response 반환
+     */
+    @Transactional
+    public PhotoResponse uploadPhotoToAlbum(Long tripId, Long albumId, MultipartFile image, Long userId) {
+        log.info("사진 업로드 시작 - tripId: {}, albumId: {}, userId: {}", tripId, albumId, userId);
+
+        // 1. 앨범 존재 확인
+        PhotoAlbum album = photoAlbumRepository.findById(albumId)
+                .orElseThrow(() -> new RuntimeException("앨범을 찾을 수 없습니다."));
+
+        // 2. 앨범이 해당 여행에 속하는지 확인
+        if (!album.getTripId().equals(tripId)) {
+            throw new RuntimeException("앨범이 해당 여행에 속하지 않습니다.");
+        }
+
+        // 3. 참여자 권한 확인
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(tripId, userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 사진을 업로드할 수 있습니다."));
+
+        // 4. MinIO에 원본 + 썸네일 업로드
+        ImageUploadResponse uploadResult = imageUploadService.uploadImageWithThumbnail(
+                image,
+                "trip_photos"
+        );
+        log.info("MinIO 업로드 완료 - 원본: {}, 썸네일: {}",
+                uploadResult.getImageUrl(),
+                uploadResult.getThumbnailUrl());
+
+        // 5. DB에 사진 메타데이터 저장 (두 URL 모두)
+        TravelPhoto photo = TravelPhoto.builder()
+                .tripId(tripId)
+                .albumId(albumId)
+                .userId(userId)
+                .imageUrl(uploadResult.getImageUrl())          // 원본 URL
+                .thumbnailUrl(uploadResult.getThumbnailUrl())  // 썸네일 URL
+                .likesCount(0)
+                .build();
+
+        TravelPhoto savedPhoto = photoRepository.save(photo);
+
+        // 6. 사용자 정보 조회
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        log.info("사진 업로드 완료 - photoId: {}", savedPhoto.getId());
+        return PhotoResponse.fromEntity(savedPhoto, user);
+    }
+
+    /**
+     * 앨범 목록 조회 (사진 포함)
+     */
+    @Transactional
+    public List<AlbumResponse> getAlbumsWithPhotos(Long tripId, Long userId) {
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(tripId, userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 앨범을 조회할 수 있습니다."));
+
+        List<PhotoAlbum> albums = photoAlbumRepository.findByTripIdOrderByAlbumDateDesc(tripId);
+
+        if (albums.isEmpty()) {
+            log.info("앨범이 없습니다 - tripId: {}", tripId);
+            return List.of();
+        }
+
+        List<TravelPhoto> allPhotos =
+                photoRepository.findByTripIdOrderByAlbumIdAscCreatedAtAsc(tripId);
+
+        // 3. 사용자 정보 한 번에 조회 (N+1 방지)
+        List<Long> userIds = allPhotos.stream()
+                .map(TravelPhoto::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, UserEntity> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserEntity::getId, user -> user));
+
+        // 4. 앨범 ID별로 사진 그룹화
+        Map<Long, List<PhotoResponse>> photosByAlbum = allPhotos.stream()
+                .collect(Collectors.groupingBy(
+                        TravelPhoto::getAlbumId,
+                        Collectors.mapping(
+                                photo -> PhotoResponse.fromEntity(photo,
+                                        userMap.get(photo.getUserId())),
+                                Collectors.toList()
+                        )
+                ));
+
+        // 5. AlbumResponse 생성 (사진 포함)
+        List<AlbumResponse> result = albums.stream()
+                .map(album -> {
+                    List<PhotoResponse> photos = photosByAlbum.getOrDefault(album.getId(), List.of());
+                    return AlbumResponse.fromEntityWithPhotos(album, photos);
+                })
+                .collect(Collectors.toList());
+
+        log.info("앨범 목록 조회 완료 - 앨범 수: {}, 총 사진 수: {}", result.size(), allPhotos.size());
+        return result;
+    }
+
+    /**
+     * 특정 앨범의 사진 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<PhotoResponse> getPhotosByAlbum(Long albumId, Long userId) {
+        log.info("앨범 사진 조회 시작 - albumId: {}, userId: {}", albumId, userId);
+
+        // 1. 앨범 존재 확인
+        PhotoAlbum album = photoAlbumRepository.findById(albumId)
+                .orElseThrow(() -> new RuntimeException("앨범을 찾을 수 없습니다."));
+
+        // 👮 권한 검증: 해당 여행의 참여자인지 확인
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(album.getTripId(), userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 사진을 조회할 수 있습니다."));
+
+        // 2. 사진 조회
+        List<TravelPhoto> photos = photoRepository.findByAlbumIdOrderByCreatedAtDesc(albumId);
+
+        // 3. 사용자 정보 조회
         List<Long> userIds = photos.stream()
                 .map(TravelPhoto::getUserId)
                 .distinct()
@@ -379,14 +551,103 @@ public class TravelPlanService {
         Map<Long, UserEntity> userMap = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(UserEntity::getId, user -> user));
 
-        return photos.stream()
-                .map(photo -> {
-                    UserEntity user = userMap.get(photo.getUserId());
-                    return PhotoResponse.fromEntity(photo, user);
-                })
+        List<PhotoResponse> result = photos.stream()
+                .map(photo -> PhotoResponse.fromEntity(photo, userMap.get(photo.getUserId())))
                 .collect(Collectors.toList());
+
+        log.info("앨범 사진 조회 완료 - 사진 수: {}", result.size());
+        return result;
     }
 
+    /**
+     * 앨범 삭제
+     *
+     * 동작 흐름:
+     * 1. 앨범 존재 확인
+     * 2. 앨범이 해당 여행에 속하는지 확인
+     * 3. 권한 확인 (여행 참여자만)
+     * 4. 앨범 내 사진들 조회
+     * 5. 사진들 삭제 (DB에서만 - MinIO는 유지)
+     * 6. 앨범 삭제
+     *
+     * 주의: MinIO에서는 파일을 삭제하지 않음
+     * 이유: 실수로 삭제한 경우 복구 가능
+     *
+     * @param tripId 여행 ID
+     * @param albumId 앨범 ID
+     * @param userId 사용자 ID
+     */
+    @Transactional
+    public void deleteAlbum(Long tripId, Long albumId, Long userId) {
+        log.info("앨범 삭제 시작 - tripId: {}, albumId: {}, userId: {}", tripId, albumId, userId);
+
+        // 1. 앨범 존재 확인
+        PhotoAlbum album = photoAlbumRepository.findById(albumId)
+                .orElseThrow(() -> new RuntimeException("앨범을 찾을 수 없습니다."));
+
+        // 2. 앨범이 해당 여행에 속하는지 확인
+        if (!album.getTripId().equals(tripId)) {
+            throw new RuntimeException("앨범이 해당 여행에 속하지 않습니다.");
+        }
+
+        // 3. 권한 확인
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(tripId, userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 앨범을 삭제할 수 있습니다."));
+
+        // 4. 해당 앨범의 사진들 조회
+        List<TravelPhoto> photos = photoRepository.findByAlbumIdOrderByCreatedAtDesc(albumId);
+
+        // 5. 사진들 삭제 (DB에서만)
+        if (!photos.isEmpty()) {
+            photoRepository.deleteAll(photos);
+            log.info("앨범 내 사진 삭제 완료 - 사진 수: {}", photos.size());
+        }
+
+        // 6. 앨범 삭제
+        photoAlbumRepository.delete(album);
+        log.info("앨범 삭제 완료 - albumId: {}", albumId);
+
+    }
+    /**
+     * 사진 삭제
+     *
+     * 동작 흐름:
+     * 1. 사진 존재 확인
+     * 2. 사진이 해당 여행에 속하는지 확인
+     * 3. 권한 확인 (본인만 삭제 가능)
+     * 4. DB에서 사진 삭제
+     *
+     * 주의: MinIO에서는 파일을 삭제하지 않음
+     *
+     * @param tripId 여행 ID
+     * @param photoId 사진 ID
+     * @param userId 사용자 ID
+     */
+    @Transactional
+    public void deletePhoto(Long tripId, Long photoId, Long userId) {
+        log.info("사진 삭제 시작 - tripId: {}, photoId: {}, userId: {}", tripId, photoId, userId);
+
+        // 1. 사진 존재 확인
+        TravelPhoto photo = photoRepository.findById(photoId)
+                .orElseThrow(() -> new RuntimeException("사진을 찾을 수 없습니다."));
+
+        // 2. 사진이 해당 여행에 속하는지 확인
+        if (!photo.getTripId().equals(tripId)) {
+            throw new RuntimeException("사진이 해당 여행에 속하지 않습니다.");
+        }
+
+        // 3. 권한 확인 (본인이 업로드한 사진만 삭제 가능)
+        if (!photo.getUserId().equals(userId)) {
+            throw new RuntimeException("본인이 업로드한 사진만 삭제할 수 있습니다.");
+        }
+
+        // 4. 사진 삭제
+        photoRepository.delete(photo);
+        log.info("사진 삭제 완료 - photoId: {}", photoId);
+
+        // TODO: MinIO에서도 파일 삭제 (선택적)
+    }
 
     /**
      * 체크리스트 조회 (옵션 B)

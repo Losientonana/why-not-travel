@@ -327,3 +327,58 @@ export const deleteActivity = async (activityId: number) => {
   return response.data.data; // ApiResponse의 data 필드
 };
 
+// ============================================
+// 앨범(Album) 관련 API
+// ============================================
+
+// 앨범 생성
+export const createAlbum = async (tripId: number, data: {
+  albumTitle: string;
+  albumDate: string;
+  displayOrder?: number;
+}) => {
+  const response = await api.post(`/api/trips/${tripId}/albums`, data);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 앨범 목록 조회 (사진 포함)
+export const getAlbums = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/albums`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 특정 앨범의 사진 목록 조회
+export const getPhotosByAlbum = async (tripId: number, albumId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/albums/${albumId}/photos`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 앨범 삭제
+export const deleteAlbum = async (tripId: number, albumId: number) => {
+  const response = await api.delete(`/api/trips/${tripId}/albums/${albumId}`);
+  return response.data; // ApiResponse 전체
+};
+
+// ============================================
+// 사진(Photo) 관련 API
+// ============================================
+
+// 앨범에 사진 업로드
+export const uploadPhotoToAlbum = async (tripId: number, albumId: number, image: File) => {
+  const formData = new FormData();
+  formData.append('image', image);
+
+  const response = await api.post(`/api/trips/${tripId}/albums/${albumId}/photos`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 사진 삭제
+export const deletePhoto = async (tripId: number, photoId: number) => {
+  const response = await api.delete(`/api/trips/${tripId}/photos/${photoId}`);
+  return response.data; // ApiResponse 전체
+};
+

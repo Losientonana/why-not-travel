@@ -13,6 +13,7 @@ import lombok.Setter;
 @Builder
 public class ImageUploadResponse {
     private String imageUrl;
+    private String thumbnailUrl;
     private String originalName;
     private long size;
     private String mimeType;

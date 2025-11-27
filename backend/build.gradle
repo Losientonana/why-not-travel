@@ -56,7 +56,8 @@ dependencies {
     // CLI 명령어 파싱을 위한 Apache Commons CLI
     implementation 'commons-cli:commons-cli:1.5.0'
 
-    // json 처리
+    // MinIo
+    implementation 'io.minio:minio:8.5.7'
 }
 
 tasks.named('test') {

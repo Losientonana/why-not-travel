@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { getTripDetail, getItineraries, getPhotos, getChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist, createItinerary, deleteItinerary, createActivity, updateActivity, deleteActivity } from "@/lib/api"
+import { getTripDetail, getItineraries, getPhotos, getChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist, createItinerary, deleteItinerary, createActivity, updateActivity, deleteActivity, getAlbums, createAlbum, uploadPhotoToAlbum, deleteAlbum } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import {
   ArrowLeft,
@@ -36,6 +36,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CreateAlbumDialog } from "@/components/trip/create-album-dialog"
+import { PhotoUploadDialog } from "@/components/trip/photo-upload-dialog"
+import { AlbumCard } from "@/components/trip/album-card"
 // TODO: 드래그 앤 드롭 기능 - 나중에 구현
 // import {
 //   DndContext,
@@ -395,6 +398,12 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   const [editingActivity, setEditingActivity] = useState<any>(null)
   const [updatingActivity, setUpdatingActivity] = useState(false)
 
+  // 앨범/사진 관련 상태
+  const [albums, setAlbums] = useState<any[]>([])
+  const [showCreateAlbum, setShowCreateAlbum] = useState(false)
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false)
+  const [selectedAlbum, setSelectedAlbum] = useState<any>(null)
+
   // API 호출
   useEffect(() => {
     const fetchTripDetail = async () => {
@@ -434,11 +443,11 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
             }
             break
           case 'photos':
-            if (photosData.length === 0) {
-              console.log('🔥 사진 데이터 로딩 시작')
-              const data = await getPhotos(Number(params.id))
-              console.log('✅ 사진 데이터 로딩 완료:', data)
-              setPhotosData(data || [])
+            if (!albums || albums.length === 0) {
+              console.log('🔥 앨범 데이터 로딩 시작')
+              const data = await getAlbums(Number(params.id))
+              console.log('✅ 앨범 데이터 로딩 완료:', data)
+              setAlbums(data || [])
             }
             break
           case 'checklist':
@@ -471,6 +480,47 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
   const handleLikePhoto = (photoId: string) => {
     setLikedPhotos((prev) => (prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId]))
+  }
+
+  // 앨범 생성
+  const handleCreateAlbum = async (data: { albumTitle: string; albumDate: string }) => {
+    try {
+      await createAlbum(Number(params.id), data)
+      // 앨범 목록 새로고침
+      const updatedAlbums = await getAlbums(Number(params.id))
+      setAlbums(updatedAlbums)
+    } catch (error) {
+      console.error('앨범 생성 실패:', error)
+      alert('앨범 생성에 실패했습니다.')
+      throw error
+    }
+  }
+
+  // 사진 업로드
+  const handlePhotoUpload = async (albumId: number, file: File) => {
+    try {
+      await uploadPhotoToAlbum(Number(params.id), albumId, file)
+      // 앨범 목록 새로고침
+      const updatedAlbums = await getAlbums(Number(params.id))
+      setAlbums(updatedAlbums)
+    } catch (error) {
+      console.error('사진 업로드 실패:', error)
+      throw error
+    }
+  }
+
+  // 앨범 삭제
+  const handleDeleteAlbum = async (albumId: number) => {
+    if (!confirm('이 앨범과 모든 사진을 삭제하시겠습니까?')) return
+
+    try {
+      await deleteAlbum(Number(params.id), albumId)
+      // 로컬 상태에서 제거
+      setAlbums((prev) => prev.filter((album) => album.id !== albumId))
+    } catch (error) {
+      console.error('앨범 삭제 실패:', error)
+      alert('앨범 삭제에 실패했습니다.')
+    }
   }
 
   // 체크리스트 항목 추가
@@ -854,7 +904,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   const displayTrip = tripData || mockTrip
   // 일정과 체크리스트는 Mock 데이터 사용 안 함 (실제 API 데이터만 사용)
   const displayItinerary = itinerariesData.length > 0 ? transformItinerary(itinerariesData) : []  // mockTrip.itinerary
-  const displayPhotos = photosData.length > 0 ? transformPhotos(photosData) : mockTrip.photos
+  const totalPhotoCount = albums?.reduce((total, album) => total + (album.photoCount || 0), 0) || 0
   const displayChecklist = checklistsData.length > 0 ? transformChecklist(checklistsData) : []  // mockTrip.checklist
   const displayExpenses = expensesData.length > 0 ? transformExpenses(expensesData) : mockTrip.expenses
 
@@ -988,7 +1038,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{displayPhotos.length}</div>
+              <div className="text-2xl font-bold text-green-600">{totalPhotoCount}</div>
               <div className="text-sm text-gray-600">사진</div>
             </CardContent>
           </Card>
@@ -1868,63 +1918,73 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
           {/* Photos Tab */}
           <TabsContent value="photos" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">여행 사진</h2>
-              <Button className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600">
-                <Camera className="w-4 h-4 mr-2" />
-                사진 추가
+              <h2 className="text-2xl font-bold">여행 앨범</h2>
+              <Button
+                onClick={() => setShowCreateAlbum(true)}
+                className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                앨범 만들기
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {displayPhotos.map((photo: any) => (
-                <Card key={photo.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
-                  <div className="relative">
-                    <img
-                      src={photo.url || "/placeholder.svg"}
-                      alt={photo.caption}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200" />
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="h-8 w-8 p-0 bg-white/90 hover:bg-white"
-                        onClick={() => handleLikePhoto(photo.id)}
-                      >
-                        <Heart
-                          className={`w-4 h-4 ${
-                            likedPhotos.includes(photo.id) ? "text-red-500 fill-current" : "text-gray-600"
-                          }`}
-                        />
-                      </Button>
-                    </div>
-                  </div>
-                  <CardContent className="p-3">
-                    <h4 className="font-medium text-sm mb-1 truncate">{photo.caption}</h4>
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                      <span>by {photo.author}</span>
-                      <span>{new Date(photo.date).toLocaleDateString("ko-KR")}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-center">
-                          <Heart className="w-3 h-3 mr-1 text-red-500" />
-                          <span className="text-xs">{photo.likes + (likedPhotos.includes(photo.id) ? 1 : 0)}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <MessageCircle className="w-3 h-3 mr-1 text-gray-400" />
-                          <span className="text-xs">0</span>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                        <MoreHorizontal className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {tabLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-gray-500">앨범을 불러오는 중...</div>
+              </div>
+            ) : !albums || albums.length === 0 ? (
+              <Card className="p-12 text-center bg-gradient-to-br from-blue-50 to-orange-50">
+                <Camera className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">아직 앨범이 없습니다</h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  첫 앨범을 만들고 여행의 소중한 순간을 기록해보세요
+                </p>
+                <Button
+                  onClick={() => setShowCreateAlbum(true)}
+                  className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  첫 앨범 만들기
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {albums.map((album) => (
+                  <AlbumCard
+                    key={album.id}
+                    tripId={Number(params.id)}
+                    album={album}
+                    onUploadClick={(e) => {
+                      e.preventDefault()
+                      setSelectedAlbum(album)
+                      setShowPhotoUpload(true)
+                    }}
+                    onDeleteAlbum={(e) => {
+                      e.preventDefault()
+                      handleDeleteAlbum(album.id)
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* 앨범 생성 다이얼로그 */}
+            <CreateAlbumDialog
+              open={showCreateAlbum}
+              onOpenChange={setShowCreateAlbum}
+              onSubmit={handleCreateAlbum}
+            />
+
+            {/* 사진 업로드 다이얼로그 */}
+            {selectedAlbum && (
+              <PhotoUploadDialog
+                open={showPhotoUpload}
+                onOpenChange={setShowPhotoUpload}
+                albumId={selectedAlbum.id}
+                albumTitle={selectedAlbum.albumTitle}
+                onUpload={handlePhotoUpload}
+              />
+            )}
           </TabsContent>
 
           {/* Checklist Tab */}
