@@ -62,6 +62,12 @@ public class UserEntity {
     @Column(nullable = false)
     private boolean isDeleted = false;
 
+    @Column(nullable = false)
+    private boolean isVerified = false;
+
+    @Column(length = 20)
+    private String provider;
+
     private LocalDateTime deletedAt;
 }
 

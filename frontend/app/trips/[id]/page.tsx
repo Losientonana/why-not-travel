@@ -1796,123 +1796,146 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               </DialogContent>
             </Dialog>
 
-            <div className="space-y-6">
-              {displayItinerary.map((day: any, dayIndex: number) => (
-                <Card key={dayIndex}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>
-                        {day.day} -{" "}
-                        {new Date(day.date).toLocaleDateString("ko-KR", {
-                          weekday: "long",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedDayForActivity(day)
-                            setShowAddActivity(true)
-                          }}
-                          className="bg-gradient-to-r from-blue-50 to-orange-50 hover:from-blue-100 hover:to-orange-100 border-2 border-blue-200 hover:border-blue-300 transition-all"
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          활동 추가
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteItinerary(day.id, day.dayNumber)}
-                              className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              일정 삭제
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {day.activities.map((activity: any, activityIndex: number) => (
-                        <div
-                          key={activityIndex}
-                          className="flex items-start space-x-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="text-sm font-medium text-blue-600 min-w-[60px]">{formatTime(activity.time)}</div>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h4 className="font-medium text-gray-900">{activity.title}</h4>
-                              <Badge
-                                className={activityTypeConfig[activity.type as keyof typeof activityTypeConfig].color}
-                              >
-                                {activityTypeConfig[activity.type as keyof typeof activityTypeConfig].icon}
-                                {activityTypeConfig[activity.type as keyof typeof activityTypeConfig].label}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-gray-600 flex items-center mb-1">
-                              <MapPin className="w-3 h-3 mr-1" />
-                              {activity.location}
-                            </p>
-                            <div className="flex items-center space-x-4 text-xs text-gray-500">
-                              {activity.duration > 0 && (
-                                <div className="flex items-center">
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  {formatDuration(activity.duration)}
-                                </div>
-                              )}
-                              {activity.cost > 0 && (
-                                <div className="flex items-center">
-                                  <DollarSign className="w-3 h-3 mr-1" />₩{activity.cost.toLocaleString()}
-                                </div>
-                              )}
-                            </div>
-                            {activity.notes && (
-                              <p className="text-xs text-gray-500 mt-2 flex items-start">
-                                <MessageCircle className="w-3 h-3 mr-1 mt-0.5 flex-shrink-0" />
-                                <span>{activity.notes}</span>
-                              </p>
-                            )}
-                          </div>
+            {displayItinerary.length === 0 ? (
+              <Card className="py-24 px-12 text-center bg-gradient-to-br from-blue-50 to-orange-50 min-h-[400px] flex flex-col items-center justify-center">
+                <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">아직 일정이 없습니다</h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  첫 일정을 추가하고 여행 계획을 시작해보세요
+                </p>
+                <Button
+                  onClick={() => {
+                    setNewItinerary({
+                      dayNumber: displayItinerary.length + 1,
+                      date: ""
+                    })
+                    setShowAddItinerary(true)
+                  }}
+                  className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  첫 일정 추가하기
+                </Button>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {displayItinerary.map((day: any, dayIndex: number) => (
+                  <Card key={dayIndex}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>
+                          {day.day} -{" "}
+                          {new Date(day.date).toLocaleDateString("ko-KR", {
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedDayForActivity(day)
+                              setShowAddActivity(true)
+                            }}
+                            className="bg-gradient-to-r from-blue-50 to-orange-50 hover:from-blue-100 hover:to-orange-100 border-2 border-blue-200 hover:border-blue-300 transition-all"
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            활동 추가
+                          </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-200 rounded-full">
-                                <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-44">
                               <DropdownMenuItem
-                                onClick={() => handleOpenEditActivity(activity)}
-                                className="focus:bg-blue-50 cursor-pointer"
-                              >
-                                <Edit className="w-4 h-4 mr-2" />
-                                수정하기
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteActivity(activity.id, activity.title)}
+                                onClick={() => handleDeleteItinerary(day.id, day.dayNumber)}
                                 className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                삭제하기
+                                일정 삭제
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {day.activities.map((activity: any, activityIndex: number) => (
+                          <div
+                            key={activityIndex}
+                            className="flex items-start space-x-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                          >
+                            <div className="text-sm font-medium text-blue-600 min-w-[60px]">{formatTime(activity.time)}</div>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <h4 className="font-medium text-gray-900">{activity.title}</h4>
+                                <Badge
+                                  className={activityTypeConfig[activity.type as keyof typeof activityTypeConfig].color}
+                                >
+                                  {activityTypeConfig[activity.type as keyof typeof activityTypeConfig].icon}
+                                  {activityTypeConfig[activity.type as keyof typeof activityTypeConfig].label}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 flex items-center mb-1">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {activity.location}
+                              </p>
+                              <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                {activity.duration > 0 && (
+                                  <div className="flex items-center">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    {formatDuration(activity.duration)}
+                                  </div>
+                                )}
+                                {activity.cost > 0 && (
+                                  <div className="flex items-center">
+                                    <DollarSign className="w-3 h-3 mr-1" />₩{activity.cost.toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                              {activity.notes && (
+                                <p className="text-xs text-gray-500 mt-2 flex items-start">
+                                  <MessageCircle className="w-3 h-3 mr-1 mt-0.5 flex-shrink-0" />
+                                  <span>{activity.notes}</span>
+                                </p>
+                              )}
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-200 rounded-full">
+                                  <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenEditActivity(activity)}
+                                  className="focus:bg-blue-50 cursor-pointer"
+                                >
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  수정하기
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteActivity(activity.id, activity.title)}
+                                  className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  삭제하기
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Photos Tab */}
@@ -1933,7 +1956,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 <div className="text-gray-500">앨범을 불러오는 중...</div>
               </div>
             ) : !albums || albums.length === 0 ? (
-              <Card className="p-12 text-center bg-gradient-to-br from-blue-50 to-orange-50">
+              <Card className="py-24 px-12 text-center bg-gradient-to-br from-blue-50 to-orange-50 min-h-[400px] flex flex-col items-center justify-center">
                 <Camera className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">아직 앨범이 없습니다</h3>
                 <p className="text-sm text-gray-600 mb-6">
@@ -2151,23 +2174,22 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               </DialogContent>
             </Dialog>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-blue-50 to-orange-50">
               <CardContent className="p-6">
                 {/* 체크리스트 항목들 */}
                 <div className="space-y-3">
                   {displayChecklist.length === 0 ? (
-                    <div className="text-center py-16">
+                    <div className="text-center py-24 min-h-[400px] flex flex-col items-center justify-center">
                       <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-orange-100 mb-4">
                         <CheckCircle2 className="w-10 h-10 text-gray-400" />
                       </div>
                       <h3 className="text-lg font-semibold text-gray-700 mb-2">아직 체크리스트가 없습니다</h3>
-                      <p className="text-sm text-gray-500 mb-6">
+                      <p className="text-sm text-gray-600 mb-6">
                         여행 준비를 위한 할 일을 추가하고<br />체계적으로 관리해보세요!
                       </p>
                       <Button
                         onClick={() => setShowAddChecklist(true)}
-                        variant="outline"
-                        className="border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-all"
+                        className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600"
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         첫 번째 항목 추가하기

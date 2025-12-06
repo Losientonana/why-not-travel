@@ -58,6 +58,13 @@ dependencies {
 
     // MinIo
     implementation 'io.minio:minio:8.5.7'
+
+    // Mailhog
+    implementation 'org.springframework:spring-context-support'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    // Thymeleaf (이메일 템플릿)
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 }
 
 tasks.named('test') {

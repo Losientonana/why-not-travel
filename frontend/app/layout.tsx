@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import Header from "@/components/layout/header"
+import Footer from "@/components/layout/footer"
 import AuthGuard from "@/components/auth/auth-guard"
 import { AuthProvider } from "@/contexts/auth-context"
 import { LogoutRedirectHandler } from "@/components/auth/logout-redirect-handler"
@@ -21,13 +22,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ko">
-      <body className={inter.className}>
+    <html lang="ko" className="h-full">
+      <body className={`${inter.className} flex flex-col min-h-screen`}>
         <AuthProvider>
           <LogoutRedirectHandler />
           <AuthGuard>
             <Header />
-            {children}
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
           </AuthGuard>
         </AuthProvider>
       </body>

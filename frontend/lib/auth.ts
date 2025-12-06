@@ -105,12 +105,16 @@ export const getUserInfo = async (): Promise<UserInfo | null> => {
 // 회원가입 API
 export const signup = async (formData: any) => {
   try {
+    console.log('📤 회원가입 요청 전송:', formData.email);
     const response = await api.post('/api/join', formData);
-    console.log('✅ 회원가입 성공:', response.data);
+    console.log('📥 회원가입 응답 받음:', response);
+    console.log('📊 응답 데이터:', response.data);
+    console.log('✅ 회원가입 성공 - success:', response.data?.success);
     return { success: true, data: response.data };
   } catch (error: any) {
-    console.error('❌ 회원가입 실패:', error.response?.data);
-    return { success: false, message: error.response?.data?.message || '회원가입에 실패했습니다.' };
+    console.error('❌ 회원가입 실패:', error);
+    console.error('❌ 에러 응답:', error.response?.data);
+    return { success: false, message: error.response?.data?.message || error.response?.data?.error || '회원가입에 실패했습니다.' };
   }
 };
 
