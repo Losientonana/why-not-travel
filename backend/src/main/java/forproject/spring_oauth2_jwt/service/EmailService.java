@@ -17,6 +17,8 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
 
+    private static final String FROM_EMAIL = "noreply@travelmate.com";
+
 //    public void sendVerificationEmail(String to, String userName, String token) throws MessagingException {
 //        Context context = new Context();
 //        context.setVariable("userName", userName);
@@ -44,4 +46,38 @@ public class EmailService {
         helper.setText(htmlContent, true);
         mailSender.send(message);
     }
+
+    public void sendMemberInvitationEmail(
+            String to,
+            String userName,
+            String inviterName,
+            String tripTitle,
+            String token
+    ) throws MessagingException {
+        Context context = new Context();
+        context.setVariable("userName", userName);
+        context.setVariable("inviterName", inviterName);
+        context.setVariable("tripTitle", tripTitle);
+        context.setVariable("acceptURL","http://localhost:3000/invitations/accept?token="  + token);
+
+        String htmlContent = templateEngine.process("email/member-invitation-email", context);
+        sendEmail(to, "[TravelMate] " + tripTitle + " 여행 초대", htmlContent);
+    }
+
+    public void sendNonMemberInvitationEmail(
+            String to,
+            String inviterName,
+            String tripTitle,
+            String token
+    ) throws MessagingException {
+
+        Context context = new Context();
+        context.setVariable("inviterName", inviterName);
+        context.setVariable("tripTitle", tripTitle);
+        context.setVariable("signupUrl", "http://localhost:3000/signup?inviteToken=" + token);
+
+        String htmlContent = templateEngine.process("email/non-member-invitation", context);
+        sendEmail(to, "[TravelMate] " + tripTitle + " 여행 초대", htmlContent);
+    }
+
 }

@@ -43,10 +43,13 @@ public class TravelPlanService {
     private final TravelItineraryRepository travelItineraryRepository;
     private final ImageUploadService imageUploadService;
     private final PhotoAlbumRepository photoAlbumRepository;
+    private final TravelInvitationRepository travelInvitationRepository;
+    private final TravelInvitationService travelInvitationService;
 
 
 
     // 일정 생성
+    @Transactional
     public TravelPlanResponse createTravelPlan(TravelPlanCreateRequestDTO req, Long userId) {
         try {
             log.info("여행 계획 생성 시작 - 사용자: {}, 제목: {}", userId, req.getTitle());
@@ -104,12 +107,22 @@ public class TravelPlanService {
 
             travelParticipantRepository.save(participant);
 
-
-            // 초대 이메일 처리 (현재는 로그만 출력)
             if (req.getInviteEmails() != null && !req.getInviteEmails().isEmpty()) {
-                log.info("초대할 이메일 목록: {}", req.getInviteEmails());
-                // TODO: 이메일 발송 로직 구현
+                log.info("📧 초대 이메일 발송 시작 - 수: {}", req.getInviteEmails().size());
+
+                travelInvitationService.createInvitations(
+                        saved.getId(),
+                        userId,
+                        req.getInviteEmails()
+                );
+
+//                if(1 == 1){
+//                throw new RuntimeException("ss");
+//                };
+
+                log.info("✅ 초대 처리 완료");
             }
+
 
             TravelPlanResponse resp = new TravelPlanResponse();
             resp.setId(saved.getId());
@@ -262,8 +275,6 @@ public class TravelPlanService {
                 .currentUserRole(currentUserRole)
                 .isOwner(isOwner)
                 .build();
-
-
 }
 
     /**

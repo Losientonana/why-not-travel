@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* 기존 member-invitation.html과 동일한 스타일 */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+        }
+        .logo {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .content {
+            padding: 40px 20px;
+        }
+        .trip-info {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">TravelMate</div>
+    </div>
+
+    <div class="content">
+        <h2>여행 초대장이 도착했어요! 🎉</h2>
+        <p>안녕하세요!</p>
+
+        <div class="trip-info">
+            <p><strong th:text="${inviterName}">김철수</strong>님이
+                <strong th:text="${tripTitle}">제주도 여행</strong>에 초대했습니다.</p>
+        </div>
+
+        <div class="highlight">
+            <p><strong>⚠️ 회원가입이 필요합니다</strong></p>
+            <p>TravelMate 회원이 아니신가요?<br>
+                아래 버튼을 클릭하여 회원가입 후 자동으로 여행에 참여됩니다.</p>
+        </div>
+
+        <div style="text-align: center;">
+            <a th:href="${signupUrl}" class="btn">
+                회원가입하고 참여하기
+            </a>
+        </div>
+
+        <p style="color: #999; font-size: 12px; margin-top: 30px;">
+            ※ 초대는 7일 동안 유효합니다.<br>
+            ※ 반드시 <strong>이 이메일 주소</strong>로 회원가입해야 여행에 참여됩니다.<br>
+            ※ 이미 회원이신 경우 로그인 후 대시보드에서 확인하세요.
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>본 메일은 발신 전용입니다.</p>
+        <p>&copy; 2025 TravelMate. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>
