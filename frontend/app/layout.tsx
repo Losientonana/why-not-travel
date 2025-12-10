@@ -6,6 +6,7 @@ import Header from "@/components/layout/header"
 import Footer from "@/components/layout/footer"
 import AuthGuard from "@/components/auth/auth-guard"
 import { AuthProvider } from "@/contexts/auth-context"
+import { NotificationProvider } from "@/contexts/notification-context"
 import { LogoutRedirectHandler } from "@/components/auth/logout-redirect-handler"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -25,14 +26,16 @@ export default function RootLayout({
     <html lang="ko" className="h-full">
       <body className={`${inter.className} flex flex-col min-h-screen`}>
         <AuthProvider>
-          <LogoutRedirectHandler />
-          <AuthGuard>
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </AuthGuard>
+          <NotificationProvider>
+            <LogoutRedirectHandler />
+            <AuthGuard>
+              <Header />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Footer />
+            </AuthGuard>
+          </NotificationProvider>
         </AuthProvider>
       </body>
     </html>

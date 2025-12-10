@@ -199,7 +199,15 @@ api.interceptors.response.use(
 );
 
 // 타입 import
-import { TravelPlanResponse, TravelPlanStatusResponse } from './types';
+import {
+  TravelPlanResponse,
+  TravelPlanStatusResponse,
+  InvitationDetailResponse,
+  InvitationAcceptResponse,
+  InvitationRejectResponse,
+  InvitationResponse,
+  AppNotification
+} from './types';
 
 export default api;
 
@@ -380,5 +388,62 @@ export const uploadPhotoToAlbum = async (tripId: number, albumId: number, image:
 export const deletePhoto = async (tripId: number, photoId: number) => {
   const response = await api.delete(`/api/trips/${tripId}/photos/${photoId}`);
   return response.data; // ApiResponse 전체
+};
+
+// ============================================
+// 초대(Invitation) 관련 API
+// ============================================
+
+// 여행 초대 생성 (이메일 전송)
+export const createInvitations = async (tripId: number, emails: string[]) => {
+  const response = await api.post(`/api/trips/${tripId}/invitations`, {
+    invitedEmails: emails
+  });
+  return response.data;
+};
+
+// 토큰으로 초대 상세 정보 조회 (인증 불필요 - 공개 엔드포인트)
+export const getInvitationByToken = async (token: string): Promise<InvitationDetailResponse> => {
+  const response = await api.get(`/api/invitations/token/${token}`);
+  return response.data;
+};
+
+// 초대 수락
+export const acceptInvitation = async (token: string): Promise<InvitationAcceptResponse> => {
+  const response = await api.post(`/api/invitations/${token}/accept`);
+  return response.data;
+};
+
+// 초대 거절
+export const rejectInvitation = async (token: string): Promise<InvitationRejectResponse> => {
+  const response = await api.post(`/api/invitations/${token}/reject`);
+  return response.data;
+};
+
+// 내 초대 목록 조회
+export const getMyInvitations = async (): Promise<InvitationResponse[]> => {
+  const response = await api.get('/api/invitations/my');
+  return response.data;
+};
+
+// ============================================
+// 알림(Notification) 관련 API
+// ============================================
+
+// 읽지 않은 알림 목록 조회
+export const getUnreadNotifications = async (): Promise<AppNotification[]> => {
+  const response = await api.get('/api/notifications/unread');
+  return response.data;
+};
+
+// 알림 읽음 처리
+export const markNotificationAsRead = async (notificationId: number): Promise<void> => {
+  await api.put(`/api/notifications/${notificationId}/read`);
+};
+
+// 읽지 않은 알림 개수 조회
+export const getUnreadNotificationCount = async (): Promise<number> => {
+  const response = await api.get('/api/notifications/unread/count');
+  return response.data;
 };
 

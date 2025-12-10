@@ -143,8 +143,10 @@ public class TravelPlanService {
     }
 
     // 내 일정 전체 조회
+    @Transactional(readOnly = true)  // readOnly 추가 (성능 최적화)
     public List<TravelPlanResponse> listMyPlans(Long userId) {
-        List<TravelPlanEntity> plans = travelPlanRepository.findByUser_IdAndIsDeletedFalse(userId);
+        // 변경: findByOwnerOrParticipant 사용
+        List<TravelPlanEntity> plans = travelPlanRepository.findByOwnerOrParticipant(userId);
 
         List<TravelPlanResponse> result = plans.stream().map(plan -> {
             TravelPlanResponse resp = new TravelPlanResponse();
@@ -153,7 +155,7 @@ public class TravelPlanService {
             resp.setStartDate(plan.getStartDate());
             resp.setEndDate(plan.getEndDate());
             resp.setDescription(plan.getDescription());
-            resp.setName(plan.getUser().getName());
+            resp.setName(plan.getUser().getName());  // OWNER 이름
             resp.setVisibility(plan.getVisibility());
             resp.setDestination(plan.getDestination());
             resp.setImageUrl(plan.getImageUrl());
@@ -163,17 +165,19 @@ public class TravelPlanService {
         return result;
     }
 
+    @Transactional(readOnly = true)
     public TravelPlanResponse getTravelPlan(Long tripId, Long userId) {
         TravelPlanEntity plan = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없음"));
 
-        if (!plan.getUser().getId().equals(userId)) {
+        // 변경: OWNER이거나 PARTICIPANT인지 확인
+        boolean isOwner = plan.getUser().getId().equals(userId);
+        boolean isParticipant = travelParticipantRepository.existsByTripIdAndUserId(tripId, userId);
+
+        if (!isOwner && !isParticipant) {
             throw new IllegalArgumentException("이 여행 계획을 조회할 권한이 없습니다.");
         }
 
-        /**
-         * 이때 status의 대해서는 재활용성이 높기에 개별 서비스로 분리
-         */
         TravelPlanResponse resp = new TravelPlanResponse();
         resp.setId(plan.getId());
         resp.setTitle(plan.getTitle());
@@ -181,9 +185,9 @@ public class TravelPlanService {
         resp.setEndDate(plan.getEndDate());
         resp.setDescription(plan.getDescription());
         resp.setName(plan.getUser().getName());
-        resp.setDestination(plan.getDestination());
         resp.setVisibility(plan.getVisibility());
-//        resp.setCoverImage(plan.getImageUrl());
+        resp.setDestination(plan.getDestination());
+        resp.setImageUrl(plan.getImageUrl());
 
         return resp;
     }

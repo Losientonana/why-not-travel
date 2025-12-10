@@ -128,7 +128,9 @@ public class SecurityConfig {
                                 "/api/mock/**",
                                 "/api/auth/send-verification-code",
                                 "/api/auth/verify-code",
-                                "/api/auth/check-email"
+                                "/api/auth/check-email",
+                                "/api/invitations/token/**",
+                                "**"
                         ).permitAll()
                         .anyRequest().authenticated());
 

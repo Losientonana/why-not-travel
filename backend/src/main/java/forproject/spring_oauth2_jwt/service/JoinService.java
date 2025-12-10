@@ -59,6 +59,7 @@ public class JoinService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final EmailVerificationCodeService emailVerificationCodeService;
+    private final NotificationService notificationService;
 
 
     @Transactional
@@ -94,8 +95,13 @@ public class JoinService {
         UserEntity savedUser = userRepository.save(user);
         log.info("✅ 사용자 저장 완료 - ID: {}, 이메일: {}", savedUser.getId(), savedUser.getEmail());
 
+        notificationService.createNotificationsForPendingInvitations(savedUser.getId(), savedUser.getEmail());
         emailVerificationCodeService.deleteVerifiedStatus(joinDTO.getEmail());
         log.info("✅ Redis 인증 상태 삭제 완료");
+
+
+
+
 
         // 토큰 생성
 //        log.info("🔑 토큰 생성 시작...");

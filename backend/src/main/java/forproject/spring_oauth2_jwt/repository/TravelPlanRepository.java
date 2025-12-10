@@ -17,6 +17,21 @@ public interface TravelPlanRepository extends JpaRepository<TravelPlanEntity,Lon
 
 
     /**
+     * 사용자가 OWNER이거나 PARTICIPANT인 모든 여행 조회
+     * OWNER: TravelPlanEntity.user.id = userId
+     * PARTICIPANT: TravelParticipant.userId = userId
+     */
+    @Query("""
+          SELECT DISTINCT t FROM TravelPlanEntity t
+          LEFT JOIN TravelParticipant p ON t.id = p.tripId
+          WHERE t.isDeleted = false
+          AND (t.user.id = :userId OR p.userId = :userId)
+          ORDER BY t.createdAt DESC
+          """)
+    List<TravelPlanEntity> findByOwnerOrParticipant(@Param("userId") Long userId);
+
+
+    /**
      * 특정 파일명이 포함된 이미지를 사용하는 여행 계획 . 조회
      *
      * @param fileName 검색할 파일명(확장자 포함)

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+        }
+        .logo {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .content {
+            padding: 40px 20px;
+        }
+        .trip-info {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">TravelMate</div>
+    </div>
+
+    <div class="content">
+        <h2>여행 초대장이 도착했어요! 🎉</h2>
+
+        <div class="trip-info">
+            <p><strong th:text="${inviterName}">김철수</strong>님이
+                <strong th:text="${tripTitle}">제주도 여행</strong>에 초대했습니다.</p>
+        </div>
+
+        <p>아래 버튼을 클릭하여 로그인 후 초대를 확인해주세요.</p>
+
+        <div style="text-align: center;">
+            <a th:href="${loginUrl}" class="btn">
+                로그인하고 확인하기
+            </a>
+        </div>
+
+        <p style="color: #999; font-size: 12px; margin-top: 30px;">
+            ※ 초대는 7일 동안 유효합니다.<br>
+            ※ 로그인 후 대시보드에서 확인할 수 있습니다.<br>
+            ※ 아직 회원이 아니신가요? <a th:href="${signupUrl}" style="color: #667eea;">회원가입하기</a>
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>본 메일은 발신 전용입니다.</p>
+        <p>&copy; 2025 TravelMate. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>

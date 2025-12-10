@@ -47,37 +47,19 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    public void sendMemberInvitationEmail(
-            String to,
-            String userName,
-            String inviterName,
-            String tripTitle,
-            String token
-    ) throws MessagingException {
-        Context context = new Context();
-        context.setVariable("userName", userName);
-        context.setVariable("inviterName", inviterName);
-        context.setVariable("tripTitle", tripTitle);
-        context.setVariable("acceptURL","http://localhost:3000/invitations/accept?token="  + token);
-
-        String htmlContent = templateEngine.process("email/member-invitation-email", context);
-        sendEmail(to, "[TravelMate] " + tripTitle + " 여행 초대", htmlContent);
-    }
-
-    public void sendNonMemberInvitationEmail(
+    public void sendInvitationEmail(
             String to,
             String inviterName,
-            String tripTitle,
-            String token
+            String tripTitle
     ) throws MessagingException {
 
         Context context = new Context();
         context.setVariable("inviterName", inviterName);
         context.setVariable("tripTitle", tripTitle);
-        context.setVariable("signupUrl", "http://localhost:3000/signup?inviteToken=" + token);
+        context.setVariable("loginUrl", "http://localhost:3000/login");
+        context.setVariable("signupUrl", "http://localhost:3000/signup");
 
-        String htmlContent = templateEngine.process("email/non-member-invitation", context);
+        String htmlContent = templateEngine.process("email/invitation", context);
         sendEmail(to, "[TravelMate] " + tripTitle + " 여행 초대", htmlContent);
     }
-
 }

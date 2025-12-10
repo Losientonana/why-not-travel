@@ -13,9 +13,11 @@ import org.springframework.stereotype.Service;
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public CustomOAuth2UserService(UserRepository userRepository) {
+    public CustomOAuth2UserService(UserRepository userRepository, NotificationService notificationService) {
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -50,7 +52,24 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             userEntity.setVerified(true);
             userEntity.setRole("ROLE_USER");
 
-            userRepository.save(userEntity);
+            UserEntity savedUser = userRepository.save(userEntity);
+
+            System.out.println("🔍 [DEBUG] 새 사용자 가입 완료 - userId: " + savedUser.getId() + ", email: " + savedUser.getEmail());
+
+            // 🔔 가입 후 pending 초대 알림 생성
+//            try {
+//                System.out.println("🔍 [DEBUG] pending 초대 알림 생성 메서드 호출 시작");
+//                notificationService.createNotificationsForPendingInvitations(
+//                        savedUser.getId(),
+//                        savedUser.getEmail()
+//                );
+//                System.out.println("🔍 [DEBUG] pending 초대 알림 생성 메서드 호출 완료");
+//            } catch (Exception e) {
+//                // 알림 생성 실패해도 로그인은 정상 진행
+//                System.err.println("⚠️ 가입 후 알림 생성 실패: " + e.getMessage());
+//                e.printStackTrace();
+//            }
+            notificationService.createNotificationsForPendingInvitations(savedUser.getId(), savedUser.getEmail());
 
             UserDTO userDTO = new UserDTO();
             userDTO.setUsername(username);
