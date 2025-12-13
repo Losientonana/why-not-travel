@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,8 +36,8 @@ public class NotificationService {
      * 알림 생성 및 실시간 전송(sendRealTime 호출)
      */
     @Transactional
-    public Notification createAndSend(Long userId, NotificationType type,
-                                      String title, String content, String relatedData) {
+    public void createAndSend(Long userId, NotificationType type,
+                              String title, String content, String relatedData) {
 
         // 1. DB에 알림 저장
         Notification notification = Notification.builder()
@@ -56,7 +55,6 @@ public class NotificationService {
 
         // 2. SSE 연결 확인 후 실시간 전송
         sendRealtime(saved);
-        return saved;
     }
 
     public void sendRealtime(Notification notification) {

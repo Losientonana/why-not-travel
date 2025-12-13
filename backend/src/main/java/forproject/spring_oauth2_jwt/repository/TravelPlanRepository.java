@@ -23,6 +23,7 @@ public interface TravelPlanRepository extends JpaRepository<TravelPlanEntity,Lon
      */
     @Query("""
           SELECT DISTINCT t FROM TravelPlanEntity t
+          LEFT JOIN FETCH t.user
           LEFT JOIN TravelParticipant p ON t.id = p.tripId
           WHERE t.isDeleted = false
           AND (t.user.id = :userId OR p.userId = :userId)

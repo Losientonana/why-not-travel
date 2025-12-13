@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,7 +41,7 @@ public class TravelInvitationService {
     /**
      * 여행 초대 이메일 전송
      */
-    @Transactional
+//    @Transactional
     public void createInvitations(Long tripId, Long inviterId, List<String> inviteEmails) {
         log.info("🎫 초대 생성 시작 - tripId: {}, 초대 수: {}", tripId, inviteEmails.size());
         TravelPlanEntity trip = travelPlanRepository.findById(tripId)
@@ -149,7 +151,7 @@ public class TravelInvitationService {
     /**
      * 초대 거절
      */
-//    @Transactional
+    @Transactional
     public InvitationRejectResponse rejectInvitation(String token, Long userId) {
         log.info("❌ 초대 거절 시작 - token: {}, userId: {}", token, userId);
 
@@ -203,7 +205,7 @@ public class TravelInvitationService {
     /**
      * 토큰으로 초대 조회
      */
-//    @Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public InvitationDetailResponse getInvitationByToken(String token) {
         TravelInvitation invitation = travelInvitationRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 초대 토큰입니다."));
@@ -224,17 +226,38 @@ public class TravelInvitationService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        List<TravelInvitation> invitations = travelInvitationRepository.findByInvitedEmailOrUserId(user.getEmail(), userId);
+        List<TravelInvitation> invitations = travelInvitationRepository
+                .findByInvitedEmailOrUserId(user.getEmail(), userId);
 
+        // N+1 방지: 모든 tripId와 inviterId를 먼저 추출
+        Set<Long> tripIds = invitations.stream()
+                .map(TravelInvitation::getTripId)
+                .collect(Collectors.toSet());
+
+        Set<Long> inviterIds = invitations.stream()
+                .map(TravelInvitation::getInviterId)
+                .collect(Collectors.toSet());
+
+        // 한 번에 조회
+        Map<Long, String> tripTitleMap = travelPlanRepository.findAllById(tripIds).stream()
+                .collect(Collectors.toMap(
+                        TravelPlanEntity::getId,
+                        TravelPlanEntity::getTitle
+                ));
+
+        Map<Long, String> inviterNameMap = userRepository.findAllById(inviterIds).stream()
+                .collect(Collectors.toMap(
+                        UserEntity::getId,
+                        UserEntity::getName
+                ));
+
+        // DTO 변환
         return invitations.stream()
                 .map(invitation -> {
-                    String tripTitle = travelPlanRepository.findById(invitation.getTripId())
-                            .map(TravelPlanEntity::getTitle)
-                            .orElse("알 수 없음");
-
-                    String inviterName = userRepository.findById(invitation.getInviterId())
-                            .map(UserEntity::getName)
-                            .orElse("알 수 없음");
+                    String tripTitle = tripTitleMap.getOrDefault(
+                            invitation.getTripId(), "알 수 없음");
+                    String inviterName = inviterNameMap.getOrDefault(
+                            invitation.getInviterId(), "알 수 없음");
 
                     return InvitationResponse.fromEntity(invitation, tripTitle, inviterName);
                 })

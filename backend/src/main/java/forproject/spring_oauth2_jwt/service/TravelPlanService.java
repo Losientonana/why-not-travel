@@ -12,6 +12,7 @@ import forproject.spring_oauth2_jwt.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Check;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -193,6 +194,7 @@ public class TravelPlanService {
     }
 
 
+    @Transactional
     public TravelPlanResponse updateTravelPlan(Long tripId, TravelPlanCreateRequestDTO req, Long userId) {
         TravelPlanEntity travelPlanEntity = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없음"));
@@ -258,7 +260,7 @@ public class TravelPlanService {
 
         // 현재 사용자 권한 확인
         String currentUserRole = getCurrentUserRole(tripId, userId);
-        boolean isOwner = "OWNER".equals(currentUserRole) || trip.getUser().equals(userId);
+        boolean isOwner = "OWNER".equals(currentUserRole) || trip.getUser().getId().equals(userId);
 
         // 상태 계산
 
@@ -349,7 +351,14 @@ public class TravelPlanService {
      * 일정 조회(옵션 B: 일정 탭 클릭)
      */
     @Transactional(readOnly = true)
-    public List<ItineraryResponse> getItineraries(Long tripId) {
+    public List<ItineraryResponse> getItineraries(Long tripId,Long user) {
+
+        Optional<TravelParticipant> participantOpt =
+                travelParticipantRepository.findByTripIdAndUserId(tripId, user);
+
+        if (participantOpt.isEmpty()) {
+            throw new IllegalStateException("해당 여행의 참여자가 아닙니다.");
+        }
         // 일정 조회
         List<TravelItinerary> itineraries = itineraryRepository.findByTripIdOrderByDayNumber(tripId);
         List<Long> itineraryIds = itineraries.stream()
@@ -718,30 +727,42 @@ public class TravelPlanService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 체크리스트 생성
+     * 경쟁상태가 가능한 부분이라, DB레벨에서 tripId,displayOrder을 묶어서 유니크 인덱스로 생성.
+     * @param request
+     * @param userId
+     * @return
+     */
     @Transactional
     public ChecklistResponse createChecklist(ChecklistCreateRequestDTO request, Long userId){
         TravelParticipant member = participantRepository.findByTripIdAndUserId(request.getTripId(),
                         userId).orElseThrow(() -> new RuntimeException("여행 참여자만 체크리스트를 추가할 수 있습니다"));
 
         // 자동으로 마지막 순서 + 1로 설정 (활동과 동일한 로직)
-        Integer maxOrder = checklistRepository.findMaxDisplayOrderByTripId(request.getTripId());
-        Integer order = (maxOrder == null) ? 1 : maxOrder + 1;
+        try {
+            Integer maxOrder = checklistRepository.findMaxDisplayOrderByTripId(request.getTripId());
+            Integer order = (maxOrder == null) ? 1 : maxOrder + 1;
 
-        TravelChecklist checklist = TravelChecklist.builder()
-                .tripId(request.getTripId())
-                .task(request.getTask())
-                .completed(false)
-                .assigneeUserId(request.getAssigneeUserId())
-                .displayOrder(order)
-                .build();
+            TravelChecklist checklist = TravelChecklist.builder()
+                    .tripId(request.getTripId())
+                    .task(request.getTask())
+                    .completed(false)
+                    .assigneeUserId(request.getAssigneeUserId())
+                    .displayOrder(order)
+                    .build();
 
-        TravelChecklist saved = checklistRepository.save(checklist);
+            TravelChecklist saved = checklistRepository.save(checklist);
 
-        UserEntity assignee = null;
-        if (saved.getAssigneeUserId() != null) {
-            assignee = userRepository.findById(saved.getAssigneeUserId()).orElse(null);
+            UserEntity assignee = null;
+            if (saved.getAssigneeUserId() != null) {
+                assignee = userRepository.findById(saved.getAssigneeUserId()).orElse(null);
+            }
+            return ChecklistResponse.fromEntity(saved, assignee);
+        }catch (DataIntegrityViolationException e ){
+            // 유니크 제약조건 위반(중복)
+            throw new RuntimeException("체크리스트 생성에 실패했습니다. 다시 시도해주세요.");
         }
-        return ChecklistResponse.fromEntity(saved, assignee);
     }
 
 
@@ -817,29 +838,40 @@ public class TravelPlanService {
         return DeleteItineraryResponse.fromEntity(travelItinerary);
     }
 
+    /**
+     * 활동 생성
+     * 경쟁상태 발성 가능성이 있어서, itinerary_id,display_order을 유니크 인덱스로 설정
+     * @param request
+     * @param userId
+     * @return
+     */
     @Transactional
     public ActivityResponse createActivities(ActivityCreateRequest request, Long userId) {
         TravelItinerary itinerary = travelItineraryRepository.findById(request.getItineraryId()).orElseThrow(() -> new RuntimeException("유효한 일정이 아닙니다."));
         TravelParticipant participant = travelParticipantRepository.findByTripIdAndUserId(itinerary.getTripId(), userId).orElseThrow(() -> new RuntimeException("여행 참여자만 일정을 추가할 수 있습니다"));
 
-        Integer maxOrder = activityRepository.findMaxDisplayOrderByItineraryId(request.getItineraryId())
-                .orElse(0);
+        try {
+            Integer maxOrder = activityRepository.findMaxDisplayOrderByItineraryId(request.getItineraryId())
+                    .orElse(0);
 
-        TravelActivity activity = TravelActivity.builder()
-                .itineraryId(itinerary.getId())
-                .time(request.getTime())
-                .title(request.getTitle())
-                .location(request.getLocation())
-                .activityType(request.getActivityType())
-                .durationMinutes(request.getDurationMinutes())
-                .cost(request.getCost())
-                .notes(request.getNotes())
-                .displayOrder(maxOrder+1)
-                .build();
+            TravelActivity activity = TravelActivity.builder()
+                    .itineraryId(itinerary.getId())
+                    .time(request.getTime())
+                    .title(request.getTitle())
+                    .location(request.getLocation())
+                    .activityType(request.getActivityType())
+                    .durationMinutes(request.getDurationMinutes())
+                    .cost(request.getCost())
+                    .notes(request.getNotes())
+                    .displayOrder(maxOrder + 1)
+                    .build();
 
-        TravelActivity saved = activityRepository.save(activity);
+            TravelActivity saved = activityRepository.save(activity);
 
-        return ActivityResponse.fromEntity(saved);
+            return ActivityResponse.fromEntity(saved);
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException("활동 생성에 실패했습니다. 다시 시도해주세요.");
+        }
     }
 
     @Transactional

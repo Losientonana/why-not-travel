@@ -12,7 +12,15 @@ import java.time.LocalDateTime;
  * 여행 체크리스트 엔티티
  */
 @Entity
-@Table(name = "travel_checklists")
+@Table(
+        name = "travel_checklists",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_travel_display_order",
+                        columnNames = {"trip_id", "display_order"}
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -56,7 +64,7 @@ public class TravelChecklist {
     /**
      * 표시 순서
      */
-    @Column(name = "display_order")
+    @Column(name = "display_order",nullable = false)
     @Builder.Default
     private Integer displayOrder = 0;
 

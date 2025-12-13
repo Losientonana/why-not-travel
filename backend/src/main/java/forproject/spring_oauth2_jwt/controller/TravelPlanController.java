@@ -86,10 +86,10 @@ public class TravelPlanController {
      * GET /api/trips/{tripId}/itineraries
      */
     @GetMapping("/{tripId}/itineraries")
-    public ResponseEntity<List<ItineraryResponse>> getItineraries(@PathVariable Long tripId) {
+    public ResponseEntity<List<ItineraryResponse>> getItineraries(@PathVariable Long tripId,@AuthenticationPrincipal UserPrincipal user ) {
         log.info("GET /api/trips/{}/itineraries", tripId);
 
-        List<ItineraryResponse> itineraries = travelPlanService.getItineraries(tripId);
+        List<ItineraryResponse> itineraries = travelPlanService.getItineraries(tripId, user.getId());
         return ResponseEntity.ok(itineraries);
     }
 
