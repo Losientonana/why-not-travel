@@ -131,3 +131,104 @@ export interface SSENotificationEvent {
   type: string  // event type (e.g., "invitation", "trip_update")
   data: AppNotification
 }
+
+// ============================================
+// 경비 관련 타입
+// ============================================
+
+export interface TripMember {
+  userId: number
+  userName: string
+  profileImage?: string
+}
+
+export interface SharedFundTransaction {
+  id: number
+  tripId: number
+  type: "DEPOSIT" | "EXPENSE"
+  amount: number
+  balanceAfter: number
+  description: string
+  category?: string
+  createdAt: string
+  createdBy: {
+    userId: number
+    userName: string
+  }
+}
+
+export interface ExpenseParticipant {
+  userId: number
+  userName: string
+  shareAmount: number
+  paidAmount: number
+  owedAmount: number
+}
+
+export interface IndividualExpense {
+  id: number
+  tripId: number
+  expenseType: "PERSONAL" | "PARTIAL_SHARED"
+  totalAmount: number
+  description: string
+  category: string
+  date: string
+  splitMethod: "EQUAL" | "CUSTOM"
+  createdBy: {
+    userId: number
+    userName: string
+  }
+  participants: ExpenseParticipant[]
+  receiptUrl?: string
+}
+
+export interface DebtSummary {
+  creditors: Array<{
+    userId: number
+    userName: string
+    amount: number
+  }>
+  debtors: Array<{
+    userId: number
+    userName: string
+    amount: number
+  }>
+  totalToReceive: number
+  totalToPay: number
+}
+
+export interface Settlement {
+  id: number
+  tripId: number
+  fromUserId: number
+  fromUserName: string
+  toUserId: number
+  toUserName: string
+  amount: number
+  status: "PENDING" | "APPROVED" | "REJECTED"
+  requestedAt: string
+  approvedAt?: string
+  memo?: string
+  relatedExpenses: number[]
+}
+
+export interface ExpenseStatistics {
+  totalExpense: number
+  averagePerPerson: number
+  categoryBreakdown: Array<{
+    category: string
+    amount: number
+    percentage: number
+    color: string
+  }>
+  personalBreakdown: Array<{
+    userId: number
+    userName: string
+    amount: number
+    percentage: number
+  }>
+  dailyExpenses: Array<{
+    date: string
+    amount: number
+  }>
+}

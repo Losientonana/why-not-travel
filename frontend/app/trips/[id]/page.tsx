@@ -23,6 +23,15 @@ import {
   X,
   CheckCircle2,
   Sparkles,
+  Cloud,
+  CloudRain,
+  Sun,
+  TrendingUp,
+  ImageIcon,
+  UserPlus,
+  CalendarPlus,
+  Receipt,
+  CheckSquare,
   // GripVertical, // TODO: 드래그 앤 드롭 기능용 - 나중에 구현
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -39,6 +48,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreateAlbumDialog } from "@/components/trip/create-album-dialog"
 import { PhotoUploadDialog } from "@/components/trip/photo-upload-dialog"
 import { AlbumCard } from "@/components/trip/album-card"
+import ExpenseTabs from "@/components/expenses/ExpenseTabs"
 // TODO: 드래그 앤 드롭 기능 - 나중에 구현
 // import {
 //   DndContext,
@@ -263,6 +273,64 @@ const activityTypeConfig = {
   accommodation: { icon: "🏨", color: "bg-purple-100 text-purple-800", label: "숙박" },
   rest: { icon: "😴", color: "bg-gray-100 text-gray-800", label: "휴식" },
 }
+
+// 요약 탭용 추가 Mock 데이터
+const weatherData = [
+  { date: "2024-03-15", day: "금", high: 18, low: 12, condition: "sunny" },
+  { date: "2024-03-16", day: "토", high: 16, low: 10, condition: "cloudy" },
+  { date: "2024-03-17", day: "일", high: 14, low: 8, condition: "rainy" },
+  { date: "2024-03-18", day: "월", high: 17, low: 11, condition: "sunny" },
+]
+
+const recentActivities = [
+  {
+    id: "1",
+    user: "김여행",
+    action: "새로운 사진을 추가했습니다",
+    time: "2시간 전",
+    avatar: "/placeholder.svg",
+  },
+  {
+    id: "2",
+    user: "박모험",
+    action: "체크리스트 항목을 완료했습니다",
+    time: "5시간 전",
+    avatar: "/placeholder.svg",
+  },
+  {
+    id: "3",
+    user: "이탐험",
+    action: "일정에 '한라산 등반'을 추가했습니다",
+    time: "1일 전",
+    avatar: "/placeholder.svg",
+  },
+  {
+    id: "4",
+    user: "김여행",
+    action: "지출 내역을 등록했습니다 (₩30,000)",
+    time: "1일 전",
+    avatar: "/placeholder.svg",
+  },
+]
+
+const todaySchedule = [
+  { time: "09:00", title: "제주공항 도착", location: "제주국제공항" },
+  { time: "14:00", title: "성산일출봉", location: "성산일출봉" },
+  { time: "18:00", title: "저녁식사", location: "올레국수" },
+]
+
+const albumData = [
+  { id: "1", image: "/placeholder.svg", title: "제주공항 도착!", date: "2024-03-15", likes: 12 },
+  { id: "2", image: "/placeholder.svg", title: "성산일출봉 일몰", date: "2024-03-15", likes: 24 },
+  { id: "3", image: "/placeholder.svg", title: "한라산 정상", date: "2024-03-16", likes: 18 },
+]
+
+const checklistData = [
+  { id: "1", title: "항공권 예약", completed: true, assignee: "김여행" },
+  { id: "2", title: "숙소 예약", completed: true, assignee: "박모험" },
+  { id: "3", title: "렌터카 예약", completed: false, assignee: "이탐험" },
+  { id: "4", title: "여행자보험", completed: false, assignee: "김여행" },
+]
 
 // TODO: 드래그 앤 드롭 기능 - 나중에 구현
 // // 드래그 가능한 활동 아이템 컴포넌트
@@ -912,6 +980,30 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   const totalTasks = tripData?.statistics?.totalChecklistCount ?? displayChecklist.length
   const budgetProgress = tripData?.statistics?.budgetUsagePercentage || (mockTrip.spent / mockTrip.budget) * 100
 
+  // 요약 탭용 추가 변수들
+  const daysUntilTrip = Math.ceil(
+    (new Date(mockTrip.startDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+  )
+
+  const completedChecklist = checklistData.filter((item) => item.completed).length
+  const checklistProgress = Math.round((completedChecklist / checklistData.length) * 100)
+
+  const budgetPercentage = Math.round((mockTrip.spent / mockTrip.budget) * 100)
+  const remainingBudget = mockTrip.budget - mockTrip.spent
+
+  const getWeatherIcon = (condition: string) => {
+    switch (condition) {
+      case "sunny":
+        return <Sun className="w-6 h-6 text-yellow-500" />
+      case "cloudy":
+        return <Cloud className="w-6 h-6 text-gray-400" />
+      case "rainy":
+        return <CloudRain className="w-6 h-6 text-blue-500" />
+      default:
+        return <Sun className="w-6 h-6 text-yellow-500" />
+    }
+  }
+
   // 로딩 중
   if (loading) {
     return (
@@ -1071,89 +1163,313 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* D-Day Counter & Trip Info */}
             <div className="grid md:grid-cols-3 gap-6">
-              {/* Trip Info */}
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle>여행 정보</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 mb-6">{displayTrip.description}</p>
-
-                  {/* Budget Overview */}
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium">예산 현황</h4>
-                      <span className="text-sm text-gray-600">
-                        ₩{(tripData?.statistics?.totalExpenses || mockTrip.spent).toLocaleString()} / ₩{(tripData?.statistics?.estimatedBudget || mockTrip.budget).toLocaleString()}
-                      </span>
-                    </div>
-                    <Progress value={budgetProgress} className="h-2" />
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>사용: {Math.round(budgetProgress)}%</span>
-                      <span>남은 예산: ₩{((tripData?.statistics?.estimatedBudget || mockTrip.budget) - (tripData?.statistics?.totalExpenses || mockTrip.spent)).toLocaleString()}</span>
-                    </div>
+              {/* D-Day Card */}
+              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <CardContent className="p-6">
+                  <div className="text-center">
+                    <p className="text-sm opacity-90 mb-2">여행까지</p>
+                    <p className="text-5xl font-bold mb-2">D-{daysUntilTrip}</p>
+                    <p className="text-sm opacity-90">
+                      {new Date(mockTrip.startDate).toLocaleDateString("ko-KR", {
+                        month: "long",
+                        day: "numeric",
+                      })}{" "}
+                      출발
+                    </p>
                   </div>
                 </CardContent>
               </Card>
 
+              {/* Trip Duration */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <Badge variant="outline">여행 기간</Badge>
+                  </div>
+                  <p className="text-2xl font-bold mb-1">3박 4일</p>
+                  <p className="text-sm text-gray-600">신주쿠에서 쇼핑하면서 힐링 하기</p>
+                </CardContent>
+              </Card>
+
+              {/* Trip Progress */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                    <Badge variant="outline">준비 진행률</Badge>
+                  </div>
+                  <p className="text-2xl font-bold mb-2">{checklistProgress}%</p>
+                  <Progress value={checklistProgress} className="h-2" />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Budget Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>예산 현황</span>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveTab("expenses")}>
+                    자세히 보기
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-6 mb-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">총 예산</p>
+                    <p className="text-2xl font-bold">₩{mockTrip.budget.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">사용 금액</p>
+                    <p className="text-2xl font-bold text-blue-600">₩{mockTrip.spent.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">남은 예산</p>
+                    <p className="text-2xl font-bold text-green-600">₩{remainingBudget.toLocaleString()}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>사용률</span>
+                    <span className="font-medium">{budgetPercentage}%</span>
+                  </div>
+                  <Progress value={budgetPercentage} className="h-3" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Weather Forecast */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Cloud className="w-5 h-5 mr-2" />
+                    날씨 정보
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-4 gap-4">
+                    {weatherData.map((day, index) => (
+                      <div key={index} className="text-center">
+                        <p className="text-xs text-gray-600 mb-2">{day.day}</p>
+                        <div className="flex justify-center mb-2">{getWeatherIcon(day.condition)}</div>
+                        <p className="text-sm font-medium">
+                          {day.high}° / {day.low}°
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Checklist Progress */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <CheckSquare className="w-5 h-5 mr-2" />
+                      체크리스트
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setActiveTab("checklist")}>
+                      전체 보기
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>완료</span>
+                      <span className="font-medium">
+                        {completedChecklist} / {checklistData.length}
+                      </span>
+                    </div>
+                    <Progress value={checklistProgress} className="h-3" />
+                  </div>
+                  <div className="space-y-2">
+                    {checklistData.slice(0, 3).map((item) => (
+                      <div key={item.id} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={item.completed}
+                            className="w-4 h-4 text-blue-600 rounded"
+                            readOnly
+                          />
+                          <span className={item.completed ? "line-through text-gray-500" : ""}>{item.title}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Today's Schedule */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Clock className="w-5 h-5 mr-2" />
+                    오늘의 일정
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveTab("itinerary")}>
+                    전체 일정
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {todaySchedule.map((schedule, index) => (
+                    <div key={index} className="flex items-start space-x-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="w-16 text-sm font-medium text-gray-600 flex-shrink-0">{schedule.time}</div>
+                      <div className="flex-1">
+                        <p className="font-medium">{schedule.title}</p>
+                        <p className="text-sm text-gray-600">{schedule.location}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid md:grid-cols-2 gap-6">
               {/* Quick Actions */}
               <Card>
                 <CardHeader>
                   <CardTitle>빠른 작업</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button className="w-full justify-start bg-transparent" variant="outline">
-                    <Plus className="w-4 h-4 mr-2" />
-                    일정 추가
-                  </Button>
-                  <Button className="w-full justify-start bg-transparent" variant="outline">
-                    <Camera className="w-4 h-4 mr-2" />
-                    사진 업로드
-                  </Button>
-                  <Button className="w-full justify-start bg-transparent" variant="outline">
-                    <Users className="w-4 h-4 mr-2" />
-                    멤버 초대
-                  </Button>
-                  <Button className="w-full justify-start bg-transparent" variant="outline">
-                    <DollarSign className="w-4 h-4 mr-2" />
-                    지출 추가
-                  </Button>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      variant="outline"
+                      className="h-20 flex flex-col space-y-2 bg-transparent"
+                      onClick={() => setActiveTab("itinerary")}
+                    >
+                      <CalendarPlus className="w-6 h-6" />
+                      <span className="text-sm">일정 추가</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-20 flex flex-col space-y-2 bg-transparent"
+                      onClick={() => setActiveTab("photos")}
+                    >
+                      <Camera className="w-6 h-6" />
+                      <span className="text-sm">사진 업로드</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-20 flex flex-col space-y-2 bg-transparent"
+                      onClick={() => setActiveTab("members")}
+                    >
+                      <UserPlus className="w-6 h-6" />
+                      <span className="text-sm">멤버 초대</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-20 flex flex-col space-y-2 bg-transparent"
+                      onClick={() => setActiveTab("expenses")}
+                    >
+                      <Receipt className="w-6 h-6" />
+                      <span className="text-sm">지출 추가</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Activities */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">최근 활동</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {recentActivities.map((activity) => (
+                      <div key={activity.id} className="flex items-start space-x-3">
+                        <Avatar className="w-8 h-8 flex-shrink-0">
+                          <AvatarImage src={activity.avatar || "/placeholder.svg"} />
+                          <AvatarFallback>{activity.user[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm">
+                            <span className="font-medium">{activity.user}</span>님이 {activity.action}
+                          </p>
+                          <p className="text-xs text-gray-500">{activity.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Recent Activity */}
+            {/* Photo Gallery Preview */}
             <Card>
               <CardHeader>
-                <CardTitle>최근 활동</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <ImageIcon className="w-5 h-5 mr-2" />
+                    앨범 미리보기
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveTab("photos")}>
+                    전체 보기
+                  </Button>
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src="/placeholder.svg?height=32&width=32&text=김" />
-                      <AvatarFallback>김</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm">
-                        <span className="font-medium">김여행</span>님이 새로운 사진을 추가했습니다.
-                      </p>
-                      <p className="text-xs text-gray-500">2시간 전</p>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {albumData.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                      <img
+                        src={photo.image || "/placeholder.svg"}
+                        alt={photo.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                  <div className="aspect-square rounded-lg bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
+                    <div className="text-center">
+                      <Plus className="w-8 h-8 mx-auto text-gray-400 mb-1" />
+                      <p className="text-xs text-gray-500">더보기</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src="/placeholder.svg?height=32&width=32&text=박" />
-                      <AvatarFallback>박</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm">
-                        <span className="font-medium">박모험</span>님이 체크리스트 항목을 완료했습니다.
-                      </p>
-                      <p className="text-xs text-gray-500">5시간 전</p>
-                    </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Members */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Users className="w-5 h-5 mr-2" />
+                    동행자 ({mockTrip.participants.length}명)
                   </div>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveTab("members")}>
+                    관리하기
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-4">
+                  {mockTrip.participants.map((participant) => (
+                    <div key={participant.id} className="text-center">
+                      <Avatar className="w-12 h-12 mx-auto mb-2">
+                        <AvatarImage src={participant.avatar || "/placeholder.svg"} />
+                        <AvatarFallback>{participant.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <p className="text-xs font-medium">{participant.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {participant.role === "owner" ? "방장" : participant.role === "editor" ? "편집자" : "뷰어"}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -2268,88 +2584,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
           {/* Expenses Tab */}
           <TabsContent value="expenses" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">경비 관리</h2>
-              <Button className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600">
-                <DollarSign className="w-4 h-4 mr-2" />
-                지출 추가
-              </Button>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Budget Overview */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">예산 현황</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-blue-600">₩{(tripData?.statistics?.totalExpenses || mockTrip.spent).toLocaleString()}</p>
-                      <p className="text-sm text-gray-600">사용 금액</p>
-                    </div>
-                    <Progress value={budgetProgress} className="h-3" />
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>총 예산</span>
-                        <span className="font-medium">₩{(tripData?.statistics?.estimatedBudget || mockTrip.budget).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>남은 예산</span>
-                        <span className="font-medium text-green-600">
-                          ₩{((tripData?.statistics?.estimatedBudget || mockTrip.budget) - (tripData?.statistics?.totalExpenses || mockTrip.spent)).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>사용률</span>
-                        <span className="font-medium">{Math.round(budgetProgress)}%</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Expense List */}
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-lg">지출 내역</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {displayExpenses.map((expense: any) => (
-                      <div
-                        key={expense.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <DollarSign className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{expense.item}</p>
-                            <div className="flex items-center space-x-2 text-sm text-gray-600">
-                              <Badge variant="outline" className="text-xs">
-                                {expense.category}
-                              </Badge>
-                              <span>•</span>
-                              <span>{expense.paidBy}</span>
-                              <span>•</span>
-                              <span>{new Date(expense.date).toLocaleDateString("ko-KR")}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-semibold text-lg">₩{expense.amount.toLocaleString()}</span>
-                          <Button variant="ghost" size="sm" className="ml-2 h-8 w-8 p-0">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <ExpenseTabs />
           </TabsContent>
 
           {/* Members Tab */}

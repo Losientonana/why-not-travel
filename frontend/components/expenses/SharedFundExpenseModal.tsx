@@ -1,0 +1,137 @@
+"use client"
+
+import { useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { sharedFundTransactions } from "@/lib/mock/expenseMockData"
+import { useToast } from "@/hooks/use-toast"
+import { AlertCircle } from "lucide-react"
+
+interface Props {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export default function SharedFundExpenseModal({ open, onOpenChange }: Props) {
+  const { toast } = useToast()
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0])
+  const [category, setCategory] = useState("")
+  const [amount, setAmount] = useState("")
+  const [description, setDescription] = useState("")
+
+  const currentBalance = sharedFundTransactions[sharedFundTransactions.length - 1]?.balanceAfter || 0
+  const estimatedBalance = amount ? currentBalance - Number.parseFloat(amount) : currentBalance
+  const isInsufficientBalance = estimatedBalance < 0
+
+  const handleSubmit = () => {
+    if (!category) {
+      toast({ title: "카테고리를 선택해주세요", variant: "destructive" })
+      return
+    }
+    if (!amount || Number.parseFloat(amount) <= 0) {
+      toast({ title: "금액을 입력해주세요", variant: "destructive" })
+      return
+    }
+    if (isInsufficientBalance) {
+      toast({ title: "잔액이 부족합니다", variant: "destructive" })
+      return
+    }
+
+    toast({ title: "공동 경비가 사용되었습니다" })
+    onOpenChange(false)
+    resetForm()
+  }
+
+  const resetForm = () => {
+    setDate(new Date().toISOString().split("T")[0])
+    setCategory("")
+    setAmount("")
+    setDescription("")
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>공동 경비 지출</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-700">현재 잔액</span>
+              <span className="text-lg font-bold text-blue-600">{currentBalance.toLocaleString()}원</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>날짜</Label>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>카테고리</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="카테고리 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="식비">🍴 식비</SelectItem>
+                <SelectItem value="교통">🚗 교통</SelectItem>
+                <SelectItem value="숙박">🏨 숙박</SelectItem>
+                <SelectItem value="관광">🎡 관광</SelectItem>
+                <SelectItem value="쇼핑">🛍️ 쇼핑</SelectItem>
+                <SelectItem value="기타">📝 기타</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>금액</Label>
+            <Input type="number" placeholder="금액 입력" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>설명</Label>
+            <Textarea
+              placeholder="지출 내용을 입력하세요"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          {amount && (
+            <div className={`p-4 rounded-lg ${isInsufficientBalance ? "bg-red-50" : "bg-green-50"}`}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">사용 후 예상 잔액</span>
+                <span className={`text-lg font-bold ${isInsufficientBalance ? "text-red-600" : "text-green-600"}`}>
+                  {estimatedBalance.toLocaleString()}원
+                </span>
+              </div>
+              {isInsufficientBalance && (
+                <div className="flex items-center space-x-2 mt-2 text-red-600">
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="text-sm">잔액이 부족합니다</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            취소
+          </Button>
+          <Button onClick={handleSubmit} disabled={isInsufficientBalance}>
+            사용
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

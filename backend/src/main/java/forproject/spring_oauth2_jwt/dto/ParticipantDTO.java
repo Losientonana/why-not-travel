@@ -29,7 +29,7 @@ public class ParticipantDTO {
         return ParticipantDTO.builder()
                 .participantId(participant.getId())
                 .userId(participant.getUserId())
-                .userName(user != null ? user.getUsername() : "Unknown")
+                .userName(user != null ? user.getName() : "Unknown")
                 .userEmail(user != null ? user.getEmail() : "")
                 .role(participant.getRole())
                 .joinedAt(participant.getJoinedAt())

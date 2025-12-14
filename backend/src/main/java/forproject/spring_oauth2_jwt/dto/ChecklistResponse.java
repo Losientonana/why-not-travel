@@ -28,7 +28,7 @@ public class ChecklistResponse {
                 .task(checklist.getTask())
                 .completed(checklist.getCompleted())
                 .assigneeUserId(checklist.getAssigneeUserId())
-                .assigneeName(assignee != null ? assignee.getUsername() : null)
+                .assigneeName(assignee != null ? assignee.getName() : null)
                 .completedAt(checklist.getCompletedAt())
                 .displayOrder(checklist.getDisplayOrder())
                 .build();
