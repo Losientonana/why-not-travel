@@ -3,7 +3,8 @@ package forproject.spring_oauth2_jwt.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import forproject.spring_oauth2_jwt.dto.*;
-import forproject.spring_oauth2_jwt.dto.request.ChecklistCreateRequestDTO;
+import forproject.spring_oauth2_jwt.dto.request.*;
+import forproject.spring_oauth2_jwt.dto.response.*;
 import forproject.spring_oauth2_jwt.entity.*;
 import forproject.spring_oauth2_jwt.enums.BudgetLevel;
 import forproject.spring_oauth2_jwt.enums.TravelStyle;
@@ -11,11 +12,16 @@ import forproject.spring_oauth2_jwt.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Check;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,8 +41,16 @@ public class TravelPlanService {
     private final TravelChecklistRepository checklistRepository;
     private final TravelExpenseRepository expenseRepository;
     private final TravelParticipantRepository participantRepository;
+    private final TravelItineraryRepository travelItineraryRepository;
+    private final ImageUploadService imageUploadService;
+    private final PhotoAlbumRepository photoAlbumRepository;
+    private final TravelInvitationRepository travelInvitationRepository;
+    private final TravelInvitationService travelInvitationService;
+
+
 
     // 일정 생성
+    @Transactional
     public TravelPlanResponse createTravelPlan(TravelPlanCreateRequestDTO req, Long userId) {
         try {
             log.info("여행 계획 생성 시작 - 사용자: {}, 제목: {}", userId, req.getTitle());
@@ -94,12 +108,22 @@ public class TravelPlanService {
 
             travelParticipantRepository.save(participant);
 
-
-            // 초대 이메일 처리 (현재는 로그만 출력)
             if (req.getInviteEmails() != null && !req.getInviteEmails().isEmpty()) {
-                log.info("초대할 이메일 목록: {}", req.getInviteEmails());
-                // TODO: 이메일 발송 로직 구현
+                log.info("📧 초대 이메일 발송 시작 - 수: {}", req.getInviteEmails().size());
+
+                travelInvitationService.createInvitations(
+                        saved.getId(),
+                        userId,
+                        req.getInviteEmails()
+                );
+
+//                if(1 == 1){
+//                throw new RuntimeException("ss");
+//                };
+
+                log.info("✅ 초대 처리 완료");
             }
+
 
             TravelPlanResponse resp = new TravelPlanResponse();
             resp.setId(saved.getId());
@@ -120,8 +144,10 @@ public class TravelPlanService {
     }
 
     // 내 일정 전체 조회
+    @Transactional(readOnly = true)  // readOnly 추가 (성능 최적화)
     public List<TravelPlanResponse> listMyPlans(Long userId) {
-        List<TravelPlanEntity> plans = travelPlanRepository.findByUser_IdAndIsDeletedFalse(userId);
+        // 변경: findByOwnerOrParticipant 사용
+        List<TravelPlanEntity> plans = travelPlanRepository.findByOwnerOrParticipant(userId);
 
         List<TravelPlanResponse> result = plans.stream().map(plan -> {
             TravelPlanResponse resp = new TravelPlanResponse();
@@ -130,7 +156,7 @@ public class TravelPlanService {
             resp.setStartDate(plan.getStartDate());
             resp.setEndDate(plan.getEndDate());
             resp.setDescription(plan.getDescription());
-            resp.setName(plan.getUser().getName());
+            resp.setName(plan.getUser().getName());  // OWNER 이름
             resp.setVisibility(plan.getVisibility());
             resp.setDestination(plan.getDestination());
             resp.setImageUrl(plan.getImageUrl());
@@ -140,17 +166,19 @@ public class TravelPlanService {
         return result;
     }
 
+    @Transactional(readOnly = true)
     public TravelPlanResponse getTravelPlan(Long tripId, Long userId) {
         TravelPlanEntity plan = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없음"));
 
-        if (!plan.getUser().getId().equals(userId)) {
+        // 변경: OWNER이거나 PARTICIPANT인지 확인
+        boolean isOwner = plan.getUser().getId().equals(userId);
+        boolean isParticipant = travelParticipantRepository.existsByTripIdAndUserId(tripId, userId);
+
+        if (!isOwner && !isParticipant) {
             throw new IllegalArgumentException("이 여행 계획을 조회할 권한이 없습니다.");
         }
 
-        /**
-         * 이때 status의 대해서는 재활용성이 높기에 개별 서비스로 분리
-         */
         TravelPlanResponse resp = new TravelPlanResponse();
         resp.setId(plan.getId());
         resp.setTitle(plan.getTitle());
@@ -158,14 +186,15 @@ public class TravelPlanService {
         resp.setEndDate(plan.getEndDate());
         resp.setDescription(plan.getDescription());
         resp.setName(plan.getUser().getName());
-        resp.setDestination(plan.getDestination());
         resp.setVisibility(plan.getVisibility());
-//        resp.setCoverImage(plan.getImageUrl());
+        resp.setDestination(plan.getDestination());
+        resp.setImageUrl(plan.getImageUrl());
 
         return resp;
     }
 
 
+    @Transactional
     public TravelPlanResponse updateTravelPlan(Long tripId, TravelPlanCreateRequestDTO req, Long userId) {
         TravelPlanEntity travelPlanEntity = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없음"));
@@ -231,7 +260,7 @@ public class TravelPlanService {
 
         // 현재 사용자 권한 확인
         String currentUserRole = getCurrentUserRole(tripId, userId);
-        boolean isOwner = "OWNER".equals(currentUserRole) || trip.getUser().equals(userId);
+        boolean isOwner = "OWNER".equals(currentUserRole) || trip.getUser().getId().equals(userId);
 
         // 상태 계산
 
@@ -252,8 +281,6 @@ public class TravelPlanService {
                 .currentUserRole(currentUserRole)
                 .isOwner(isOwner)
                 .build();
-
-
 }
 
     /**
@@ -273,14 +300,7 @@ public class TravelPlanService {
         return participants.stream()
                 .map(participant -> {
                     UserEntity user = userMap.get(participant.getUserId());
-                    return ParticipantDTO.builder()
-                            .participantId(participant.getId())
-                            .userId(participant.getUserId())
-                            .userName(user != null ? user.getUsername() : "Unknown")
-                            .userEmail(user != null ? user.getEmail() : "")
-                            .role(participant.getRole())
-                            .joinedAt(participant.getJoinedAt())
-                            .build();
+                    return ParticipantDTO.fromEntity(participant, user);
                 })
                 .collect(Collectors.toList());
     }
@@ -331,7 +351,14 @@ public class TravelPlanService {
      * 일정 조회(옵션 B: 일정 탭 클릭)
      */
     @Transactional(readOnly = true)
-    public List<ItineraryResponse> getItineraries(Long tripId) {
+    public List<ItineraryResponse> getItineraries(Long tripId,Long user) {
+
+        Optional<TravelParticipant> participantOpt =
+                travelParticipantRepository.findByTripIdAndUserId(tripId, user);
+
+        if (participantOpt.isEmpty()) {
+            throw new IllegalStateException("해당 여행의 참여자가 아닙니다.");
+        }
         // 일정 조회
         List<TravelItinerary> itineraries = itineraryRepository.findByTripIdOrderByDayNumber(tripId);
         List<Long> itineraryIds = itineraries.stream()
@@ -353,34 +380,10 @@ public class TravelPlanService {
 
         // 4. DTO 변환
         return itineraries.stream()
-                .map(itinerary -> ItineraryResponse.builder()
-                        .id(itinerary.getId())
-                        .dayNumber(itinerary.getDayNumber())
-                        .date(itinerary.getDate())
-                        .title(itinerary.getTitle())
-                        .notes(itinerary.getNotes())
-                        .activities(toActivityDtos(activitiesByItinerary.get(itinerary.getId())))
-                        .build())
-                .collect(Collectors.toList());
-
-    }
-
-    private List<ActivityResponse> toActivityDtos(List<TravelActivity> activities) {
-        if (activities == null) {
-            return List.of();
-        }
-
-        return activities.stream()
-                .map(activity -> ActivityResponse.builder()
-                        .id(activity.getId())
-                        .time(activity.getTime())
-                        .title(activity.getTitle())
-                        .location(activity.getLocation())
-                        .activityType(activity.getActivityType())
-                        .durationMinutes(activity.getDurationMinutes())
-                        .cost(activity.getCost())
-                        .notes(activity.getNotes())
-                        .build())
+                .map(itinerary -> ItineraryResponse.fromEntity(
+                        itinerary,
+                        activitiesByItinerary.get(itinerary.getId())
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -388,11 +391,182 @@ public class TravelPlanService {
     /**
      * 사진 조회 (옵션 B: 사진 탭 클릭 시)
      */
-    @Transactional(readOnly = true)
-    public List<PhotoResponse> getPhotos(Long tripId) {
-        List<TravelPhoto> photos = photoRepository.findByTripIdOrderByCreatedAtDesc(tripId);
+//    @Transactional(readOnly = true)
+//    public List<PhotoResponse> getPhotos(Long tripId) {
+//        List<TravelPhoto> photos = photoRepository.findByTripIdOrderByCreatedAtDesc(tripId);
+//
+//        // 사용자 정보 한 번에 조회
+//        List<Long> userIds = photos.stream()
+//                .map(TravelPhoto::getUserId)
+//                .distinct()
+//                .collect(Collectors.toList());
+//
+//        Map<Long, UserEntity> userMap = userRepository.findAllById(userIds).stream()
+//                .collect(Collectors.toMap(UserEntity::getId, user -> user));
+//
+//        return photos.stream()
+//                .map(photo -> {
+//                    UserEntity user = userMap.get(photo.getUserId());
+//                    return PhotoResponse.fromEntity(photo, user);
+//                })
+//                .collect(Collectors.toList());
+//    }
 
-        // 사용자 정보 한 번에 조회
+    @Transactional
+    public AlbumResponse createAlbum(Long tripId, AlbumCreateRequest request, Long userId) {
+        log.info("앨범 생성 시작 - tripId: {}, userId: {}, title: {}", tripId, userId, request.getAlbumTitle());
+
+        // 1. 여행 계획 존재 확인
+        TravelPlanEntity trip = travelPlanRepository.findById(tripId)
+                .orElseThrow(() -> new RuntimeException("여행 계획을 찾을 수 없습니다."));
+
+        // 2. 참여자 권한 확인
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(tripId, userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 앨범을 생성할 수 있습니다."));
+
+        // 3. 앨범 생성
+        PhotoAlbum album = PhotoAlbum.builder()
+                .tripId(tripId)
+                .albumTitle(request.getAlbumTitle())
+                .albumDate(request.getAlbumDate())
+                .displayOrder(request.getDisplayOrder())
+                .build();
+
+        PhotoAlbum savedAlbum = photoAlbumRepository.save(album);
+
+        log.info("앨범 생성 완료 - albumId: {}", savedAlbum.getId());
+        return AlbumResponse.fromEntity(savedAlbum);
+    }
+
+    /**
+     * 앨범에 사진 업로드 (썸네일 포함)
+     *
+     * 동작 흐름:
+     * 1. 앨범 존재 확인
+     * 2. 권한 확인 (여행 참여자만)
+     * 3. MinIO 업로드 (원본 + 썸네일)
+     * 4. DB 저장 (두 URL 모두)
+     * 5. Response 반환
+     */
+    @Transactional
+    public PhotoResponse uploadPhotoToAlbum(Long tripId, Long albumId, MultipartFile image, Long userId) {
+        log.info("사진 업로드 시작 - tripId: {}, albumId: {}, userId: {}", tripId, albumId, userId);
+
+        // 1. 앨범 존재 확인
+        PhotoAlbum album = photoAlbumRepository.findById(albumId)
+                .orElseThrow(() -> new RuntimeException("앨범을 찾을 수 없습니다."));
+
+        // 2. 앨범이 해당 여행에 속하는지 확인
+        if (!album.getTripId().equals(tripId)) {
+            throw new RuntimeException("앨범이 해당 여행에 속하지 않습니다.");
+        }
+
+        // 3. 참여자 권한 확인
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(tripId, userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 사진을 업로드할 수 있습니다."));
+
+        // 4. MinIO에 원본 + 썸네일 업로드
+        ImageUploadResponse uploadResult = imageUploadService.uploadImageWithThumbnail(
+                image,
+                "trip_photos"
+        );
+        log.info("MinIO 업로드 완료 - 원본: {}, 썸네일: {}",
+                uploadResult.getImageUrl(),
+                uploadResult.getThumbnailUrl());
+
+        // 5. DB에 사진 메타데이터 저장 (두 URL 모두)
+        TravelPhoto photo = TravelPhoto.builder()
+                .tripId(tripId)
+                .albumId(albumId)
+                .userId(userId)
+                .imageUrl(uploadResult.getImageUrl())          // 원본 URL
+                .thumbnailUrl(uploadResult.getThumbnailUrl())  // 썸네일 URL
+                .likesCount(0)
+                .build();
+
+        TravelPhoto savedPhoto = photoRepository.save(photo);
+
+        // 6. 사용자 정보 조회
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        log.info("사진 업로드 완료 - photoId: {}", savedPhoto.getId());
+        return PhotoResponse.fromEntity(savedPhoto, user);
+    }
+
+    /**
+     * 앨범 목록 조회 (사진 포함)
+     */
+    @Transactional
+    public List<AlbumResponse> getAlbumsWithPhotos(Long tripId, Long userId) {
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(tripId, userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 앨범을 조회할 수 있습니다."));
+
+        List<PhotoAlbum> albums = photoAlbumRepository.findByTripIdOrderByAlbumDateDesc(tripId);
+
+        if (albums.isEmpty()) {
+            log.info("앨범이 없습니다 - tripId: {}", tripId);
+            return List.of();
+        }
+
+        List<TravelPhoto> allPhotos =
+                photoRepository.findByTripIdOrderByAlbumIdAscCreatedAtAsc(tripId);
+
+        // 3. 사용자 정보 한 번에 조회 (N+1 방지)
+        List<Long> userIds = allPhotos.stream()
+                .map(TravelPhoto::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, UserEntity> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserEntity::getId, user -> user));
+
+        // 4. 앨범 ID별로 사진 그룹화
+        Map<Long, List<PhotoResponse>> photosByAlbum = allPhotos.stream()
+                .collect(Collectors.groupingBy(
+                        TravelPhoto::getAlbumId,
+                        Collectors.mapping(
+                                photo -> PhotoResponse.fromEntity(photo,
+                                        userMap.get(photo.getUserId())),
+                                Collectors.toList()
+                        )
+                ));
+
+        // 5. AlbumResponse 생성 (사진 포함)
+        List<AlbumResponse> result = albums.stream()
+                .map(album -> {
+                    List<PhotoResponse> photos = photosByAlbum.getOrDefault(album.getId(), List.of());
+                    return AlbumResponse.fromEntityWithPhotos(album, photos);
+                })
+                .collect(Collectors.toList());
+
+        log.info("앨범 목록 조회 완료 - 앨범 수: {}, 총 사진 수: {}", result.size(), allPhotos.size());
+        return result;
+    }
+
+    /**
+     * 특정 앨범의 사진 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<PhotoResponse> getPhotosByAlbum(Long albumId, Long userId) {
+        log.info("앨범 사진 조회 시작 - albumId: {}, userId: {}", albumId, userId);
+
+        // 1. 앨범 존재 확인
+        PhotoAlbum album = photoAlbumRepository.findById(albumId)
+                .orElseThrow(() -> new RuntimeException("앨범을 찾을 수 없습니다."));
+
+        // 👮 권한 검증: 해당 여행의 참여자인지 확인
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(album.getTripId(), userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 사진을 조회할 수 있습니다."));
+
+        // 2. 사진 조회
+        List<TravelPhoto> photos = photoRepository.findByAlbumIdOrderByCreatedAtDesc(albumId);
+
+        // 3. 사용자 정보 조회
         List<Long> userIds = photos.stream()
                 .map(TravelPhoto::getUserId)
                 .distinct()
@@ -401,22 +575,103 @@ public class TravelPlanService {
         Map<Long, UserEntity> userMap = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(UserEntity::getId, user -> user));
 
-        return photos.stream()
-                .map(photo -> {
-                    UserEntity user = userMap.get(photo.getUserId());
-                    return PhotoResponse.builder()
-                            .id(photo.getId())
-                            .imageUrl(photo.getImageUrl())
-                            .caption(photo.getCaption())
-                            .takenAt(photo.getTakenAt())
-                            .likesCount(photo.getLikesCount())
-                            .userId(photo.getUserId())
-                            .userName(user != null ? user.getUsername() : "Unknown")
-                            .build();
-                })
+        List<PhotoResponse> result = photos.stream()
+                .map(photo -> PhotoResponse.fromEntity(photo, userMap.get(photo.getUserId())))
                 .collect(Collectors.toList());
+
+        log.info("앨범 사진 조회 완료 - 사진 수: {}", result.size());
+        return result;
     }
 
+    /**
+     * 앨범 삭제
+     *
+     * 동작 흐름:
+     * 1. 앨범 존재 확인
+     * 2. 앨범이 해당 여행에 속하는지 확인
+     * 3. 권한 확인 (여행 참여자만)
+     * 4. 앨범 내 사진들 조회
+     * 5. 사진들 삭제 (DB에서만 - MinIO는 유지)
+     * 6. 앨범 삭제
+     *
+     * 주의: MinIO에서는 파일을 삭제하지 않음
+     * 이유: 실수로 삭제한 경우 복구 가능
+     *
+     * @param tripId 여행 ID
+     * @param albumId 앨범 ID
+     * @param userId 사용자 ID
+     */
+    @Transactional
+    public void deleteAlbum(Long tripId, Long albumId, Long userId) {
+        log.info("앨범 삭제 시작 - tripId: {}, albumId: {}, userId: {}", tripId, albumId, userId);
+
+        // 1. 앨범 존재 확인
+        PhotoAlbum album = photoAlbumRepository.findById(albumId)
+                .orElseThrow(() -> new RuntimeException("앨범을 찾을 수 없습니다."));
+
+        // 2. 앨범이 해당 여행에 속하는지 확인
+        if (!album.getTripId().equals(tripId)) {
+            throw new RuntimeException("앨범이 해당 여행에 속하지 않습니다.");
+        }
+
+        // 3. 권한 확인
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(tripId, userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 앨범을 삭제할 수 있습니다."));
+
+        // 4. 해당 앨범의 사진들 조회
+        List<TravelPhoto> photos = photoRepository.findByAlbumIdOrderByCreatedAtDesc(albumId);
+
+        // 5. 사진들 삭제 (DB에서만)
+        if (!photos.isEmpty()) {
+            photoRepository.deleteAll(photos);
+            log.info("앨범 내 사진 삭제 완료 - 사진 수: {}", photos.size());
+        }
+
+        // 6. 앨범 삭제
+        photoAlbumRepository.delete(album);
+        log.info("앨범 삭제 완료 - albumId: {}", albumId);
+
+    }
+    /**
+     * 사진 삭제
+     *
+     * 동작 흐름:
+     * 1. 사진 존재 확인
+     * 2. 사진이 해당 여행에 속하는지 확인
+     * 3. 권한 확인 (본인만 삭제 가능)
+     * 4. DB에서 사진 삭제
+     *
+     * 주의: MinIO에서는 파일을 삭제하지 않음
+     *
+     * @param tripId 여행 ID
+     * @param photoId 사진 ID
+     * @param userId 사용자 ID
+     */
+    @Transactional
+    public void deletePhoto(Long tripId, Long photoId, Long userId) {
+        log.info("사진 삭제 시작 - tripId: {}, photoId: {}, userId: {}", tripId, photoId, userId);
+
+        // 1. 사진 존재 확인
+        TravelPhoto photo = photoRepository.findById(photoId)
+                .orElseThrow(() -> new RuntimeException("사진을 찾을 수 없습니다."));
+
+        // 2. 사진이 해당 여행에 속하는지 확인
+        if (!photo.getTripId().equals(tripId)) {
+            throw new RuntimeException("사진이 해당 여행에 속하지 않습니다.");
+        }
+
+        // 3. 권한 확인 (본인이 업로드한 사진만 삭제 가능)
+        if (!photo.getUserId().equals(userId)) {
+            throw new RuntimeException("본인이 업로드한 사진만 삭제할 수 있습니다.");
+        }
+
+        // 4. 사진 삭제
+        photoRepository.delete(photo);
+        log.info("사진 삭제 완료 - photoId: {}", photoId);
+
+        // TODO: MinIO에서도 파일 삭제 (선택적)
+    }
 
     /**
      * 체크리스트 조회 (옵션 B)
@@ -440,16 +695,7 @@ public class TravelPlanService {
                     UserEntity assignee = checklist.getAssigneeUserId() != null
                             ? userMap.get(checklist.getAssigneeUserId())
                             : null;
-
-                    return ChecklistResponse.builder()
-                            .id(checklist.getId())
-                            .task(checklist.getTask())
-                            .completed(checklist.getCompleted())
-                            .assigneeUserId(checklist.getAssigneeUserId())
-                            .assigneeName(assignee != null ? assignee.getUsername() : null)
-                            .completedAt(checklist.getCompletedAt())
-                            .displayOrder(checklist.getDisplayOrder())
-                            .build();
+                    return ChecklistResponse.fromEntity(checklist, assignee);
                 })
                 .collect(Collectors.toList());
     }
@@ -476,57 +722,218 @@ public class TravelPlanService {
                     UserEntity paidBy = expense.getPaidByUserId() != null
                             ? userMap.get(expense.getPaidByUserId())
                             : null;
-
-                    return ExpenseResponse.builder()
-                            .id(expense.getId())
-                            .category(expense.getCategory())
-                            .item(expense.getItem())
-                            .amount(expense.getAmount())
-                            .paidByUserId(expense.getPaidByUserId())
-                            .paidByUserName(paidBy != null ? paidBy.getUsername() : null)
-                            .expenseDate(expense.getExpenseDate())
-                            .notes(expense.getNotes())
-                            .build();
+                    return ExpenseResponse.fromEntity(expense, paidBy);
                 })
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 체크리스트 생성
+     * 경쟁상태가 가능한 부분이라, DB레벨에서 tripId,displayOrder을 묶어서 유니크 인덱스로 생성.
+     * @param request
+     * @param userId
+     * @return
+     */
     @Transactional
     public ChecklistResponse createChecklist(ChecklistCreateRequestDTO request, Long userId){
         TravelParticipant member = participantRepository.findByTripIdAndUserId(request.getTripId(),
                         userId).orElseThrow(() -> new RuntimeException("여행 참여자만 체크리스트를 추가할 수 있습니다"));
 
-        Integer order = request.getDisplayOrder();
-        if (order == null) {
-            // 해당 여행의 마지막 순서 + 1
+        // 자동으로 마지막 순서 + 1로 설정 (활동과 동일한 로직)
+        try {
             Integer maxOrder = checklistRepository.findMaxDisplayOrderByTripId(request.getTripId());
-            order = (maxOrder == null) ? 0 : maxOrder + 1;
+            Integer order = (maxOrder == null) ? 1 : maxOrder + 1;
+
+            TravelChecklist checklist = TravelChecklist.builder()
+                    .tripId(request.getTripId())
+                    .task(request.getTask())
+                    .completed(false)
+                    .assigneeUserId(request.getAssigneeUserId())
+                    .displayOrder(order)
+                    .build();
+
+            TravelChecklist saved = checklistRepository.save(checklist);
+
+            UserEntity assignee = null;
+            if (saved.getAssigneeUserId() != null) {
+                assignee = userRepository.findById(saved.getAssigneeUserId()).orElse(null);
+            }
+            return ChecklistResponse.fromEntity(saved, assignee);
+        }catch (DataIntegrityViolationException e ){
+            // 유니크 제약조건 위반(중복)
+            throw new RuntimeException("체크리스트 생성에 실패했습니다. 다시 시도해주세요.");
+        }
+    }
+
+
+    @Transactional
+    public UpdateChecklistResponse toggleChecklist(Long checklistId, Long userId){
+        TravelChecklist checklist =
+                checklistRepository.findById(checklistId)
+                        .orElseThrow(() -> new RuntimeException("체크리스트를 찾을 수 없습니다."));
+        TravelParticipant member = participantRepository.findByTripIdAndUserId(checklist.getTripId(), userId).orElseThrow(() -> new RuntimeException("여행 참여자만 체크리스트를 수정할 수 있습니다."));
+        Boolean currentValue = checklist.getCompleted();
+        checklist.setCompleted(!currentValue);
+
+        if(!currentValue){
+            checklist.setCompletedAt(LocalDateTime.now());
+        }else {
+            checklist.setCompletedAt(null);
         }
 
-        TravelChecklist checklist = TravelChecklist.builder()
-                .tripId(request.getTripId())
-                .task(request.getTask())
-                .completed(false)
-                .assigneeUserId(request.getAssigneeUserId())
-                .displayOrder(order)
-                .build();
+        return UpdateChecklistResponse.fromEntity(checklist);
+    }
 
-        TravelChecklist saved = checklistRepository.save(checklist);
+    @Transactional
+    public DeleteChecklistResponse toggleDelete(Long checklistId, Long userId){
+        TravelChecklist target = checklistRepository.findById(checklistId)
+                .orElseThrow(() -> new RuntimeException("체크리스트를 찾을 수 없습니다."));
 
-        String assigneeName = null;
-        if (saved.getAssigneeUserId() != null) {
-            assigneeName = userRepository.findById(saved.getAssigneeUserId())
-                    .map(UserEntity::getUsername)
-                    .orElse(null);
+        // 2️⃣ 사용자 검증 (여행 참여자인지 확인)
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(target.getTripId(), userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 삭제할 수 있습니다."));
+
+        Long tripId = target.getTripId();
+        Integer deletedOrder = target.getDisplayOrder();
+
+        checklistRepository.delete(target);
+
+        List<TravelChecklist> remaining = checklistRepository.findByTripIdOrderByDisplayOrderAsc(tripId);
+        for (TravelChecklist c : remaining) {
+            if (c.getDisplayOrder() > deletedOrder) {
+                c.setDisplayOrder(c.getDisplayOrder() - 1);
+            }
         }
-        return ChecklistResponse.builder()
-                .id(saved.getId())
-                .task(saved.getTask())
-                .completed(saved.getCompleted())
-                .assigneeUserId(saved.getAssigneeUserId())
-                .assigneeName(assigneeName)
-                .completedAt(saved.getCompletedAt())
-                .displayOrder(saved.getDisplayOrder())
+        return DeleteChecklistResponse.builder()
+                .deletedChecklistId(checklistId)
+                .tripId(tripId)
+                .newTotalCount(remaining.size())
                 .build();
     }
+
+
+    @Transactional
+    public ItineraryCreateResponseDTO createItinerary(ItineraryCreateRequestDTO request, Long userId) {
+        TravelParticipant member = participantRepository.findByTripIdAndUserId(request.getTripId(),
+                userId).orElseThrow(() -> new RuntimeException("여행 참여자만 일정을 추가할 수 있습니다"));
+
+        TravelItinerary build = TravelItinerary.builder()
+                .tripId(request.getTripId())
+                .dayNumber(request.getDayNumber())
+                .date(request.getDate())
+                .build();
+
+        TravelItinerary saved = travelItineraryRepository.save(build);
+
+        return ItineraryCreateResponseDTO.fromEntity(saved);
+    }
+
+    @Transactional
+    public DeleteItineraryResponse deleteItineraries(Long id, Long userId) {
+        TravelItinerary travelItinerary = travelItineraryRepository.findById(id).orElseThrow(() -> new RuntimeException("일정이 존재하지 않습니다."));
+        TravelParticipant participant = travelParticipantRepository.findByTripIdAndUserId(travelItinerary.getTripId(), userId).orElseThrow(() -> new RuntimeException("여행 참여자만 일정을 추가할 수 있습니다"));
+
+        travelItineraryRepository.delete(travelItinerary);
+        return DeleteItineraryResponse.fromEntity(travelItinerary);
+    }
+
+    /**
+     * 활동 생성
+     * 경쟁상태 발성 가능성이 있어서, itinerary_id,display_order을 유니크 인덱스로 설정
+     * @param request
+     * @param userId
+     * @return
+     */
+    @Transactional
+    public ActivityResponse createActivities(ActivityCreateRequest request, Long userId) {
+        TravelItinerary itinerary = travelItineraryRepository.findById(request.getItineraryId()).orElseThrow(() -> new RuntimeException("유효한 일정이 아닙니다."));
+        TravelParticipant participant = travelParticipantRepository.findByTripIdAndUserId(itinerary.getTripId(), userId).orElseThrow(() -> new RuntimeException("여행 참여자만 일정을 추가할 수 있습니다"));
+
+        try {
+            Integer maxOrder = activityRepository.findMaxDisplayOrderByItineraryId(request.getItineraryId())
+                    .orElse(0);
+
+            TravelActivity activity = TravelActivity.builder()
+                    .itineraryId(itinerary.getId())
+                    .time(request.getTime())
+                    .title(request.getTitle())
+                    .location(request.getLocation())
+                    .activityType(request.getActivityType())
+                    .durationMinutes(request.getDurationMinutes())
+                    .cost(request.getCost())
+                    .notes(request.getNotes())
+                    .displayOrder(maxOrder + 1)
+                    .build();
+
+            TravelActivity saved = activityRepository.save(activity);
+
+            return ActivityResponse.fromEntity(saved);
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException("활동 생성에 실패했습니다. 다시 시도해주세요.");
+        }
+    }
+
+    @Transactional
+    public ActivityUpdateResponse updateActivities(Long activityId, ActivityUpdateRequest request, Long userId){
+
+        TravelActivity activity = activityRepository.findById(activityId).orElseThrow(() -> new RuntimeException("활동이 존재하지 않습니다."));
+        TravelItinerary itinerary = travelItineraryRepository.findById(activity.getItineraryId())
+                .orElseThrow(() -> new RuntimeException("일정을 찾을 수 없습니다."));
+
+        // 3. 권한 검증
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(itinerary.getTripId(), userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 활동을 수정할 수 있습니다."));
+
+        if (request.getTime() != null) {
+            activity.setTime(request.getTime());
+        }
+        if (request.getTitle() != null) {
+            activity.setTitle(request.getTitle());
+        }
+        if (request.getLocation() != null) {
+            activity.setLocation(request.getLocation());
+        }
+        if (request.getActivityType() != null) {
+            activity.setActivityType(request.getActivityType());
+        }
+        if (request.getDurationMinutes() != null) {
+            activity.setDurationMinutes(request.getDurationMinutes());
+        }
+        if (request.getCost() != null) {
+            activity.setCost(request.getCost());
+        }
+        if (request.getNotes() != null) {
+            activity.setNotes(request.getNotes());
+        }
+
+        return ActivityUpdateResponse.fromEntity(activity);
+    }
+
+    @Transactional
+    public DeleteActivityResponse deleteActivities(Long activityId, Long userId) {
+        // 1. 활동 조회
+        TravelActivity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new RuntimeException("활동이 존재하지 않습니다."));
+
+        // 2. 일정 조회
+        TravelItinerary itinerary = travelItineraryRepository.findById(activity.getItineraryId())
+                .orElseThrow(() -> new RuntimeException("일정을 찾을 수 없습니다."));
+
+        // 3. 권한 검증
+        TravelParticipant participant = participantRepository
+                .findByTripIdAndUserId(itinerary.getTripId(), userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 활동을 삭제할 수 있습니다."));
+
+        // 4. Response 준비 (삭제 전)
+        DeleteActivityResponse response = DeleteActivityResponse.fromEntity(activity);
+
+        // 5. 활동 삭제
+        activityRepository.delete(activity);
+
+        // 6. Response 반환
+        return response;
+    }
+
 }

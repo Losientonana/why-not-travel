@@ -1,0 +1,49 @@
+# ========================================
+# 로컬 개발용 Dockerfile (ARM64/AMD64 네이티브)
+# ========================================
+# Hot Reload 지원, 네이티브 플랫폼 사용 (M1/M2/M3 최적화)
+
+FROM node:20.10.0-alpine
+
+WORKDIR /app
+
+# 보안 패치 적용
+RUN apk upgrade --no-cache && \
+    rm -rf /var/cache/apk/*
+
+# 패키지 파일 복사
+COPY package.json package-lock.json* pnpm-lock.yaml* ./
+
+# 개발 의존성 포함 설치
+RUN if [ -f pnpm-lock.yaml ]; then \
+      npm install -g pnpm && pnpm install; \
+    elif [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
+
+# 소스 코드 복사
+COPY . .
+
+# 비root 유저 생성 및 전환
+RUN addgroup -g 1001 nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs && \
+    chown -R nextjs:nodejs /app
+
+USER nextjs:nodejs
+
+# 포트 노출
+EXPOSE 3000
+
+# 환경 변수
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# 개발 서버 실행 (Hot Reload 활성화)
+CMD ["npm", "run", "dev"]
+
+# 메타데이터
+LABEL maintainer="travel-platform-dev"
+LABEL version="1.0.0-dev"
+LABEL description="Travel Platform Frontend - Local Development (Native ARM64/AMD64)"

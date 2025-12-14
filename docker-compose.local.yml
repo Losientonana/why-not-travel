@@ -1,0 +1,118 @@
+# ========================================
+# 로컬 개발 환경 - 인프라만 도커로 실행
+# ========================================
+# 사용법: docker compose -f docker-compose.local.yml up -d
+#
+# 백엔드: IntelliJ에서 직접 실행 (빠름!)
+# 프론트엔드: npm run dev로 직접 실행 (빠름!)
+#
+# 연결 방법:
+# - MySQL: localhost:3306
+# - Redis: localhost:6379
+# - MinIO (S3): localhost:9000
+# - MailHog SMTP: localhost:1025
+# - MailHog UI: http://localhost:8025
+
+networks:
+  travel-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local
+  minio-data:
+    driver: local
+
+services:
+  # ======================================
+  # MySQL (AWS RDS 대체)
+  # ======================================
+  mysql-db:
+    image: mysql:8.0.35
+    container_name: travel-mysql-local
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: Asia/Seoul
+    ports:
+      - "3306:3306"  # 로컬에서 localhost:3306으로 접속
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - travel-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+
+  # ======================================
+  # Redis (AWS ElastiCache 대체)
+  # ======================================
+  redis-cache:
+    image: redis:7.2.3-alpine
+    container_name: travel-redis-local
+    restart: unless-stopped
+    ports:
+      - "6379:6379"  # 로컬에서 localhost:6379로 접속
+    volumes:
+      - redis-data:/data
+    networks:
+      - travel-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+
+  # ======================================
+  # MinIO (AWS S3 대체)
+  # ======================================
+  minio:
+    image: minio/minio:latest
+    container_name: travel-minio-local
+    restart: unless-stopped
+    ports:
+      - "9000:9000"  # MinIO API (S3 호환)
+      - "9001:9001"  # MinIO Console (웹 UI)
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    networks:
+      - travel-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ======================================
+  # MailHog (AWS SES 대체)
+  # ======================================
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: travel-mailhog-local
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP 서버 (백엔드에서 사용)
+      - "8025:8025"  # 웹 UI (받은 메일 확인)
+    networks:
+      - travel-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

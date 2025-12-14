@@ -1,5 +1,7 @@
 package forproject.spring_oauth2_jwt.dto;
 
+import forproject.spring_oauth2_jwt.entity.TravelActivity;
+import forproject.spring_oauth2_jwt.entity.TravelItinerary;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,11 +17,18 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ItineraryResponse {private Long id;
+public class ItineraryResponse {
+    private Long id;
     private Integer dayNumber;
     private LocalDate date;
-    private String title;
-    private String notes;
     private List<ActivityResponse> activities;
 
+    public static ItineraryResponse fromEntity(TravelItinerary itinerary, List<TravelActivity> activities) {
+        return ItineraryResponse.builder()
+                .id(itinerary.getId())
+                .dayNumber(itinerary.getDayNumber())
+                .date(itinerary.getDate())
+                .activities(ActivityResponse.fromEntities(activities))
+                .build();
+    }
 }

@@ -1,54 +1,59 @@
 package forproject.spring_oauth2_jwt.service;
 
 import forproject.spring_oauth2_jwt.dto.ImageUploadResponse;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.UUID;
+
+import static javax.print.DocFlavor.URL.PNG;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ImageUploadService {
 
-    @Value("${app.upload.dir:uploads}")
-    private String uploadDir;
+    private final MinioClient minioClient;
+    private final ImageProcessingService imageProcessingService;
 
-    @Value("${app.base.url:http://localhost:8080}")
-    private String baseUrl;
+    @Value("${minio.bucket-name}")
+    private String bucketName;
+
+    @Value("${minio.endpoint}")
+    private String minioEndpoint;
 
     public ImageUploadResponse uploadImage(MultipartFile file, String purpose) {
-        // 파일 유효성 검사
         validateFile(file);
 
         try {
-            // 업로드 디렉토리 생성
-            Path uploadPath = Paths.get(uploadDir, purpose);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            // 고유한 파일명 생성
             String originalFileName = file.getOriginalFilename();
-            String fileExtension = originalFileName != null && originalFileName.contains(".")
+            String fileExtension = originalFileName != null &&
+                    originalFileName.contains(".")
                     ? originalFileName.substring(originalFileName.lastIndexOf("."))
                     : "";
-            String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
+            String uniqueFileName = purpose + "/" + UUID.randomUUID().toString() +
+                    fileExtension;
 
-            // 실제로 디스크에 파일이 생기는 코드
-            Path filePath = uploadPath.resolve(uniqueFileName);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            InputStream inputStream = file.getInputStream();
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(uniqueFileName)
+                            .stream(inputStream, file.getSize(), -1)
+                            .contentType(file.getContentType())
+                            .build()
+            );
 
-            // 겹치지 않게 랜덤한 url 생성
-            String imageUrl = baseUrl + "/images/" + purpose + "/" + uniqueFileName;
+            String imageUrl = minioEndpoint + "/" + bucketName + "/" + uniqueFileName;
 
-            log.info("이미지 업로드 성공: {} -> {}", originalFileName, imageUrl);
+            log.info("MinIO 업로드 성공: {} -> {}", originalFileName, imageUrl);
 
             return ImageUploadResponse.builder()
                     .imageUrl(imageUrl)
@@ -57,8 +62,8 @@ public class ImageUploadService {
                     .mimeType(file.getContentType())
                     .build();
 
-        } catch (IOException e) {
-            log.error("이미지 업로드 실패: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("MinIO 업로드 실패: {}", e.getMessage(), e);
             throw new RuntimeException("이미지 업로드에 실패했습니다.", e);
         }
     }
@@ -69,7 +74,7 @@ public class ImageUploadService {
         }
 
         // 파일 크기 검사 (10MB)
-        long maxSize = 10 * 1024 * 1024; // 10MB
+        long maxSize = 10 * 1024 * 1024;
         if (file.getSize() > maxSize) {
             throw new IllegalArgumentException("파일 크기가 너무 큽니다. 최대 10MB까지 가능합니다.");
         }
@@ -80,7 +85,6 @@ public class ImageUploadService {
             throw new IllegalArgumentException("이미지 파일만 업로드 가능합니다.");
         }
 
-        // 허용된 이미지 형식
         String[] allowedTypes = {"image/jpeg", "image/jpg", "image/png", "image/webp"};
         boolean isAllowedType = false;
         for (String allowedType : allowedTypes) {
@@ -92,6 +96,92 @@ public class ImageUploadService {
 
         if (!isAllowedType) {
             throw new IllegalArgumentException("지원하지 않는 이미지 형식입니다. JPG, PNG, WEBP만 가능합니다.");
+        }
+    }
+
+    /**
+     * 원본 + 썸네일 업로드 (새 메서드 - 여행 사진용)
+     *
+     * 동작 흐름:
+     * 1. 원본 업로드 → trip_photos/original/uuid.jpg
+     * 2. 썸네일 생성 (400×267, 150KB)
+     * 3. 썸네일 업로드 → trip_photos/thumbnail/uuid.jpg
+     * 4. 두 URL 반환
+     *
+     * @param file 원본 파일
+     * @param purpose 용도 (예: "trip_photos")
+     * @return 원본 URL + 썸네일 URL
+     */
+    public ImageUploadResponse uploadImageWithThumbnail(
+            MultipartFile file,
+            String purpose
+    ) {
+        validateFile(file);
+
+        try {
+            // UUID 생성 (원본과 썸네일이 같은 이름)
+            String uuid = UUID.randomUUID().toString();
+            String originalFileName = file.getOriginalFilename();
+            String fileExtension = originalFileName != null &&
+                    originalFileName.contains(".")
+                    ? originalFileName.substring(originalFileName.lastIndexOf("."))
+                    : "";
+
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // 1단계: 원본 업로드
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            String originalPath = purpose + "/original/" + uuid + fileExtension;
+            InputStream originalStream = file.getInputStream();
+
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(originalPath)
+                            .stream(originalStream, file.getSize(), -1)
+                            .contentType(file.getContentType())
+                            .build()
+            );
+
+            String originalUrl = minioEndpoint + "/" + bucketName + "/" + originalPath;
+            log.info("원본 업로드 완료: {}", originalUrl);
+
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // 2단계: 썸네일 생성
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            byte[] thumbnailBytes = imageProcessingService.createThumbnail(file);
+
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // 3단계: 썸네일 업로드
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            String thumbnailPath = purpose + "/thumbnail/" + uuid + ".jpg";
+            ByteArrayInputStream thumbnailStream = new ByteArrayInputStream(thumbnailBytes);
+
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(thumbnailPath)
+                            .stream(thumbnailStream, thumbnailBytes.length, -1)
+                            .contentType("image/jpeg")
+                            .build()
+            );
+
+            String thumbnailUrl = minioEndpoint + "/" + bucketName + "/" + thumbnailPath;
+            log.info("썸네일 업로드 완료: {}", thumbnailUrl);
+
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // 4단계: 응답 생성
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            return ImageUploadResponse.builder()
+                    .imageUrl(originalUrl)        // 원본 URL
+                    .thumbnailUrl(thumbnailUrl)   // 썸네일 URL
+                    .originalName(originalFileName)
+                    .size(file.getSize())
+                    .mimeType(file.getContentType())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("이미지 업로드 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("이미지 업로드에 실패했습니다.", e);
         }
     }
 }

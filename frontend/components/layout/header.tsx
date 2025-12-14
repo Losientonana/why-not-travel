@@ -3,10 +3,11 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, Menu, Search, User, X, LogOut } from "lucide-react"
+import { Menu, Search, User, X, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/auth-context"
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown"
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -53,9 +54,7 @@ export default function Header() {
                 <Button variant="ghost" size="sm" className="hidden sm:flex">
                   <Search className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="sm" className="hidden sm:flex">
-                  <Bell className="w-4 h-4" />
-                </Button>
+                <NotificationDropdown />
 
                 {/* User Menu */}
                 <DropdownMenu>

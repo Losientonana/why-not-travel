@@ -114,7 +114,24 @@ public class SecurityConfig {
         //경로별 인가 작업
         http
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("/api/trips/**","/api/login","/","/api/join", "/oauth2/**", "/reissue", "/api/token", "/api/logout", "/images/**", "/uploads/**", "/api/mock/**").permitAll()
+                        .requestMatchers(
+                                "/api/trips/**",
+                                "/api/login",
+                                "/",
+                                "/api/join",
+                                "/oauth2/**",
+                                "/reissue",
+                                "/api/token",
+                                "/api/logout",
+                                "/images/**",
+                                "/uploads/**",
+                                "/api/mock/**",
+                                "/api/auth/send-verification-code",
+                                "/api/auth/verify-code",
+                                "/api/auth/check-email",
+                                "/api/invitations/token/**",
+                                "**"
+                        ).permitAll()
                         .anyRequest().authenticated());
 
         // LoginFilter 가 실행되기 전에 JWT 필터를 먼저 실행( 헤더나 쿠키에서 토큰을 추출하여 사용자 인증) 하여 현재 요청을 보낸

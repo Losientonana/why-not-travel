@@ -56,7 +56,15 @@ dependencies {
     // CLI 명령어 파싱을 위한 Apache Commons CLI
     implementation 'commons-cli:commons-cli:1.5.0'
 
-    // json 처리
+    // MinIo
+    implementation 'io.minio:minio:8.5.7'
+
+    // Mailhog
+    implementation 'org.springframework:spring-context-support'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    // Thymeleaf (이메일 템플릿)
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 }
 
 tasks.named('test') {

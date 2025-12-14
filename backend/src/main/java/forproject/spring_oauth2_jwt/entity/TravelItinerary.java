@@ -36,17 +36,7 @@ public class TravelItinerary {
     @Column(name = "date", nullable = false)
     private LocalDate date;
 
-    /**
-     * 제목 (선택사항: "제주 도착", "한라산 등반" 등)
-     */
-    @Column(name = "title", length = 255)
-    private String title;
 
-    /**
-     * 메모
-     */
-    @Column(name = "notes", columnDefinition = "TEXT")
-    private String notes;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

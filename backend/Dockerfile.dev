@@ -1,0 +1,78 @@
+# ========================================
+# 로컬 개발용 Dockerfile (ARM64/AMD64 네이티브)
+# ========================================
+# Stage 1: Build Stage (빌드 환경)
+# ========================================
+# 플랫폼 지정 없음 - 로컬 머신의 네이티브 아키텍처 사용 (M1/M2/M3는 ARM64)
+# eclipse-temurin은 ARM64 지원, 직접 gradle 설치
+FROM eclipse-temurin:17-jdk-alpine AS build
+
+# Gradle 수동 설치 (ARM64 호환)
+RUN apk add --no-cache bash wget unzip && \
+    wget https://services.gradle.org/distributions/gradle-8.5-bin.zip && \
+    unzip gradle-8.5-bin.zip && \
+    mv gradle-8.5 /opt/gradle && \
+    rm gradle-8.5-bin.zip && \
+    ln -s /opt/gradle/bin/gradle /usr/bin/gradle
+
+WORKDIR /app
+
+# Gradle 캐시 최적화 (의존성 파일만 먼저 복사)
+COPY build.gradle settings.gradle ./
+COPY gradle ./gradle
+
+# 의존성 다운로드 (캐싱 레이어 - 실패해도 계속 진행)
+RUN gradle dependencies --no-daemon || true
+
+# 소스 코드 복사
+COPY src ./src
+
+# JAR 빌드 (개발 모드 - 테스트 스킵)
+RUN echo "🚀 로컬 개발 빌드 (테스트 스킵)" && \
+    gradle bootJar --no-daemon -x test
+
+# ========================================
+# Stage 2: Runtime Stage (실행 환경)
+# ========================================
+# 네이티브 플랫폼 사용 (M1/M2/M3에서 5-10배 빠름)
+# amazoncorretto는 ARM64 지원
+FROM amazoncorretto:17-alpine
+
+# 보안 패치 적용 및 필수 도구 설치
+RUN apk upgrade --no-cache && \
+    apk add --no-cache wget curl && \
+    rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# 빌드 스테이지에서 JAR 파일만 복사 (소스 코드 미포함)
+COPY --from=build /app/build/libs/*.jar app.jar
+
+# 비root 유저 생성 및 권한 설정
+RUN addgroup -S spring && \
+    adduser -S spring -G spring && \
+    chown -R spring:spring /app
+
+# 보안: 비root 유저로 전환
+USER spring:spring
+
+# 헬스체크 설정 (개발 환경 - 더 자주 체크)
+HEALTHCHECK --interval=15s --timeout=3s --start-period=30s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+
+# 포트 노출 (문서화 목적)
+EXPOSE 8080
+
+# JVM 메모리 최적화 옵션 (개발 환경용 - 더 관대한 설정)
+ENV JAVA_OPTS="-Xms512m -Xmx1g -XX:+UseG1GC"
+
+# 보안 강화 JVM 옵션
+ENV JAVA_SECURITY_OPTS="-Djava.security.egd=file:/dev/./urandom"
+
+# 애플리케이션 실행
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS $JAVA_SECURITY_OPTS -jar app.jar"]
+
+# 메타데이터
+LABEL maintainer="travel-platform-dev"
+LABEL version="1.0.0-dev"
+LABEL description="Travel Platform Backend - Local Development (Native ARM64/AMD64)"

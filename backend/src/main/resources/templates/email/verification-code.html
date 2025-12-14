@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+        }
+        .logo {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .content {
+            padding: 40px 20px;
+        }
+        .code-box {
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        .code {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 8px;
+            font-family: 'Courier New', monospace;
+        }
+        .footer {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">TravelMate</div>
+    </div>
+
+    <div class="content">
+        <h2>이메일 인증 코드</h2>
+        <p>안녕하세요!</p>
+        <p>TravelMate 회원가입을 위한 인증 코드입니다.</p>
+        <p>아래 인증 코드를 회원가입 페이지에 입력해주세요:</p>
+
+        <div class="code-box">
+            <div class="code" th:text="${verificationCode}">123456</div>
+        </div>
+
+        <p style="color: #666; font-size: 14px;">
+            인증 코드는 <strong th:text="${expirationMinutes}">5</strong>분 동안 유효합니다.
+        </p>
+
+        <p style="color: #999; font-size: 12px; margin-top: 30px;">
+            본 메일은 회원가입 요청에 의해 발송되었습니다.<br>
+            요청하지 않으셨다면 이 메일을 무시하셔도 됩니다.
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>본 메일은 발신 전용입니다.</p>
+        <p>&copy; 2025 TravelMate. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>

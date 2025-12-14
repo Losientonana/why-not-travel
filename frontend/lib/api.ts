@@ -8,34 +8,61 @@ const api = axios.create({
   timeout: 10000, // 10초 타임아웃
 });
 
-// 메모리 기반 보안 토큰 관리 (XSS 공격으로부터 안전)
+// localStorage 기반 토큰 관리 (새로고침 시에도 유지)
 class SecureTokenManager {
-  private accessToken: string | null = null;
+  private readonly TOKEN_KEY = 'accessToken';
 
   getAccessToken(): string | null {
-    return this.accessToken;
+    if (typeof window === 'undefined') {
+      console.log('🔴 [TokenManager] getAccessToken: window가 undefined (SSR 환경)');
+      return null;
+    }
+    const token = localStorage.getItem(this.TOKEN_KEY);
+    console.log('🔑 [TokenManager] getAccessToken:', token ? `토큰 존재 (길이: ${token.length})` : '토큰 없음');
+    return token;
   }
 
   setAccessToken(token: string): void {
-    this.accessToken = token;
+    if (typeof window === 'undefined') {
+      console.log('🔴 [TokenManager] setAccessToken: window가 undefined (SSR 환경)');
+      return;
+    }
+    console.log('✅ [TokenManager] setAccessToken: 토큰 저장 중... (길이:', token.length, ')');
+    localStorage.setItem(this.TOKEN_KEY, token);
+    console.log('✅ [TokenManager] setAccessToken: 토큰 저장 완료');
+    // 저장 후 즉시 확인
+    const saved = localStorage.getItem(this.TOKEN_KEY);
+    console.log('🔍 [TokenManager] setAccessToken: 저장 확인 -', saved ? '성공' : '실패');
   }
 
   removeAccessToken(): void {
-    this.accessToken = null;
+    if (typeof window === 'undefined') {
+      console.log('🔴 [TokenManager] removeAccessToken: window가 undefined (SSR 환경)');
+      return;
+    }
+    console.log('🗑️ [TokenManager] removeAccessToken: 토큰 삭제 중...');
+    localStorage.removeItem(this.TOKEN_KEY);
+    console.log('🗑️ [TokenManager] removeAccessToken: 토큰 삭제 완료');
   }
 
   clearAll(): void {
-    this.accessToken = null;
-    // localStorage의 기존 토큰들도 정리
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('access');
-      localStorage.removeItem('token');
+    if (typeof window === 'undefined') {
+      console.log('🔴 [TokenManager] clearAll: window가 undefined (SSR 환경)');
+      return;
     }
+    console.log('🧹 [TokenManager] clearAll: 모든 토큰 정리 중...');
+    // 모든 토큰 관련 항목 정리
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem('access');
+    localStorage.removeItem('token');
+    console.log('🧹 [TokenManager] clearAll: 정리 완료');
   }
 
   hasToken(): boolean {
-    return !!this.accessToken;
+    const token = this.getAccessToken();
+    const result = !!token;
+    console.log('❓ [TokenManager] hasToken:', result);
+    return result;
   }
 }
 
@@ -172,7 +199,15 @@ api.interceptors.response.use(
 );
 
 // 타입 import
-import { TravelPlanResponse, TravelPlanStatusResponse } from './types';
+import {
+  TravelPlanResponse,
+  TravelPlanStatusResponse,
+  InvitationDetailResponse,
+  InvitationAcceptResponse,
+  InvitationRejectResponse,
+  InvitationResponse,
+  AppNotification
+} from './types';
 
 export default api;
 
@@ -221,6 +256,194 @@ export const getChecklists = async (tripId: number) => {
 // 여행 경비 조회
 export const getExpenses = async (tripId: number) => {
   const response = await api.get(`/api/trips/${tripId}/expenses`);
+  return response.data;
+};
+
+// 체크리스트 항목 추가 (displayOrder는 백엔드에서 자동 할당)
+export const createChecklist = async (tripId: number, task: string, assigneeUserId?: number) => {
+  const response = await api.post('/api/trips/detail/checklists', {
+    tripId,
+    task,
+    assigneeUserId,
+    // displayOrder는 백엔드에서 자동으로 마지막 순서 + 1로 설정됨
+  });
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 체크리스트 항목 체크 토글 (완료/미완료)
+export const toggleChecklist = async (checklistId: number) => {
+  const response = await api.patch(`/api/trips/${checklistId}/checklists`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 체크리스트 항목 삭제
+export const deleteChecklist = async (checklistId: number) => {
+  const response = await api.delete(`/api/trips/${checklistId}/checklists`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 일정(하루) 생성
+export const createItinerary = async (tripId: number, dayNumber: number, date: string) => {
+  const response = await api.post('/api/trips/detail/itineraries', {
+    tripId,
+    dayNumber,
+    date,
+  });
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 일정(하루) 삭제
+export const deleteItinerary = async (itineraryId: number) => {
+  const response = await api.delete(`/api/trips/${itineraryId}/itineraries`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 활동 추가
+export const createActivity = async (itineraryId: number, data: {
+  time: string;
+  title: string;
+  location?: string;
+  activityType?: string;
+  durationMinutes?: number;
+  cost?: number;
+  notes?: string;
+}) => {
+  const response = await api.post('/api/trips/detail/activities', {
+    itineraryId,
+    ...data,
+  });
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 활동 수정
+export const updateActivity = async (activityId: number, data: {
+  time?: string;
+  title?: string;
+  location?: string;
+  activityType?: string;
+  durationMinutes?: number;
+  cost?: number;
+  notes?: string;
+}) => {
+  const response = await api.patch(`/api/trips/${activityId}/activities`, data);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 활동 삭제
+export const deleteActivity = async (activityId: number) => {
+  const response = await api.delete(`/api/trips/${activityId}/activities`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// ============================================
+// 앨범(Album) 관련 API
+// ============================================
+
+// 앨범 생성
+export const createAlbum = async (tripId: number, data: {
+  albumTitle: string;
+  albumDate: string;
+  displayOrder?: number;
+}) => {
+  const response = await api.post(`/api/trips/${tripId}/albums`, data);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 앨범 목록 조회 (사진 포함)
+export const getAlbums = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/albums`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 특정 앨범의 사진 목록 조회
+export const getPhotosByAlbum = async (tripId: number, albumId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/albums/${albumId}/photos`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 앨범 삭제
+export const deleteAlbum = async (tripId: number, albumId: number) => {
+  const response = await api.delete(`/api/trips/${tripId}/albums/${albumId}`);
+  return response.data; // ApiResponse 전체
+};
+
+// ============================================
+// 사진(Photo) 관련 API
+// ============================================
+
+// 앨범에 사진 업로드
+export const uploadPhotoToAlbum = async (tripId: number, albumId: number, image: File) => {
+  const formData = new FormData();
+  formData.append('image', image);
+
+  const response = await api.post(`/api/trips/${tripId}/albums/${albumId}/photos`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 사진 삭제
+export const deletePhoto = async (tripId: number, photoId: number) => {
+  const response = await api.delete(`/api/trips/${tripId}/photos/${photoId}`);
+  return response.data; // ApiResponse 전체
+};
+
+// ============================================
+// 초대(Invitation) 관련 API
+// ============================================
+
+// 여행 초대 생성 (이메일 전송)
+export const createInvitations = async (tripId: number, emails: string[]) => {
+  const response = await api.post(`/api/trips/${tripId}/invitations`, {
+    invitedEmails: emails
+  });
+  return response.data;
+};
+
+// 토큰으로 초대 상세 정보 조회 (인증 불필요 - 공개 엔드포인트)
+export const getInvitationByToken = async (token: string): Promise<InvitationDetailResponse> => {
+  const response = await api.get(`/api/invitations/token/${token}`);
+  return response.data;
+};
+
+// 초대 수락
+export const acceptInvitation = async (token: string): Promise<InvitationAcceptResponse> => {
+  const response = await api.post(`/api/invitations/${token}/accept`);
+  return response.data;
+};
+
+// 초대 거절
+export const rejectInvitation = async (token: string): Promise<InvitationRejectResponse> => {
+  const response = await api.post(`/api/invitations/${token}/reject`);
+  return response.data;
+};
+
+// 내 초대 목록 조회
+export const getMyInvitations = async (): Promise<InvitationResponse[]> => {
+  const response = await api.get('/api/invitations/my');
+  return response.data;
+};
+
+// ============================================
+// 알림(Notification) 관련 API
+// ============================================
+
+// 읽지 않은 알림 목록 조회
+export const getUnreadNotifications = async (): Promise<AppNotification[]> => {
+  const response = await api.get('/api/notifications/unread');
+  return response.data;
+};
+
+// 알림 읽음 처리
+export const markNotificationAsRead = async (notificationId: number): Promise<void> => {
+  await api.put(`/api/notifications/${notificationId}/read`);
+};
+
+// 읽지 않은 알림 개수 조회
+export const getUnreadNotificationCount = async (): Promise<number> => {
+  const response = await api.get('/api/notifications/unread/count');
   return response.data;
 };
 
