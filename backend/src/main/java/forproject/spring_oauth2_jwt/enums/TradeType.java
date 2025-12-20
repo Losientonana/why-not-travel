@@ -6,7 +6,7 @@ public enum TradeType {
 
     private final String description;
 
-    TransactionType(String description) {
+    TradeType(String description) {
         this.description = description;
     }
 
