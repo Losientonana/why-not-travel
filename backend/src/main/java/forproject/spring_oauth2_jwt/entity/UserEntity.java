@@ -29,6 +29,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -54,10 +55,7 @@ public class UserEntity {
     private String password;
 
     @Column(nullable = false)
-    private String role; // "USER", "ADMIN" 등
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+    private String role; // "USER", "ADMIN" 등\
 
     @Column(nullable = false)
     private boolean isDeleted = false;
@@ -67,6 +65,16 @@ public class UserEntity {
 
     @Column(length = 20)
     private String provider;
+
+    @Column(name = "phone", nullable = true, length = 11)
+    private String phone;
+
+    @Column(name = "introduction", nullable = true)
+    private String introduction;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDate createdAt;
 
     private LocalDateTime deletedAt;
 }

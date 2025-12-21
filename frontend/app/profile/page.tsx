@@ -82,6 +82,8 @@ export default function ProfilePage() {
     id: user.id.toString(),
     name: user.name,
     email: user.email,
+    bio: user.introduction || mockUser.bio,
+    joinDate: user.createdAt || mockUser.joinDate,
     avatar: `/placeholder.svg?height=100&width=100&text=${user.name[0]}`,
   } : mockUser;
 

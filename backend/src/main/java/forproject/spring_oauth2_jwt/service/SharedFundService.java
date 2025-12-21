@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -64,22 +65,38 @@ public class SharedFundService {
     }
 
     /**
-     * 거래 내역 조회
+     * 공동경비 거래 내역 조회 (N+1 최적화)
+     * TravelPlanService 패턴 적용
      */
     @RequiresTripParticipant
     public List<SharedFundTradeResponse> getTradeList(Long tripId, Long userId) {
-        SharedFund sharedFund = sharedFundRepository.findByTripId(tripId).orElseGet(()-> createSharedFund(tripId));
+        SharedFund sharedFund = sharedFundRepository.findByTripId(tripId)
+                .orElseGet(()-> createSharedFund(tripId));
 
-        List<SharedFundTrade> tradeList = sharedFundTradeRepository.findBySharedFundIdOrderByCreatedAtDesc(sharedFund.getId());
+        List<SharedFundTrade> tradeList = sharedFundTradeRepository
+                .findBySharedFundIdOrderByCreatedAtDesc(sharedFund.getId());
 
+        // 1. 필요한 모든 userId 수집
+        List<Long> userIds = tradeList.stream()
+                .map(SharedFundTrade::getCreatedBy)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 2. IN 쿼리로 모든 사용자 한 번에 조회 + Map 변환
+        Map<Long, UserEntity> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserEntity::getId, user -> user));
+
+        // 3. Stream으로 변환 (추가 쿼리 없음!)
         return tradeList.stream()
-                .map(tx -> SharedFundTradeResponse.fromEntity(
-                        tx,
-                        tripId,
-                        getUserName(tx.getCreatedBy())
-                ))
+                .map(tx -> {
+                    UserEntity user = userMap.get(tx.getCreatedBy());
+                    String userName = (user != null) ? user.getName() : "알 수 없음";
+
+                    return SharedFundTradeResponse.fromEntity(tx, tripId, userName);
+                })
                 .collect(Collectors.toList());
     }
+
 
     /**
      * 프론트에 데이터 넘겨줄때 편하게 하기위한

@@ -68,13 +68,14 @@ export const isAuthenticated = (): boolean => {
   return result;
 };
 
-// 사용자 정보 인터페이스 (백엔드 UserDTO 기반)
+// 사용자 정보 인터페이스 (백엔드 MyInfoResponse 기반)
 export interface UserInfo {
   id: number;
-  role: string;
-  name: string;
   username: string;
+  name: string;
   email: string;
+  introduction: string;
+  createdAt: string;
 }
 
 // 내 정보 조회 API
@@ -83,7 +84,8 @@ export const getUserInfo = async (): Promise<UserInfo | null> => {
   try {
     const response = await api.get('/api/user/me');
     console.log('✅ [Auth] 사용자 정보 조회 성공:', response.data);
-    return response.data;
+    // ApiResponse 패턴: response.data.data 추출
+    return response.data.data;
   } catch (error: any) {
     console.error('❌ [Auth] 사용자 정보 조회 실패:', error);
     console.error('❌ [Auth] 에러 상세:', {

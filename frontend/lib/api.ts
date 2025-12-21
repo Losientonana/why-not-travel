@@ -236,7 +236,7 @@ export const getTravelPlanStatuses = async (tripIds: number[]): Promise<TravelPl
 // 여행 상세 정보 조회
 export const getTripDetail = async (tripId: number) => {
   const response = await api.get(`/api/trips/${tripId}/detail`);
-  return response.data;
+  return response.data; // TravelDetailResponse 직접 반환
 };
 
 // 여행 일정 조회
@@ -483,5 +483,67 @@ export const expenseSharedFund = async (
 ): Promise<SharedFundTransaction> => {
   const response = await api.post(`/api/trips/${tripId}/shared-fund/expense`, data);
   return response.data.data; // ApiResponse의 data 필드
+};
+
+// ============================================
+// 개별정산(Individual Expense) 관련 API
+// ============================================
+
+// 개인지출 등록
+export const createPersonalExpense = async (tripId: number, data: {
+  date: string;
+  category: string;
+  amount: number;
+  description: string;
+}) => {
+  const response = await api.post(`/api/trips/${tripId}/individual-expenses/personal`, data);
+  return response.data.data;
+};
+
+// 공유지출 등록
+export const createSharedExpense = async (tripId: number, data: {
+  date: string;
+  category: string;
+  amount: number;
+  description: string;
+  splitMethod: "EQUAL" | "CUSTOM";
+  participants: Array<{
+    userId: number;
+    shareAmount: number;
+    paidAmount: number;
+  }>;
+}) => {
+  const response = await api.post(`/api/trips/${tripId}/individual-expenses/shared`, data);
+  return response.data.data;
+};
+
+// 전체 지출 조회
+export const getAllIndividualExpenses = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/individual-expenses`);
+  return response.data.data;
+};
+
+// 개인지출만 조회
+export const getPersonalExpenses = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/individual-expenses/personal`);
+  return response.data.data;
+};
+
+// 공유지출만 조회
+export const getSharedExpenses = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/individual-expenses/shared`);
+  return response.data.data;
+};
+
+// 내가 받을 돈 조회
+export const getToReceive = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/individual-expenses/to-receive`);
+  return response.data.data;
+};
+
+// 내가 줄 돈 조회
+export const getToPay = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/individual-expenses/to-pay`);
+  return response.data.data;
 };
 
