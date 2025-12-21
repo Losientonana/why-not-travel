@@ -1,21 +1,62 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowDownCircle, ArrowUpCircle, Plus, Wallet } from "lucide-react"
-import { sharedFundTransactions } from "@/lib/mock/expenseMockData"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import SharedFundDepositModal from "./SharedFundDepositModal"
 import SharedFundExpenseModal from "./SharedFundExpenseModal"
+import { getSharedFund, getSharedFundTransactions } from "@/lib/api"
+import { SharedFund, SharedFundTransaction } from "@/lib/types"
+import { useParams } from "next/navigation"
 
 export default function SharedFundTab() {
+  const params = useParams()
+  const tripId = Number(params.id)
+
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [showExpenseModal, setShowExpenseModal] = useState(false)
+  const [sharedFund, setSharedFund] = useState<SharedFund | null>(null)
+  const [transactions, setTransactions] = useState<SharedFundTransaction[]>([])
+  const [loading, setLoading] = useState(true)
+  const [participantCount, setParticipantCount] = useState(1) // TODO: 실제 참여자 수 API에서 가져오기
 
-  const currentBalance = sharedFundTransactions[sharedFundTransactions.length - 1]?.balanceAfter || 0
+  // 데이터 새로고침 함수 (모달에서 성공 시 호출)
+  const refreshData = async () => {
+    try {
+      const [fundData, transactionsData] = await Promise.all([
+        getSharedFund(tripId),
+        getSharedFundTransactions(tripId)
+      ])
+      setSharedFund(fundData)
+      setTransactions(transactionsData)
+    } catch (error) {
+      console.error("공동 경비 데이터 새로고침 실패:", error)
+    }
+  }
+
+  // 초기 데이터 불러오기
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        await refreshData()
+      } catch (error) {
+        console.error("공동 경비 데이터 로딩 실패:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (tripId) {
+      fetchData()
+    }
+  }, [tripId])
+
+  const currentBalance = sharedFund?.currentBalance || 0
 
   const getCategoryEmoji = (category?: string) => {
     switch (category) {
@@ -32,6 +73,17 @@ export default function SharedFundTab() {
       default:
         return "📝"
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">공동 경비 불러오는 중...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -51,10 +103,15 @@ export default function SharedFundTab() {
 
       {/* Transaction List */}
       <div className="space-y-3">
-        {sharedFundTransactions
-          .slice()
-          .reverse()
-          .map((transaction) => (
+        {transactions.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center text-gray-500">
+              <p>아직 거래 내역이 없습니다.</p>
+              <p className="text-sm mt-2">입금 또는 지출을 추가해보세요.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          transactions.map((transaction) => (
             <Card
               key={transaction.id}
               className={`hover:shadow-md transition-shadow ${
@@ -109,7 +166,8 @@ export default function SharedFundTab() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          ))
+        )}
       </div>
 
       {/* FAB Buttons */}
@@ -132,8 +190,18 @@ export default function SharedFundTab() {
         </Button>
       </div>
 
-      <SharedFundDepositModal open={showDepositModal} onOpenChange={setShowDepositModal} />
-      <SharedFundExpenseModal open={showExpenseModal} onOpenChange={setShowExpenseModal} />
+      <SharedFundDepositModal
+        open={showDepositModal}
+        onOpenChange={setShowDepositModal}
+        participantCount={participantCount}
+        onSuccess={refreshData}
+      />
+      <SharedFundExpenseModal
+        open={showExpenseModal}
+        onOpenChange={setShowExpenseModal}
+        currentBalance={currentBalance}
+        onSuccess={refreshData}
+      />
     </div>
   )
 }

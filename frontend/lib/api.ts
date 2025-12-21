@@ -206,7 +206,11 @@ import {
   InvitationAcceptResponse,
   InvitationRejectResponse,
   InvitationResponse,
-  AppNotification
+  AppNotification,
+  SharedFund,
+  SharedFundTransaction,
+  SharedFundDepositRequest,
+  SharedFundExpenseRequest
 } from './types';
 
 export default api;
@@ -445,5 +449,39 @@ export const markNotificationAsRead = async (notificationId: number): Promise<vo
 export const getUnreadNotificationCount = async (): Promise<number> => {
   const response = await api.get('/api/notifications/unread/count');
   return response.data;
+};
+
+// ============================================
+// 공동 경비(SharedFund) 관련 API
+// ============================================
+
+// 공동 경비 계좌 조회
+export const getSharedFund = async (tripId: number): Promise<SharedFund> => {
+  const response = await api.get(`/api/trips/${tripId}/shared-fund`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 거래 내역 조회
+export const getSharedFundTransactions = async (tripId: number): Promise<SharedFundTransaction[]> => {
+  const response = await api.get(`/api/trips/${tripId}/shared-fund/trade`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 공동 경비 입금
+export const depositSharedFund = async (
+  tripId: number,
+  data: SharedFundDepositRequest
+): Promise<SharedFundTransaction> => {
+  const response = await api.post(`/api/trips/${tripId}/shared-fund/deposit`, data);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 공동 경비 지출
+export const expenseSharedFund = async (
+  tripId: number,
+  data: SharedFundExpenseRequest
+): Promise<SharedFundTransaction> => {
+  const response = await api.post(`/api/trips/${tripId}/shared-fund/expense`, data);
+  return response.data.data; // ApiResponse의 data 필드
 };
 

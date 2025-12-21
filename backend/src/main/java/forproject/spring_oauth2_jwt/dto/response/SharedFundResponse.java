@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class SharedFundResponse {
     private Long id;
     private Long tripId;
-    private Long CurrentBalance;
+    private Long currentBalance;  // camelCase로 수정
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -25,7 +25,7 @@ public class SharedFundResponse {
         return SharedFundResponse.builder()
                 .id(sharedFund.getId())
                 .tripId(sharedFund.getTripId())
-                .CurrentBalance(sharedFund.getCurrentBalance())
+                .currentBalance(sharedFund.getCurrentBalance())
                 .createdAt(sharedFund.getCreatedAt())
                 .updatedAt(sharedFund.getUpdatedAt())
                 .build();

@@ -26,6 +26,49 @@ export interface TripCreate {
   description?: string
 }
 
+// ============================================
+// 공동 경비(SharedFund) 관련 타입
+// ============================================
+
+// 공동 경비 계좌
+export interface SharedFund {
+  id: number
+  tripId: number
+  currentBalance: number  // camelCase
+  createdAt: string
+  updatedAt: string
+}
+
+// 거래 내역
+export interface SharedFundTransaction {
+  id: number
+  tripId: number
+  type: "DEPOSIT" | "EXPENSE"
+  amount: number
+  balanceAfter: number
+  description: string
+  category?: string
+  createdBy: {
+    userId: number
+    userName: string
+  }
+  createdAt: string
+}
+
+// 입금 요청
+export interface SharedFundDepositRequest {
+  amountPerPerson: number
+  description?: string
+}
+
+// 지출 요청
+export interface SharedFundExpenseRequest {
+  date: string  // yyyy-MM-dd
+  category: string
+  amount: number
+  description: string
+}
+
 // 백엔드 여행 계획 응답 타입
 export interface TravelPlanResponse {
   id: number
