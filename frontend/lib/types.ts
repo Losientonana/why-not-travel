@@ -240,7 +240,7 @@ export interface DebtSummary {
   totalToPay: number
 }
 
-export interface Settlement {
+export interface SettlementResponse {
   id: number
   tripId: number
   fromUserId: number
@@ -249,10 +249,48 @@ export interface Settlement {
   toUserName: string
   amount: number
   status: "PENDING" | "APPROVED" | "REJECTED"
-  requestedAt: string
-  approvedAt?: string
+  requestedBy: number
+  requestedByName: string
+  completedAt?: string
+  createdAt: string
   memo?: string
-  relatedExpenses: number[]
+}
+
+export interface SettlementListResponse {
+  settlements: SettlementResponse[]
+}
+
+export interface CreateSettlementRequest {
+  fromUserId: number
+  toUserId: number
+  amount: number
+  memo?: string
+}
+
+// 정산 플랜 응답 (그리디 알고리즘 결과)
+export interface SettlementPlanResponse {
+  senderId: number
+  senderName: string
+  receiverId: number
+  receiverName: string
+  amount: number
+}
+
+// 정산 요약 응답 (개별정산 집계 + 그리디 알고리즘)
+export interface BalanceSummaryResponse {
+  totalToReceive: number
+  totalToPay: number
+  creditors: Array<{
+    userId: number
+    userName: string
+    amount: number
+  }>
+  debtors: Array<{
+    userId: number
+    userName: string
+    amount: number
+  }>
+  optimalPlan: SettlementPlanResponse[]
 }
 
 export interface ExpenseStatistics {

@@ -2584,7 +2584,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
           {/* Expenses Tab */}
           <TabsContent value="expenses" className="space-y-6">
-            <ExpenseTabs />
+            <ExpenseTabs tripId={Number(params.id)} />
           </TabsContent>
 
           {/* Members Tab */}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, ChevronUp, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import ExpenseRegistrationModal from "./ExpenseRegistrationModal"
@@ -16,8 +16,6 @@ import {
   getAllIndividualExpenses,
   getPersonalExpenses,
   getSharedExpenses,
-  getToReceive,
-  getToPay,
 } from "@/lib/api"
 
 export default function IndividualExpenseTab() {
@@ -29,12 +27,8 @@ export default function IndividualExpenseTab() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<IndividualExpense | null>(null)
   const [filter, setFilter] = useState<"all" | "personal" | "shared">("all")
-  const [showReceiveDetails, setShowReceiveDetails] = useState(false)
-  const [showPayDetails, setShowPayDetails] = useState(false)
 
   const [expenses, setExpenses] = useState<IndividualExpense[]>([])
-  const [toReceiveExpenses, setToReceiveExpenses] = useState<IndividualExpense[]>([])
-  const [toPayExpenses, setToPayExpenses] = useState<IndividualExpense[]>([])
   const [loading, setLoading] = useState(true)
 
   // 데이터 새로고침
@@ -52,13 +46,7 @@ export default function IndividualExpenseTab() {
         expensesData = await getSharedExpenses(tripId)
       }
 
-      // 정산 요약 데이터
-      const toReceiveData = await getToReceive(tripId)
-      const toPayData = await getToPay(tripId)
-
       setExpenses(expensesData)
-      setToReceiveExpenses(toReceiveData)
-      setToPayExpenses(toPayData)
     } catch (error) {
       console.error("개별정산 데이터 로드 실패:", error)
     } finally {
@@ -72,61 +60,6 @@ export default function IndividualExpenseTab() {
       fetchData()
     }
   }, [tripId, filter])
-
-  // 정산 요약 계산
-  const totalToReceive = toReceiveExpenses.reduce((sum, expense) => {
-    const myParticipation = expense.participants.find((p) => p.userId === user?.id)
-    return sum + (myParticipation?.owedAmount || 0)
-  }, 0)
-
-  const totalToPay = toPayExpenses.reduce((sum, expense) => {
-    const myParticipation = expense.participants.find((p) => p.userId === user?.id)
-    return sum + Math.abs(myParticipation?.owedAmount || 0)
-  }, 0)
-
-  // 받을 돈 상세 (사람별 집계)
-  const creditorsSummary = toReceiveExpenses.reduce((acc, expense) => {
-    expense.participants.forEach((p) => {
-      if (p.owedAmount < 0 && p.userId !== user?.id) {
-        // 이 사람이 나에게 줘야 하는 돈
-        const existing = acc.find((c) => c.userId === p.userId)
-        if (existing) {
-          existing.amount += Math.abs(p.owedAmount)
-        } else {
-          acc.push({
-            userId: p.userId,
-            userName: p.userName,
-            amount: Math.abs(p.owedAmount),
-          })
-        }
-      }
-    })
-    return acc
-  }, [] as Array<{ userId: number; userName: string; amount: number }>)
-
-  // 줄 돈 상세 (사람별 집계)
-  const debtorsSummary = toPayExpenses.reduce((acc, expense) => {
-    expense.participants.forEach((p) => {
-      if (p.owedAmount > 0 && p.userId !== user?.id) {
-        // 내가 이 사람에게 줘야 하는 돈
-        const myParticipation = expense.participants.find((pp) => pp.userId === user?.id)
-        if (myParticipation && myParticipation.owedAmount < 0) {
-          const existing = acc.find((d) => d.userId === p.userId)
-          const amountOwed = Math.abs(myParticipation.owedAmount)
-          if (existing) {
-            existing.amount += amountOwed
-          } else {
-            acc.push({
-              userId: p.userId,
-              userName: p.userName,
-              amount: amountOwed,
-            })
-          }
-        }
-      }
-    })
-    return acc
-  }, [] as Array<{ userId: number; userName: string; amount: number }>)
 
   const getCategoryEmoji = (category: string) => {
     switch (category) {
@@ -163,65 +96,6 @@ export default function IndividualExpenseTab() {
 
   return (
     <div className="space-y-6 pb-24">
-      {/* Settlement Summary */}
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* To Receive */}
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-green-800">내가 받을 돈</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowReceiveDetails(!showReceiveDetails)}
-                className="text-green-700 hover:text-green-900"
-              >
-                {showReceiveDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </Button>
-            </div>
-            <p className="text-3xl font-bold text-green-700">+{totalToReceive.toLocaleString()}원</p>
-            {showReceiveDetails && creditorsSummary.length > 0 && (
-              <div className="mt-4 space-y-2 pt-4 border-t border-green-300">
-                {creditorsSummary.map((creditor) => (
-                  <div key={creditor.userId} className="flex justify-between items-center">
-                    <span className="text-sm text-green-800">{creditor.userName}</span>
-                    <span className="text-sm font-semibold text-green-700">+{creditor.amount.toLocaleString()}원</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* To Pay */}
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-red-800">내가 줄 돈</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPayDetails(!showPayDetails)}
-                className="text-red-700 hover:text-red-900"
-              >
-                {showPayDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </Button>
-            </div>
-            <p className="text-3xl font-bold text-red-700">-{totalToPay.toLocaleString()}원</p>
-            {showPayDetails && debtorsSummary.length > 0 && (
-              <div className="mt-4 space-y-2 pt-4 border-t border-red-300">
-                {debtorsSummary.map((debtor) => (
-                  <div key={debtor.userId} className="flex justify-between items-center">
-                    <span className="text-sm text-red-800">{debtor.userName}</span>
-                    <span className="text-sm font-semibold text-red-700">-{debtor.amount.toLocaleString()}원</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Filter Buttons */}
       <div className="flex space-x-2">
         <Button

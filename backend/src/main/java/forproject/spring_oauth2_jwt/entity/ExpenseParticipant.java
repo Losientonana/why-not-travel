@@ -56,4 +56,13 @@ public class ExpenseParticipant {
      */
     @Column(name = "owed_amount", nullable = false)
     private Long owedAmount;
+
+    /**
+     * 정산 완료된 금액 (현재 미사용)
+     * - 향후 확장용 필드
+     * - 기본값: 0
+     */
+    @Column(name = "settled_amount", nullable = false)
+    @Builder.Default
+    private Long settledAmount = 0L;
 }

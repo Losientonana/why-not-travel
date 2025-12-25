@@ -210,7 +210,8 @@ import {
   SharedFund,
   SharedFundTransaction,
   SharedFundDepositRequest,
-  SharedFundExpenseRequest
+  SharedFundExpenseRequest,
+  BalanceSummaryResponse
 } from './types';
 
 export default api;
@@ -547,3 +548,37 @@ export const getToPay = async (tripId: number) => {
   return response.data.data;
 };
 
+// ============================================
+// 정산내역(Settlement) 관련 API
+// ============================================
+
+// 정산 요약 조회 (개별정산 집계 + 그리디 알고리즘)
+export const getBalanceSummary = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/settlements/summary`);
+  return response.data.data;
+};
+
+// 정산 생성 (채무자/채권자 플로우)
+export const createSettlement = async (tripId: number, data: { fromUserId: number; toUserId: number; amount: number; memo?: string }) => {
+  const response = await api.post(`/api/trips/${tripId}/settlements`, data);
+  return response.data.data;
+};
+
+// 정산 승인 (채권자만)
+export const approveSettlement = async (tripId: number, settlementId: number) => {
+  const response = await api.put(`/api/trips/${tripId}/settlements/${settlementId}/approve`);
+  return response.data.data;
+};
+
+// 정산 거절 (채권자만)
+export const rejectSettlement = async (tripId: number, settlementId: number, reason?: string) => {
+  const response = await api.put(`/api/trips/${tripId}/settlements/${settlementId}/reject`, { reason });
+  return response.data.data;
+};
+
+// 정산 내역 조회 (필터링 가능)
+export const getSettlements = async (tripId: number, status?: 'PENDING' | 'APPROVED' | 'REJECTED') => {
+  const params = status ? { status } : {};
+  const response = await api.get(`/api/trips/${tripId}/settlements`, { params });
+  return response.data.data;
+};
