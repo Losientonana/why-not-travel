@@ -189,6 +189,14 @@ export default function SettlementHistoryTab({ tripId }: SettlementHistoryTabPro
                 const isMySending = plan.senderId === user?.id
                 const isMyReceiving = plan.receiverId === user?.id
 
+                // 이미 PENDING 정산이 있는지 확인 (경로 + 금액 일치)
+                const hasPendingSettlement = settlements.some(s =>
+                  s.status === "PENDING" &&
+                  s.fromUserId === plan.senderId &&
+                  s.toUserId === plan.receiverId &&
+                  s.amount === plan.amount
+                )
+
                 return (
                   <div
                     key={idx}
@@ -259,12 +267,17 @@ export default function SettlementHistoryTab({ tripId }: SettlementHistoryTabPro
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-600 border-red-300 hover:bg-red-50"
-                                onClick={() => handleCreateSettlement(plan.senderId, plan.receiverId, plan.amount)}
-                                disabled={actionLoading === plan.senderId + plan.receiverId}
+                                className={hasPendingSettlement
+                                  ? "text-yellow-600 border-yellow-300 bg-yellow-50 cursor-not-allowed"
+                                  : "text-red-600 border-red-300 hover:bg-red-50"
+                                }
+                                onClick={() => !hasPendingSettlement && handleCreateSettlement(plan.senderId, plan.receiverId, plan.amount)}
+                                disabled={actionLoading === plan.senderId + plan.receiverId || hasPendingSettlement}
                               >
                                 {actionLoading === plan.senderId + plan.receiverId ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : hasPendingSettlement ? (
+                                  "대기중"
                                 ) : (
                                   "돈 줬어요"
                                 )}
@@ -274,12 +287,17 @@ export default function SettlementHistoryTab({ tripId }: SettlementHistoryTabPro
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-green-600 border-green-300 hover:bg-green-50"
-                                onClick={() => handleCreateSettlement(plan.senderId, plan.receiverId, plan.amount)}
-                                disabled={actionLoading === plan.senderId + plan.receiverId}
+                                className={hasPendingSettlement
+                                  ? "text-yellow-600 border-yellow-300 bg-yellow-50 cursor-not-allowed"
+                                  : "text-green-600 border-green-300 hover:bg-green-50"
+                                }
+                                onClick={() => !hasPendingSettlement && handleCreateSettlement(plan.senderId, plan.receiverId, plan.amount)}
+                                disabled={actionLoading === plan.senderId + plan.receiverId || hasPendingSettlement}
                               >
                                 {actionLoading === plan.senderId + plan.receiverId ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : hasPendingSettlement ? (
+                                  "대기중"
                                 ) : (
                                   "돈 받았어요"
                                 )}

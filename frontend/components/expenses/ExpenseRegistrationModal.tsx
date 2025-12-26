@@ -118,18 +118,27 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
         })
       } else {
         // 공유지출 등록
-        const participants = selectedParticipants.map((userId) => {
-          const shareAmount =
-            splitMethod === "equal"
-              ? Number.parseFloat(amount) / selectedParticipants.length
-              : Number.parseFloat(customAmounts[userId] || "0")
+        const totalAmount = Number.parseFloat(amount)
+        const participantCount = selectedParticipants.length
+
+        const participants = selectedParticipants.map((userId, index) => {
+          let shareAmount
+
+          if (splitMethod === "equal") {
+            // 균등 분할: 나머지를 첫 번째 사람에게 몰아주기
+            const baseAmount = Math.floor(totalAmount / participantCount)
+            const remainder = totalAmount - (baseAmount * participantCount)
+            shareAmount = index === 0 ? baseAmount + remainder : baseAmount
+          } else {
+            shareAmount = Number.parseFloat(customAmounts[userId] || "0")
+          }
 
           // 선택된 지불자가 전액 지불한 것으로 설정
-          const paidAmount = userId === payerId ? Number.parseFloat(amount) : 0
+          const paidAmount = userId === payerId ? totalAmount : 0
 
           return {
             userId,
-            shareAmount: Math.round(shareAmount),
+            shareAmount,
             paidAmount,
           }
         })

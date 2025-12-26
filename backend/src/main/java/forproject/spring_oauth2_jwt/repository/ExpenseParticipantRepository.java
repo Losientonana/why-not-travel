@@ -48,4 +48,12 @@ public interface ExpenseParticipantRepository extends JpaRepository<IndividualEx
             "JOIN FETCH e.participants " +
             "WHERE e.tripId = :tripId")
     List<ExpenseParticipant> findAllByTripId(@Param("tripId") Long tripId);
+
+    /**
+     * 특정 여행의 고유 참가자 수 조회
+     */
+    @Query("SELECT COUNT(DISTINCT p.userId) FROM ExpenseParticipant p " +
+            "JOIN p.expense e " +
+            "WHERE e.tripId = :tripId")
+    long countDistinctUserIdsByTripId(@Param("tripId") Long tripId);
 }

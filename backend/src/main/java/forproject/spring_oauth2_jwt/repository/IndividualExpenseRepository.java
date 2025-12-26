@@ -32,4 +32,6 @@ public interface IndividualExpenseRepository extends JpaRepository<IndividualExp
             @Param("tripId") Long tripId,
             @Param("expenseType") ExpenseType expenseType
     );
+
+    List<IndividualExpense> findByTripIdOrderByExpenseDateDesc(Long tripId);
 }

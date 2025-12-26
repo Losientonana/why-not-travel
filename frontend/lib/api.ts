@@ -582,3 +582,13 @@ export const getSettlements = async (tripId: number, status?: 'PENDING' | 'APPRO
   const response = await api.get(`/api/trips/${tripId}/settlements`, { params });
   return response.data.data;
 };
+
+// ============================================
+// 통계(Statistics) 관련 API
+// ============================================
+
+// 지출 통계 조회
+export const getExpenseStatistics = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/statistics/expenses`);
+  return response.data.data;
+};

@@ -25,6 +25,14 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
         return <Calendar className="w-5 h-5 text-green-500" />;
       case 'COMMENT':
         return <MessageCircle className="w-5 h-5 text-purple-500" />;
+      case 'SETTLEMENT_REQUEST':
+        return <Bell className="w-5 h-5 text-yellow-500" />;
+      case 'SETTLEMENT_APPROVED':
+        return <Bell className="w-5 h-5 text-green-500" />;
+      case 'SETTLEMENT_REJECTED':
+        return <Bell className="w-5 h-5 text-red-500" />;
+      case 'SETTLEMENT_COMPLETED':
+        return <Bell className="w-5 h-5 text-blue-500" />;
       case 'SYSTEM':
         return <Info className="w-5 h-5 text-gray-500" />;
       default:
@@ -42,6 +50,20 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
       // 초대 알림인 경우 초대 페이지로 이동
       if (notification.type === 'INVITATION' && notification.relatedData) {
         router.push(`/invitations/${notification.relatedData}`);
+      }
+
+      // 정산 알림인 경우 여행 페이지로 이동 (relatedData 형식: "tripId:settlementId")
+      if (
+        (notification.type === 'SETTLEMENT_REQUEST' ||
+         notification.type === 'SETTLEMENT_APPROVED' ||
+         notification.type === 'SETTLEMENT_REJECTED' ||
+         notification.type === 'SETTLEMENT_COMPLETED') &&
+        notification.relatedData
+      ) {
+        const [tripId] = notification.relatedData.split(':');
+        if (tripId) {
+          router.push(`/trips/${tripId}`);
+        }
       }
 
       // 드롭다운 닫기

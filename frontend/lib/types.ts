@@ -155,7 +155,7 @@ export interface InvitationResponse {
 // 알림(Notification) 관련 타입
 // ============================================
 
-export type NotificationType = 'INVITATION' | 'TRIP_UPDATE' | 'COMMENT' | 'SYSTEM'
+export type NotificationType = 'INVITATION' | 'TRIP_UPDATE' | 'COMMENT' | 'SYSTEM' | 'SETTLEMENT_REQUEST' | 'SETTLEMENT_APPROVED' | 'SETTLEMENT_REJECTED' | 'SETTLEMENT_COMPLETED'
 
 export interface AppNotification {
   id: number
@@ -294,7 +294,7 @@ export interface BalanceSummaryResponse {
 }
 
 export interface ExpenseStatistics {
-  totalExpense: number
+  myTotalExpense: number
   averagePerPerson: number
   categoryBreakdown: Array<{
     category: string

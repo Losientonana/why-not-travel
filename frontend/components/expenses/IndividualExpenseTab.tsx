@@ -83,6 +83,14 @@ export default function IndividualExpenseTab() {
     setShowDetailModal(true)
   }
 
+  // 지불자 목록 가져오기 (paidAmount > 0인 사람들)
+  const getPayers = (expense: IndividualExpense) => {
+    const payers = expense.participants.filter((p) => p.paidAmount > 0)
+    if (payers.length === 0) return "없음"
+    if (payers.length === 1) return payers[0].userName
+    return `${payers[0].userName} 외 ${payers.length - 1}명`
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -161,7 +169,7 @@ export default function IndividualExpenseTab() {
                           <span>·</span>
                           <span>{format(new Date(expense.date), "yyyy년 MM월 dd일", { locale: ko })}</span>
                           <span>·</span>
-                          <span>{expense.createdBy.userName}</span>
+                          <span>{getPayers(expense)}</span>
                         </div>
                         {myParticipation && expense.expenseType === "PARTIAL_SHARED" && (
                           <p className="text-sm text-blue-600 mt-1 font-medium">

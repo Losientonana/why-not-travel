@@ -104,6 +104,10 @@ public class SettlementService {
      * 현재 잔액 계산 (공식 적용)
      *
      * 내 현재 잔액 = (지출 장부상 순액) + (정산으로 보낸 돈) - (정산으로 받은 돈)
+     *
+     * 중요: PENDING 정산도 포함합니다.
+     * - PENDING 정산을 포함하면 새 지출이 들어와도 이미 신청한 정산 금액은 고정됩니다.
+     * - REJECTED 시 자동으로 다시 계산에 포함됩니다.
      */
     private Map<Long, Long> calculateCurrentBalances(Long tripId) {
         Map<Long, Long> balances = new HashMap<>();
@@ -116,11 +120,13 @@ public class SettlementService {
             balances.merge(p.getUserId(), p.getOwedAmount(), Long::sum);
         }
 
-        // 2. Settlement(APPROVED) 반영
-        List<Settlement> approvedSettlements = settlementRepository
-                .findByTripIdAndStatus(tripId, SettlementStatus.APPROVED);
+        // 2. Settlement(APPROVED + PENDING) 반영
+        // PENDING도 포함하여 신청된 정산은 즉시 빚에서 차감
+        List<Settlement> activeSettlements = new ArrayList<>();
+        activeSettlements.addAll(settlementRepository.findByTripIdAndStatus(tripId, SettlementStatus.APPROVED));
+        activeSettlements.addAll(settlementRepository.findByTripIdAndStatus(tripId, SettlementStatus.PENDING));
 
-        for (Settlement s : approvedSettlements) {
+        for (Settlement s : activeSettlements) {
             // 돈 준 사람(fromUser): 빚 갚음 → 잔액 증가(+)
             balances.merge(s.getFromUserId(), s.getAmount(), Long::sum);
 
@@ -316,12 +322,13 @@ public class SettlementService {
         UserEntity creditor = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
 
+        String relatedData = settlement.getTripId() + ":" + settlement.getId();
         notificationService.createAndSend(
                 settlement.getFromUserId(),
                 NotificationType.SETTLEMENT_APPROVED,
                 "정산 승인",
                 creditor.getName() + "님이 " + settlement.getAmount() + "원 정산을 승인했습니다",
-                String.valueOf(settlement.getId())
+                relatedData
         );
 
         return toSettlementResponse(settlement);
@@ -361,12 +368,13 @@ public class SettlementService {
         UserEntity creditor = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
 
+        String relatedData = settlement.getTripId() + ":" + settlement.getId();
         notificationService.createAndSend(
                 settlement.getFromUserId(),
                 NotificationType.SETTLEMENT_REJECTED,
                 "정산 거절",
                 creditor.getName() + "님이 정산 신청을 거절했습니다",
-                String.valueOf(settlement.getId())
+                relatedData
         );
 
         return toSettlementResponse(settlement);
@@ -467,6 +475,8 @@ public class SettlementService {
             message = debtor.getName() + "님이 " + settlement.getAmount() + "원 정산을 신청했습니다";
         }
 
-        notificationService.createAndSend(recipientId, type, title, message, String.valueOf(settlement.getId()));
+        // relatedData에 "tripId:settlementId" 형식으로 저장
+        String relatedData = settlement.getTripId() + ":" + settlement.getId();
+        notificationService.createAndSend(recipientId, type, title, message, relatedData);
     }
 }
