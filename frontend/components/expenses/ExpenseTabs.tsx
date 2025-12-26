@@ -7,7 +7,11 @@ import IndividualExpenseTab from "./IndividualExpenseTab"
 import SettlementHistoryTab from "./SettlementHistoryTab"
 import StatisticsTab from "./StatisticsTab"
 
-export default function ExpenseTabs() {
+interface ExpenseTabsProps {
+  tripId: number
+}
+
+export default function ExpenseTabs({ tripId }: ExpenseTabsProps) {
   const [activeTab, setActiveTab] = useState("shared")
 
   return (
@@ -33,7 +37,7 @@ export default function ExpenseTabs() {
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
-          <SettlementHistoryTab />
+          <SettlementHistoryTab tripId={tripId} />
         </TabsContent>
 
         <TabsContent value="statistics" className="mt-6">

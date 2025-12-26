@@ -26,6 +26,49 @@ export interface TripCreate {
   description?: string
 }
 
+// ============================================
+// 공동 경비(SharedFund) 관련 타입
+// ============================================
+
+// 공동 경비 계좌
+export interface SharedFund {
+  id: number
+  tripId: number
+  currentBalance: number  // camelCase
+  createdAt: string
+  updatedAt: string
+}
+
+// 거래 내역
+export interface SharedFundTransaction {
+  id: number
+  tripId: number
+  type: "DEPOSIT" | "EXPENSE"
+  amount: number
+  balanceAfter: number
+  description: string
+  category?: string
+  createdBy: {
+    userId: number
+    userName: string
+  }
+  createdAt: string
+}
+
+// 입금 요청
+export interface SharedFundDepositRequest {
+  amountPerPerson: number
+  description?: string
+}
+
+// 지출 요청
+export interface SharedFundExpenseRequest {
+  date: string  // yyyy-MM-dd
+  category: string
+  amount: number
+  description: string
+}
+
 // 백엔드 여행 계획 응답 타입
 export interface TravelPlanResponse {
   id: number
@@ -112,7 +155,7 @@ export interface InvitationResponse {
 // 알림(Notification) 관련 타입
 // ============================================
 
-export type NotificationType = 'INVITATION' | 'TRIP_UPDATE' | 'COMMENT' | 'SYSTEM'
+export type NotificationType = 'INVITATION' | 'TRIP_UPDATE' | 'COMMENT' | 'SYSTEM' | 'SETTLEMENT_REQUEST' | 'SETTLEMENT_APPROVED' | 'SETTLEMENT_REJECTED' | 'SETTLEMENT_COMPLETED'
 
 export interface AppNotification {
   id: number
@@ -197,7 +240,7 @@ export interface DebtSummary {
   totalToPay: number
 }
 
-export interface Settlement {
+export interface SettlementResponse {
   id: number
   tripId: number
   fromUserId: number
@@ -206,14 +249,52 @@ export interface Settlement {
   toUserName: string
   amount: number
   status: "PENDING" | "APPROVED" | "REJECTED"
-  requestedAt: string
-  approvedAt?: string
+  requestedBy: number
+  requestedByName: string
+  completedAt?: string
+  createdAt: string
   memo?: string
-  relatedExpenses: number[]
+}
+
+export interface SettlementListResponse {
+  settlements: SettlementResponse[]
+}
+
+export interface CreateSettlementRequest {
+  fromUserId: number
+  toUserId: number
+  amount: number
+  memo?: string
+}
+
+// 정산 플랜 응답 (그리디 알고리즘 결과)
+export interface SettlementPlanResponse {
+  senderId: number
+  senderName: string
+  receiverId: number
+  receiverName: string
+  amount: number
+}
+
+// 정산 요약 응답 (개별정산 집계 + 그리디 알고리즘)
+export interface BalanceSummaryResponse {
+  totalToReceive: number
+  totalToPay: number
+  creditors: Array<{
+    userId: number
+    userName: string
+    amount: number
+  }>
+  debtors: Array<{
+    userId: number
+    userName: string
+    amount: number
+  }>
+  optimalPlan: SettlementPlanResponse[]
 }
 
 export interface ExpenseStatistics {
-  totalExpense: number
+  myTotalExpense: number
   averagePerPerson: number
   categoryBreakdown: Array<{
     category: string

@@ -206,7 +206,12 @@ import {
   InvitationAcceptResponse,
   InvitationRejectResponse,
   InvitationResponse,
-  AppNotification
+  AppNotification,
+  SharedFund,
+  SharedFundTransaction,
+  SharedFundDepositRequest,
+  SharedFundExpenseRequest,
+  BalanceSummaryResponse
 } from './types';
 
 export default api;
@@ -232,7 +237,7 @@ export const getTravelPlanStatuses = async (tripIds: number[]): Promise<TravelPl
 // 여행 상세 정보 조회
 export const getTripDetail = async (tripId: number) => {
   const response = await api.get(`/api/trips/${tripId}/detail`);
-  return response.data;
+  return response.data; // TravelDetailResponse 직접 반환
 };
 
 // 여행 일정 조회
@@ -447,3 +452,143 @@ export const getUnreadNotificationCount = async (): Promise<number> => {
   return response.data;
 };
 
+// ============================================
+// 공동 경비(SharedFund) 관련 API
+// ============================================
+
+// 공동 경비 계좌 조회
+export const getSharedFund = async (tripId: number): Promise<SharedFund> => {
+  const response = await api.get(`/api/trips/${tripId}/shared-fund`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 거래 내역 조회
+export const getSharedFundTransactions = async (tripId: number): Promise<SharedFundTransaction[]> => {
+  const response = await api.get(`/api/trips/${tripId}/shared-fund/trade`);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 공동 경비 입금
+export const depositSharedFund = async (
+  tripId: number,
+  data: SharedFundDepositRequest
+): Promise<SharedFundTransaction> => {
+  const response = await api.post(`/api/trips/${tripId}/shared-fund/deposit`, data);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// 공동 경비 지출
+export const expenseSharedFund = async (
+  tripId: number,
+  data: SharedFundExpenseRequest
+): Promise<SharedFundTransaction> => {
+  const response = await api.post(`/api/trips/${tripId}/shared-fund/expense`, data);
+  return response.data.data; // ApiResponse의 data 필드
+};
+
+// ============================================
+// 개별정산(Individual Expense) 관련 API
+// ============================================
+
+// 개인지출 등록
+export const createPersonalExpense = async (tripId: number, data: {
+  date: string;
+  category: string;
+  amount: number;
+  description: string;
+}) => {
+  const response = await api.post(`/api/trips/${tripId}/individual-expenses/personal`, data);
+  return response.data.data;
+};
+
+// 공유지출 등록
+export const createSharedExpense = async (tripId: number, data: {
+  date: string;
+  category: string;
+  amount: number;
+  description: string;
+  splitMethod: "EQUAL" | "CUSTOM";
+  participants: Array<{
+    userId: number;
+    shareAmount: number;
+    paidAmount: number;
+  }>;
+}) => {
+  const response = await api.post(`/api/trips/${tripId}/individual-expenses/shared`, data);
+  return response.data.data;
+};
+
+// 전체 지출 조회
+export const getAllIndividualExpenses = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/individual-expenses`);
+  return response.data.data;
+};
+
+// 개인지출만 조회
+export const getPersonalExpenses = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/individual-expenses/personal`);
+  return response.data.data;
+};
+
+// 공유지출만 조회
+export const getSharedExpenses = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/individual-expenses/shared`);
+  return response.data.data;
+};
+
+// 내가 받을 돈 조회
+export const getToReceive = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/individual-expenses/to-receive`);
+  return response.data.data;
+};
+
+// 내가 줄 돈 조회
+export const getToPay = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/individual-expenses/to-pay`);
+  return response.data.data;
+};
+
+// ============================================
+// 정산내역(Settlement) 관련 API
+// ============================================
+
+// 정산 요약 조회 (개별정산 집계 + 그리디 알고리즘)
+export const getBalanceSummary = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/settlements/summary`);
+  return response.data.data;
+};
+
+// 정산 생성 (채무자/채권자 플로우)
+export const createSettlement = async (tripId: number, data: { fromUserId: number; toUserId: number; amount: number; memo?: string }) => {
+  const response = await api.post(`/api/trips/${tripId}/settlements`, data);
+  return response.data.data;
+};
+
+// 정산 승인 (채권자만)
+export const approveSettlement = async (tripId: number, settlementId: number) => {
+  const response = await api.put(`/api/trips/${tripId}/settlements/${settlementId}/approve`);
+  return response.data.data;
+};
+
+// 정산 거절 (채권자만)
+export const rejectSettlement = async (tripId: number, settlementId: number, reason?: string) => {
+  const response = await api.put(`/api/trips/${tripId}/settlements/${settlementId}/reject`, { reason });
+  return response.data.data;
+};
+
+// 정산 내역 조회 (필터링 가능)
+export const getSettlements = async (tripId: number, status?: 'PENDING' | 'APPROVED' | 'REJECTED') => {
+  const params = status ? { status } : {};
+  const response = await api.get(`/api/trips/${tripId}/settlements`, { params });
+  return response.data.data;
+};
+
+// ============================================
+// 통계(Statistics) 관련 API
+// ============================================
+
+// 지출 통계 조회
+export const getExpenseStatistics = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/statistics/expenses`);
+  return response.data.data;
+};

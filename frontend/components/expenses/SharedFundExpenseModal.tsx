@@ -7,27 +7,33 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { sharedFundTransactions } from "@/lib/mock/expenseMockData"
 import { useToast } from "@/hooks/use-toast"
 import { AlertCircle } from "lucide-react"
+import { expenseSharedFund } from "@/lib/api"
+import { useParams } from "next/navigation"
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
+  currentBalance?: number
+  onSuccess?: () => void
 }
 
-export default function SharedFundExpenseModal({ open, onOpenChange }: Props) {
+export default function SharedFundExpenseModal({ open, onOpenChange, currentBalance = 0, onSuccess }: Props) {
   const { toast } = useToast()
+  const params = useParams()
+  const tripId = Number(params.id)
+
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [category, setCategory] = useState("")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const currentBalance = sharedFundTransactions[sharedFundTransactions.length - 1]?.balanceAfter || 0
   const estimatedBalance = amount ? currentBalance - Number.parseFloat(amount) : currentBalance
   const isInsufficientBalance = estimatedBalance < 0
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!category) {
       toast({ title: "카테고리를 선택해주세요", variant: "destructive" })
       return
@@ -36,14 +42,42 @@ export default function SharedFundExpenseModal({ open, onOpenChange }: Props) {
       toast({ title: "금액을 입력해주세요", variant: "destructive" })
       return
     }
+    if (!description) {
+      toast({ title: "설명을 입력해주세요", variant: "destructive" })
+      return
+    }
     if (isInsufficientBalance) {
       toast({ title: "잔액이 부족합니다", variant: "destructive" })
       return
     }
 
-    toast({ title: "공동 경비가 사용되었습니다" })
-    onOpenChange(false)
-    resetForm()
+    try {
+      setLoading(true)
+      await expenseSharedFund(tripId, {
+        date,
+        category,
+        amount: Number.parseFloat(amount),
+        description
+      })
+
+      toast({ title: "공동 경비가 사용되었습니다" })
+      onOpenChange(false)
+      resetForm()
+
+      // 성공 시 부모 컴포넌트에 알림
+      if (onSuccess) {
+        onSuccess()
+      }
+    } catch (error: any) {
+      console.error("지출 실패:", error)
+      toast({
+        title: "지출 실패",
+        description: error.response?.data?.message || "다시 시도해주세요",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const resetForm = () => {
@@ -124,11 +158,11 @@ export default function SharedFundExpenseModal({ open, onOpenChange }: Props) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             취소
           </Button>
-          <Button onClick={handleSubmit} disabled={isInsufficientBalance}>
-            사용
+          <Button onClick={handleSubmit} disabled={isInsufficientBalance || loading}>
+            {loading ? "처리 중..." : "사용"}
           </Button>
         </DialogFooter>
       </DialogContent>

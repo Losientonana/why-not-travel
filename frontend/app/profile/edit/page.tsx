@@ -28,8 +28,8 @@ export default function EditProfilePage() {
         setFormData({
           name: userInfo.name || "",
           email: userInfo.email || "",
-          bio: "", // bio, phone, location은 API에 없으므로 빈 값으로 초기화
-          phone: "",
+          bio: userInfo.introduction || "", // introduction 필드 사용
+          phone: "", // 백엔드 API에 phone 필드 없음
           location: "",
         });
       }

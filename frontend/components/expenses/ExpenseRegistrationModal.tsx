@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,30 +9,68 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { tripMembers } from "@/lib/mock/expenseMockData"
 import { useToast } from "@/hooks/use-toast"
+import { useParams } from "next/navigation"
+import { createPersonalExpense, createSharedExpense } from "@/lib/api"
+import { getTripDetail } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSuccess?: () => void
 }
 
-export default function ExpenseRegistrationModal({ open, onOpenChange }: Props) {
+export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess }: Props) {
   const { toast } = useToast()
+  const params = useParams()
+  const tripId = Number(params.id)
+  const { user } = useAuth()
+
+  const [tripMembers, setTripMembers] = useState<Array<{ userId: number; userName: string }>>([])
+  const [loading, setLoading] = useState(false)
   const [expenseMode, setExpenseMode] = useState<"shared" | "individual">("shared")
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [category, setCategory] = useState("")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
-  const [selectedParticipants, setSelectedParticipants] = useState<number[]>(tripMembers.map((m) => m.userId))
+  const [selectedParticipants, setSelectedParticipants] = useState<number[]>([])
+  const [payerId, setPayerId] = useState<number | null>(null)
   const [splitMethod, setSplitMethod] = useState<"equal" | "custom">("equal")
   const [customAmounts, setCustomAmounts] = useState<Record<number, string>>({})
+
+  // 여행 참여자 목록 불러오기
+  useEffect(() => {
+    const fetchTripMembers = async () => {
+      try {
+        const tripDetail = await getTripDetail(tripId)
+        console.log("여행 상세:", tripDetail)
+        const members = tripDetail.participants.map((p: any) => ({
+          userId: p.userId,
+          userName: p.userName,
+        }))
+        setTripMembers(members)
+        setSelectedParticipants(members.map((m: any) => m.userId))
+
+        // 지불자 초기값을 현재 로그인한 유저로 설정
+        if (user?.id) {
+          setPayerId(user.id)
+        }
+      } catch (error) {
+        console.error("참여자 목록 로드 실패:", error)
+      }
+    }
+
+    if (open && tripId) {
+      fetchTripMembers()
+    }
+  }, [open, tripId, user?.id])
 
   const handleParticipantToggle = (userId: number) => {
     setSelectedParticipants((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]))
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validation
     if (!category) {
       toast({ title: "카테고리를 선택해주세요", variant: "destructive" })
@@ -42,8 +80,20 @@ export default function ExpenseRegistrationModal({ open, onOpenChange }: Props) 
       toast({ title: "금액을 입력해주세요", variant: "destructive" })
       return
     }
+    if (!description.trim()) {
+      toast({ title: "설명을 입력해주세요", variant: "destructive" })
+      return
+    }
     if (expenseMode === "shared" && selectedParticipants.length < 2) {
       toast({ title: "공동 지출은 최소 2명 이상이어야 합니다", variant: "destructive" })
+      return
+    }
+    if (expenseMode === "shared" && !payerId) {
+      toast({ title: "지불자를 선택해주세요", variant: "destructive" })
+      return
+    }
+    if (expenseMode === "shared" && payerId && !selectedParticipants.includes(payerId)) {
+      toast({ title: "지불자는 참여자 중에서 선택해야 합니다", variant: "destructive" })
       return
     }
     if (expenseMode === "shared" && splitMethod === "custom") {
@@ -56,9 +106,67 @@ export default function ExpenseRegistrationModal({ open, onOpenChange }: Props) 
       }
     }
 
-    toast({ title: "지출이 등록되었습니다" })
-    onOpenChange(false)
-    resetForm()
+    setLoading(true)
+    try {
+      if (expenseMode === "individual") {
+        // 개인지출 등록
+        await createPersonalExpense(tripId, {
+          date,
+          category,
+          amount: Number.parseFloat(amount),
+          description,
+        })
+      } else {
+        // 공유지출 등록
+        const totalAmount = Number.parseFloat(amount)
+        const participantCount = selectedParticipants.length
+
+        const participants = selectedParticipants.map((userId, index) => {
+          let shareAmount
+
+          if (splitMethod === "equal") {
+            // 균등 분할: 나머지를 첫 번째 사람에게 몰아주기
+            const baseAmount = Math.floor(totalAmount / participantCount)
+            const remainder = totalAmount - (baseAmount * participantCount)
+            shareAmount = index === 0 ? baseAmount + remainder : baseAmount
+          } else {
+            shareAmount = Number.parseFloat(customAmounts[userId] || "0")
+          }
+
+          // 선택된 지불자가 전액 지불한 것으로 설정
+          const paidAmount = userId === payerId ? totalAmount : 0
+
+          return {
+            userId,
+            shareAmount,
+            paidAmount,
+          }
+        })
+
+        await createSharedExpense(tripId, {
+          date,
+          category,
+          amount: Number.parseFloat(amount),
+          description,
+          splitMethod: splitMethod === "equal" ? "EQUAL" : "CUSTOM",
+          participants,
+        })
+      }
+
+      toast({ title: "지출이 등록되었습니다" })
+      onOpenChange(false)
+      resetForm()
+      onSuccess?.()
+    } catch (error: any) {
+      console.error("지출 등록 실패:", error)
+      toast({
+        title: "지출 등록 실패",
+        description: error.response?.data?.message || "다시 시도해주세요",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const resetForm = () => {
@@ -67,9 +175,11 @@ export default function ExpenseRegistrationModal({ open, onOpenChange }: Props) 
     setCategory("")
     setAmount("")
     setDescription("")
-    setSelectedParticipants(tripMembers.map((m) => m.userId))
     setSplitMethod("equal")
     setCustomAmounts({})
+    if (user?.id) {
+      setPayerId(user.id)
+    }
   }
 
   const perPersonAmount =
@@ -160,12 +270,30 @@ export default function ExpenseRegistrationModal({ open, onOpenChange }: Props) 
                         checked={selectedParticipants.includes(member.userId)}
                         onCheckedChange={() => handleParticipantToggle(member.userId)}
                       />
-                      <span className="text-lg">{member.profileImage}</span>
                       <span>{member.userName}</span>
                     </div>
                   ))}
                 </div>
                 <p className="text-sm text-gray-600">선택된 인원: {selectedParticipants.length}명</p>
+              </div>
+
+              {/* Payer Selection */}
+              <div className="space-y-2">
+                <Label>지불자 선택</Label>
+                <Select value={payerId?.toString() || ""} onValueChange={(v) => setPayerId(Number(v))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="지불자를 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tripMembers.map((member) => (
+                      <SelectItem key={member.userId} value={member.userId.toString()}>
+                        {member.userName}
+                        {member.userId === user?.id && " (나)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-600">실제로 돈을 지불한 사람을 선택해주세요</p>
               </div>
 
               {/* Split Method */}
@@ -200,11 +328,11 @@ export default function ExpenseRegistrationModal({ open, onOpenChange }: Props) 
                 {splitMethod === "custom" && selectedParticipants.length > 0 && (
                   <div className="space-y-2 p-4 bg-gray-50 rounded-lg">
                     {selectedParticipants.map((userId) => {
-                      const member = tripMembers.find((m) => m.userId === userId)!
+                      const member = tripMembers.find((m) => m.userId === userId)
+                      if (!member) return null
                       return (
                         <div key={userId} className="flex items-center space-x-3">
-                          <span className="text-lg">{member.profileImage}</span>
-                          <span className="w-20">{member.userName}</span>
+                          <span className="w-24">{member.userName}</span>
                           <Input
                             type="number"
                             placeholder="금액"
@@ -239,10 +367,12 @@ export default function ExpenseRegistrationModal({ open, onOpenChange }: Props) 
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             취소
           </Button>
-          <Button onClick={handleSubmit}>등록</Button>
+          <Button onClick={handleSubmit} disabled={loading}>
+            {loading ? "등록 중..." : "등록"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

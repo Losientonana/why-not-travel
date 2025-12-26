@@ -19,6 +19,13 @@ export default function ExpenseDetailModal({ open, onOpenChange, expense }: Prop
   const { toast } = useToast()
   const isMyExpense = expense.createdBy.userId === currentUserId
 
+  // 지불자 목록 가져오기
+  const getPayers = () => {
+    const payers = expense.participants.filter((p) => p.paidAmount > 0)
+    if (payers.length === 0) return "없음"
+    return payers.map((p) => p.userName).join(", ")
+  }
+
   const getCategoryEmoji = (category: string) => {
     switch (category) {
       case "식비":
@@ -74,8 +81,8 @@ export default function ExpenseDetailModal({ open, onOpenChange, expense }: Prop
                 <p className="font-medium">{format(new Date(expense.date), "yyyy년 MM월 dd일", { locale: ko })}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">작성자</p>
-                <p className="font-medium">{expense.createdBy.userName}</p>
+                <p className="text-sm text-gray-600">지불자</p>
+                <p className="font-medium">{getPayers()}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">총 금액</p>
