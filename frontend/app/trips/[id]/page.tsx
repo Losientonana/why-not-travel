@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { getTripDetail, getItineraries, getPhotos, getChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist, createItinerary, deleteItinerary, createActivity, updateActivity, deleteActivity, getAlbums, createAlbum, uploadPhotoToAlbum, deleteAlbum } from "@/lib/api"
+import { getTripDetail, getTripOverview, getItineraries, getPhotos, getSharedChecklists, getPersonalChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist, createItinerary, deleteItinerary, createActivity, updateActivity, deleteActivity, getAlbums, createAlbum, uploadPhotoToAlbum, deleteAlbum } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import {
   ArrowLeft,
@@ -427,14 +427,17 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null)
 
   // 탭별 실제 데이터 상태 (API에서 불러온 데이터)
+  const [overviewData, setOverviewData] = useState<any>(null)
   const [itinerariesData, setItinerariesData] = useState<any[]>([])
   const [photosData, setPhotosData] = useState<any[]>([])
-  const [checklistsData, setChecklistsData] = useState<any[]>([])
+  const [sharedChecklistsData, setSharedChecklistsData] = useState<any[]>([])
+  const [personalChecklistsData, setPersonalChecklistsData] = useState<any[]>([])
   const [expensesData, setExpensesData] = useState<any[]>([])
   const [tabLoading, setTabLoading] = useState(false)
 
   // 체크리스트 관련 상태
   const [showAddChecklist, setShowAddChecklist] = useState(false)
+  const [checklistType, setChecklistType] = useState<'shared' | 'personal'>('shared')
   const [newChecklistTask, setNewChecklistTask] = useState("")
   const [selectedPriority, setSelectedPriority] = useState<string>("")
   const [addingChecklist, setAddingChecklist] = useState(false)
@@ -502,6 +505,14 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
         setTabLoading(true)
 
         switch (activeTab) {
+          case 'overview':
+            if (!overviewData) {
+              console.log('🔥 개요 데이터 로딩 시작')
+              const data = await getTripOverview(Number(params.id))
+              console.log('✅ 개요 데이터 로딩 완료:', data)
+              setOverviewData(data)
+            }
+            break
           case 'itinerary':
             if (itinerariesData.length === 0) {
               console.log('🔥 일정 데이터 로딩 시작')
@@ -519,11 +530,16 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
             }
             break
           case 'checklist':
-            if (checklistsData.length === 0) {
+            if (sharedChecklistsData.length === 0 && personalChecklistsData.length === 0) {
               console.log('🔥 체크리스트 데이터 로딩 시작')
-              const data = await getChecklists(Number(params.id))
-              console.log('✅ 체크리스트 데이터 로딩 완료:', data)
-              setChecklistsData(data || [])
+              const [sharedData, personalData] = await Promise.all([
+                getSharedChecklists(Number(params.id)),
+                getPersonalChecklists(Number(params.id))
+              ])
+              console.log('✅ 공용 체크리스트:', sharedData)
+              console.log('✅ 개인 체크리스트:', personalData)
+              setSharedChecklistsData(sharedData || [])
+              setPersonalChecklistsData(personalData || [])
             }
             break
           case 'expenses':
@@ -602,16 +618,24 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
     try {
       setAddingChecklist(true)
 
-      // displayOrder는 백엔드에서 자동으로 마지막 순서 + 1로 설정됨
+      const isShared = checklistType === 'shared'
+
+      // 체크리스트 생성
       const newItem = await createChecklist(
         Number(params.id),
         newChecklistTask.trim(),
-        user.id  // 현재 로그인한 사용자 ID (assigneeUserId)
+        isShared,
+        isShared ? undefined : user.id  // 공용이면 assigneeUserId 없음, 개인이면 현재 사용자
       )
 
-      // 성공하면 체크리스트 데이터 새로고침
-      const updatedChecklists = await getChecklists(Number(params.id))
-      setChecklistsData(updatedChecklists)
+      // 성공하면 해당 타입의 체크리스트 데이터 새로고침
+      if (isShared) {
+        const updatedShared = await getSharedChecklists(Number(params.id))
+        setSharedChecklistsData(updatedShared)
+      } else {
+        const updatedPersonal = await getPersonalChecklists(Number(params.id))
+        setPersonalChecklistsData(updatedPersonal)
+      }
 
       // 입력 필드 초기화
       setNewChecklistTask("")
@@ -626,18 +650,28 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   }
 
   // 체크리스트 항목 체크/체크 해제
-  const handleToggleChecklist = async (checklistId: number) => {
+  const handleToggleChecklist = async (checklistId: number, isShared: boolean) => {
     try {
       const updatedItem = await toggleChecklist(checklistId)
 
-      // 로컬 상태 업데이트
-      setChecklistsData((prev) =>
-        prev.map((item) =>
-          item.id === checklistId
-            ? { ...item, completed: updatedItem.completed, completedAt: updatedItem.completedAt }
-            : item
+      // 로컬 상태 업데이트 (공용/개인 분리)
+      if (isShared) {
+        setSharedChecklistsData((prev) =>
+          prev.map((item) =>
+            item.id === checklistId
+              ? { ...item, completed: updatedItem.completed, completedAt: updatedItem.completedAt }
+              : item
+          )
         )
-      )
+      } else {
+        setPersonalChecklistsData((prev) =>
+          prev.map((item) =>
+            item.id === checklistId
+              ? { ...item, completed: updatedItem.completed, completedAt: updatedItem.completedAt }
+              : item
+          )
+        )
+      }
     } catch (err) {
       console.error('체크리스트 토글 실패:', err)
       alert('체크리스트 수정에 실패했습니다.')
@@ -645,14 +679,18 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   }
 
   // 체크리스트 항목 삭제
-  const handleDeleteChecklist = async (checklistId: number) => {
+  const handleDeleteChecklist = async (checklistId: number, isShared: boolean) => {
     if (!confirm('이 항목을 삭제하시겠습니까?')) return
 
     try {
       await deleteChecklist(checklistId)
 
-      // 로컬 상태에서 삭제
-      setChecklistsData((prev) => prev.filter((item) => item.id !== checklistId))
+      // 로컬 상태에서 삭제 (공용/개인 분리)
+      if (isShared) {
+        setSharedChecklistsData((prev) => prev.filter((item) => item.id !== checklistId))
+      } else {
+        setPersonalChecklistsData((prev) => prev.filter((item) => item.id !== checklistId))
+      }
     } catch (err) {
       console.error('체크리스트 삭제 실패:', err)
       alert('체크리스트 삭제에 실패했습니다.')
@@ -948,7 +986,8 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
         id: item.id,
         text: item.task,
         completed: item.completed,
-        assignee: item.assigneeName || '미지정',
+        isShared: item.isShared,
+        assignee: item.assigneeName || (item.isShared ? '공용' : '미지정'),
         assigneeUserId: item.assigneeUserId,
         completedAt: item.completedAt,
         displayOrder: item.displayOrder || 0
@@ -973,11 +1012,14 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   // 일정과 체크리스트는 Mock 데이터 사용 안 함 (실제 API 데이터만 사용)
   const displayItinerary = itinerariesData.length > 0 ? transformItinerary(itinerariesData) : []  // mockTrip.itinerary
   const totalPhotoCount = albums?.reduce((total, album) => total + (album.photoCount || 0), 0) || 0
-  const displayChecklist = checklistsData.length > 0 ? transformChecklist(checklistsData) : []  // mockTrip.checklist
+  const displaySharedChecklist = sharedChecklistsData.length > 0 ? transformChecklist(sharedChecklistsData) : []
+  const displayPersonalChecklist = personalChecklistsData.length > 0 ? transformChecklist(personalChecklistsData) : []
   const displayExpenses = expensesData.length > 0 ? transformExpenses(expensesData) : mockTrip.expenses
 
-  const completedTasks = tripData?.statistics?.completedChecklistCount ?? displayChecklist.filter((item: any) => item.completed).length
-  const totalTasks = tripData?.statistics?.totalChecklistCount ?? displayChecklist.length
+  const completedSharedTasks = displaySharedChecklist.filter((item: any) => item.completed).length
+  const totalSharedTasks = displaySharedChecklist.length
+  const completedPersonalTasks = displayPersonalChecklist.filter((item: any) => item.completed).length
+  const totalPersonalTasks = displayPersonalChecklist.length
   const budgetProgress = tripData?.statistics?.budgetUsagePercentage || (mockTrip.spent / mockTrip.budget) * 100
 
   // 요약 탭용 추가 변수들
@@ -1137,7 +1179,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
           <Card>
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {completedTasks}/{totalTasks}
+                {completedSharedTasks + completedPersonalTasks}/{totalSharedTasks + totalPersonalTasks}
               </div>
               <div className="text-sm text-gray-600">체크리스트</div>
             </CardContent>
@@ -1163,6 +1205,15 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {tabLoading && !overviewData ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">개요 불러오는 중...</p>
+                </div>
+              </div>
+            ) : overviewData ? (
+              <>
             {/* D-Day Counter & Trip Info */}
             <div className="grid md:grid-cols-3 gap-6">
               {/* D-Day Card */}
@@ -1170,9 +1221,11 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 <CardContent className="p-6">
                   <div className="text-center">
                     <p className="text-sm opacity-90 mb-2">여행까지</p>
-                    <p className="text-5xl font-bold mb-2">D-{daysUntilTrip}</p>
+                    <p className="text-5xl font-bold mb-2">
+                      {overviewData.daysUntilTrip !== null ? `D-${overviewData.daysUntilTrip}` : '진행중'}
+                    </p>
                     <p className="text-sm opacity-90">
-                      {new Date(mockTrip.startDate).toLocaleDateString("ko-KR", {
+                      {new Date(overviewData.startDate).toLocaleDateString("ko-KR", {
                         month: "long",
                         day: "numeric",
                       })}{" "}
@@ -1189,8 +1242,8 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                     <Calendar className="w-5 h-5 text-blue-600" />
                     <Badge variant="outline">여행 기간</Badge>
                   </div>
-                  <p className="text-2xl font-bold mb-1">3박 4일</p>
-                  <p className="text-sm text-gray-600">신주쿠에서 쇼핑하면서 힐링 하기</p>
+                  <p className="text-2xl font-bold mb-1">{overviewData.tripDuration - 1}박 {overviewData.tripDuration}일</p>
+                  <p className="text-sm text-gray-600">{overviewData.description || overviewData.destination}</p>
                 </CardContent>
               </Card>
 
@@ -1201,8 +1254,8 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                     <TrendingUp className="w-5 h-5 text-green-600" />
                     <Badge variant="outline">준비 진행률</Badge>
                   </div>
-                  <p className="text-2xl font-bold mb-2">{checklistProgress}%</p>
-                  <Progress value={checklistProgress} className="h-2" />
+                  <p className="text-2xl font-bold mb-2">{overviewData.checklistProgress.completionPercentage}%</p>
+                  <Progress value={overviewData.checklistProgress.completionPercentage} className="h-2" />
                 </CardContent>
               </Card>
             </div>
@@ -1221,23 +1274,23 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 <div className="grid md:grid-cols-3 gap-6 mb-4">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">총 예산</p>
-                    <p className="text-2xl font-bold">₩{mockTrip.budget.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">₩{overviewData.budgetStatus.totalBudget.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">사용 금액</p>
-                    <p className="text-2xl font-bold text-blue-600">₩{mockTrip.spent.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-blue-600">₩{overviewData.budgetStatus.spentAmount.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">남은 예산</p>
-                    <p className="text-2xl font-bold text-green-600">₩{remainingBudget.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-green-600">₩{overviewData.budgetStatus.remainingBudget.toLocaleString()}</p>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>사용률</span>
-                    <span className="font-medium">{budgetPercentage}%</span>
+                    <span className="font-medium">{overviewData.budgetStatus.usagePercentage.toFixed(1)}%</span>
                   </div>
-                  <Progress value={budgetPercentage} className="h-3" />
+                  <Progress value={overviewData.budgetStatus.usagePercentage} className="h-3" />
                 </div>
               </CardContent>
             </Card>
@@ -1272,7 +1325,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center">
                       <CheckSquare className="w-5 h-5 mr-2" />
-                      체크리스트
+                      미완료 체크리스트
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => setActiveTab("checklist")}>
                       전체 보기
@@ -1280,30 +1333,46 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>완료</span>
-                      <span className="font-medium">
-                        {completedChecklist} / {checklistData.length}
-                      </span>
-                    </div>
-                    <Progress value={checklistProgress} className="h-3" />
-                  </div>
-                  <div className="space-y-2">
-                    {checklistData.slice(0, 3).map((item) => (
-                      <div key={item.id} className="flex items-center justify-between text-sm">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={item.completed}
-                            className="w-4 h-4 text-blue-600 rounded"
-                            readOnly
-                          />
-                          <span className={item.completed ? "line-through text-gray-500" : ""}>{item.title}</span>
+                  {overviewData.checklistProgress.incompleteItems && overviewData.checklistProgress.incompleteItems.length > 0 ? (
+                    <div className="space-y-3">
+                      {overviewData.checklistProgress.incompleteItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="w-5 h-5 rounded border-2 border-gray-300 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{item.task}</p>
+                          </div>
+                          {item.isShared && (
+                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                              공동
+                            </Badge>
+                          )}
                         </div>
+                      ))}
+                      <div className="pt-2 text-center text-xs text-gray-500">
+                        {overviewData.checklistProgress.completedItems} / {overviewData.checklistProgress.totalItems} 완료
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                      <p className="text-sm text-gray-600">
+                        {overviewData.checklistProgress.totalItems === 0
+                          ? "체크리스트가 아직 없습니다"
+                          : "모든 체크리스트를 완료했습니다!"}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setActiveTab("checklist")}
+                        className="mt-3"
+                      >
+                        체크리스트 관리
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -1322,17 +1391,24 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {todaySchedule.map((schedule, index) => (
-                    <div key={index} className="flex items-start space-x-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="w-16 text-sm font-medium text-gray-600 flex-shrink-0">{schedule.time}</div>
-                      <div className="flex-1">
-                        <p className="font-medium">{schedule.title}</p>
-                        <p className="text-sm text-gray-600">{schedule.location}</p>
+                {overviewData.todaySchedule && overviewData.todaySchedule.length > 0 ? (
+                  <div className="space-y-3">
+                    {overviewData.todaySchedule.map((schedule) => (
+                      <div key={schedule.id} className="flex items-start space-x-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-16 text-sm font-medium text-gray-600 flex-shrink-0">{schedule.time}</div>
+                        <div className="flex-1">
+                          <p className="font-medium">{schedule.title}</p>
+                          <p className="text-sm text-gray-600">{schedule.location}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>오늘 예정된 일정이 없습니다</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1420,26 +1496,59 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                  {albumData.map((photo) => (
-                    <div
-                      key={photo.id}
-                      className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                    >
-                      <img
-                        src={photo.image || "/placeholder.svg"}
-                        alt={photo.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                  <div className="aspect-square rounded-lg bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-                    <div className="text-center">
-                      <Plus className="w-8 h-8 mx-auto text-gray-400 mb-1" />
-                      <p className="text-xs text-gray-500">더보기</p>
-                    </div>
+                {overviewData.albumPreview && overviewData.albumPreview.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {overviewData.albumPreview.slice(0, 5).map((album) => (
+                      <div
+                        key={album.albumId}
+                        className="rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                        onClick={() => setActiveTab("photos")}
+                      >
+                        <div className="aspect-square relative">
+                          {album.thumbnailUrl ? (
+                            <img
+                              src={album.thumbnailUrl}
+                              alt={album.albumTitle}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                              <ImageIcon className="w-12 h-12 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                            <p className="text-white text-xs font-medium truncate">{album.albumTitle}</p>
+                            <p className="text-white/80 text-xs">{album.photoCount}장</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {overviewData.albumPreview.length > 5 && (
+                      <div
+                        className="aspect-square rounded-lg bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+                        onClick={() => setActiveTab("photos")}
+                      >
+                        <div className="text-center">
+                          <Plus className="w-8 h-8 mx-auto text-gray-400 mb-1" />
+                          <p className="text-xs text-gray-500">+{overviewData.albumPreview.length - 5}개</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>아직 앨범이 없습니다</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveTab("photos")}
+                      className="mt-2"
+                    >
+                      앨범 만들기
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1449,7 +1558,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center">
                     <Users className="w-5 h-5 mr-2" />
-                    동행자 ({mockTrip.participants.length}명)
+                    동행자 ({overviewData.members.length}명)
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setActiveTab("members")}>
                     관리하기
@@ -1457,22 +1566,31 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center space-x-4">
-                  {mockTrip.participants.map((participant) => (
-                    <div key={participant.id} className="text-center">
-                      <Avatar className="w-12 h-12 mx-auto mb-2">
-                        <AvatarImage src={participant.avatar || "/placeholder.svg"} />
-                        <AvatarFallback>{participant.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <p className="text-xs font-medium">{participant.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {participant.role === "owner" ? "방장" : participant.role === "editor" ? "편집자" : "뷰어"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                {overviewData.members && overviewData.members.length > 0 ? (
+                  <div className="flex flex-wrap gap-4">
+                    {overviewData.members.map((member) => (
+                      <div key={member.userId} className="text-center">
+                        <Avatar className="w-12 h-12 mx-auto mb-2">
+                          <AvatarImage src={member.profileImage || "/placeholder.svg"} />
+                          <AvatarFallback>{member.userName[0]}</AvatarFallback>
+                        </Avatar>
+                        <p className="text-xs font-medium">{member.userName}</p>
+                        <p className="text-xs text-gray-500">
+                          {member.role === "OWNER" ? "방장" : member.role === "EDITOR" ? "편집자" : "멤버"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>동행자가 없습니다</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
+              </>
+            ) : null}
           </TabsContent>
 
           {/* Itinerary Tab */}
@@ -2328,20 +2446,11 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
           {/* Checklist Tab */}
           <TabsContent value="checklist" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold">체크리스트</h2>
-                <p className="text-gray-600">
-                  {completedTasks}/{totalTasks} 완료 ({Math.round((completedTasks / totalTasks) * 100)}%)
-                </p>
-              </div>
-              <Button
-                className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600 shadow-md hover:shadow-lg transition-all"
-                onClick={() => setShowAddChecklist(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                항목 추가
-              </Button>
+            <div>
+              <h2 className="text-2xl font-bold">체크리스트</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                팀 전체와 개인별 준비사항을 관리하세요
+              </p>
             </div>
 
             {/* 항목 추가 Dialog */}
@@ -2358,10 +2467,12 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                     </div>
                     <div>
                       <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-orange-600 bg-clip-text text-transparent">
-                        새로운 할 일 추가
+                        {checklistType === 'shared' ? '공용 체크리스트 추가' : '개인 체크리스트 추가'}
                       </DialogTitle>
                       <DialogDescription className="text-gray-600">
-                        여행 준비를 위한 항목을 추가해보세요
+                        {checklistType === 'shared'
+                          ? '팀 전체가 함께 준비할 항목을 추가하세요'
+                          : '개인적으로 준비할 항목을 추가하세요'}
                       </DialogDescription>
                     </div>
                   </div>
@@ -2376,7 +2487,9 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                     </Label>
                     <Input
                       id="task"
-                      placeholder="예) 여권 유효기간 확인하기"
+                      placeholder={checklistType === 'shared'
+                        ? "예) 숙소 예약, 렌터카 예약"
+                        : "예) 여권 챙기기, 옷 준비하기"}
                       value={newChecklistTask}
                       onChange={(e) => setNewChecklistTask(e.target.value)}
                       onKeyPress={(e) => {
@@ -2434,19 +2547,21 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                     <p className="text-xs text-gray-500">선택하지 않으면 마지막에 추가됩니다</p>
                   </div> */}
 
-                  {/* 사용자 정보 표시 */}
-                  <div className="flex items-center space-x-3 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm">
-                    <Avatar className="w-10 h-10 border-2 border-white shadow-md">
-                      <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-semibold">
-                        {user?.name?.[0] || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">담당자</p>
-                      <p className="text-sm text-gray-600">{user?.name || '알 수 없음'}</p>
+                  {/* 사용자 정보 표시 (개인 체크리스트만) */}
+                  {checklistType === 'personal' && (
+                    <div className="flex items-center space-x-3 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm">
+                      <Avatar className="w-10 h-10 border-2 border-white shadow-md">
+                        <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                        <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
+                          {user?.name?.[0] || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">담당자</p>
+                        <p className="text-sm text-gray-600">{user?.name || '알 수 없음'}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* 힌트 */}
                   <div className="flex items-start space-x-2 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
@@ -2490,94 +2605,188 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               </DialogContent>
             </Dialog>
 
-            <Card className="bg-gradient-to-br from-blue-50 to-orange-50">
-              <CardContent className="p-6">
-                {/* 체크리스트 항목들 */}
-                <div className="space-y-3">
-                  {displayChecklist.length === 0 ? (
-                    <div className="text-center py-24 min-h-[400px] flex flex-col items-center justify-center">
-                      <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-orange-100 mb-4">
-                        <CheckCircle2 className="w-10 h-10 text-gray-400" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">아직 체크리스트가 없습니다</h3>
-                      <p className="text-sm text-gray-600 mb-6">
-                        여행 준비를 위한 할 일을 추가하고<br />체계적으로 관리해보세요!
-                      </p>
-                      <Button
-                        onClick={() => setShowAddChecklist(true)}
-                        className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        첫 번째 항목 추가하기
-                      </Button>
+            {/* 공용 체크리스트 */}
+            <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/50 to-white">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center shadow-md">
+                      <Users className="w-5 h-5 text-white" />
                     </div>
-                  ) : (
-                    displayChecklist.map((item: any, index: number) => (
+                    <div>
+                      <CardTitle className="text-lg">공동 준비사항</CardTitle>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        팀 전체가 함께 준비할 항목 • {completedSharedTasks}/{totalSharedTasks} 완료
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {totalSharedTasks > 0 && (
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {Math.round((completedSharedTasks / totalSharedTasks) * 100)}%
+                        </div>
+                      </div>
+                    )}
+                    <Button
+                      size="sm"
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                      onClick={() => {
+                        setChecklistType('shared')
+                        setShowAddChecklist(true)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      추가
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {displaySharedChecklist.length === 0 ? (
+                  <div className="text-center py-12 bg-white/50 rounded-lg border-2 border-dashed border-gray-300">
+                    <Users className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                    <p className="text-sm text-gray-600">공용 체크리스트가 없습니다</p>
+                    <p className="text-xs text-gray-500 mt-1">우측 상단 "추가" 버튼을 눌러 항목을 추가하세요</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {displaySharedChecklist.map((item: any, index: number) => (
                       <div
                         key={item.id}
-                        className={`flex items-center space-x-3 p-4 rounded-xl transition-all ${
+                        className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${
                           item.completed
-                            ? "bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200"
-                            : "bg-white border-2 border-gray-200 hover:border-blue-300 hover:shadow-md"
+                            ? "bg-green-50 border border-green-200"
+                            : "bg-white border border-gray-200 hover:border-blue-300 hover:shadow-sm"
                         }`}
                       >
-                        {/* 우선순위 번호 */}
-                        <div className="flex items-center justify-center flex-shrink-0">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                            item.completed
-                              ? "bg-green-200 text-green-700"
-                              : "bg-gradient-to-br from-blue-500 to-orange-500 text-white shadow-sm"
-                          }`}>
-                            {item.displayOrder || index + 1}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={item.completed}
-                            onChange={() => handleToggleChecklist(item.id)}
-                            className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:ring-offset-0 cursor-pointer transition-all"
-                          />
-                        </div>
+                        <input
+                          type="checkbox"
+                          checked={item.completed}
+                          onChange={() => handleToggleChecklist(item.id, true)}
+                          className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        />
                         <div className="flex-1 min-w-0">
-                          <span
-                            className={`font-medium ${
-                              item.completed ? "text-gray-500 line-through" : "text-gray-900"
-                            }`}
-                          >
+                          <span className={`text-sm font-medium ${item.completed ? "text-gray-500 line-through" : "text-gray-900"}`}>
                             {item.text}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-2 flex-shrink-0">
-                          <Avatar className="w-8 h-8 border-2 border-white shadow-sm">
-                            <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                            <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-500 text-white font-semibold">
-                              {item.assignee[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm text-gray-600 font-medium hidden sm:inline">{item.assignee}</span>
-                        </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full">
-                              <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                              <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => handleDeleteChecklist(item.id)}
-                              className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                              onClick={() => handleDeleteChecklist(item.id, true)}
+                              className="text-red-600"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
-                              삭제하기
+                              삭제
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                    ))
-                  )}
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 개인 체크리스트 */}
+            <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50/50 to-white">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-md">
+                      <CheckCircle2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">내 준비사항</CardTitle>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        개인적으로 준비할 항목 • {completedPersonalTasks}/{totalPersonalTasks} 완료
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {totalPersonalTasks > 0 && (
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-orange-600">
+                          {Math.round((completedPersonalTasks / totalPersonalTasks) * 100)}%
+                        </div>
+                      </div>
+                    )}
+                    <Button
+                      size="sm"
+                      className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                      onClick={() => {
+                        setChecklistType('personal')
+                        setShowAddChecklist(true)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      추가
+                    </Button>
+                  </div>
                 </div>
+              </CardHeader>
+              <CardContent>
+                {displayPersonalChecklist.length === 0 ? (
+                  <div className="text-center py-12 bg-white/50 rounded-lg border-2 border-dashed border-gray-300">
+                    <CheckCircle2 className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                    <p className="text-sm text-gray-600">개인 체크리스트가 없습니다</p>
+                    <p className="text-xs text-gray-500 mt-1">우측 상단 "추가" 버튼을 눌러 항목을 추가하세요</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {displayPersonalChecklist.map((item: any, index: number) => (
+                      <div
+                        key={item.id}
+                        className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${
+                          item.completed
+                            ? "bg-green-50 border border-green-200"
+                            : "bg-white border border-gray-200 hover:border-orange-300 hover:shadow-sm"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.completed}
+                          onChange={() => handleToggleChecklist(item.id, false)}
+                          className="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-2 focus:ring-orange-500 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-sm font-medium ${item.completed ? "text-gray-500 line-through" : "text-gray-900"}`}>
+                            {item.text}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-6 h-6 border">
+                            <AvatarFallback className="text-xs bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                              {item.assignee[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteChecklist(item.id, false)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                삭제
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

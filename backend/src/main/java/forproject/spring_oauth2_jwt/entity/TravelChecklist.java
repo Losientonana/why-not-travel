@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_travel_display_order",
-                        columnNames = {"trip_id", "display_order"}
+                        columnNames = {"trip_id", "display_order","isShared"}
                 )
         }
 )
@@ -26,7 +26,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class TravelChecklist {
 
     @Id
@@ -71,4 +70,9 @@ public class TravelChecklist {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // ✅ 추가: 공용 체크리스트 여부
+    @Column(name = "is_shared", nullable = false)
+    @Builder.Default
+    private Boolean isShared = false;  // false: 개인, true: 공용
 }

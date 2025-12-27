@@ -313,3 +313,88 @@ export interface ExpenseStatistics {
     amount: number
   }>
 }
+
+// ============================================
+// 여행 개요(Overview) 관련 타입
+// ============================================
+
+export interface TripOverview {
+  tripId: number
+  title: string
+  destination: string
+  startDate: string
+  endDate: string
+  description?: string
+  imageUrl?: string
+  daysUntilTrip: number | null  // D-Day (과거면 null)
+  tripDuration: number  // 여행 기간 (일수)
+  budgetStatus: BudgetStatus
+  checklistProgress: ChecklistProgress
+  todaySchedule: TodayScheduleItem[]
+  albumPreview: AlbumPreview[]
+  members: TripMember[]
+}
+
+export interface BudgetStatus {
+  totalBudget: number
+  spentAmount: number
+  remainingBudget: number
+  usagePercentage: number
+}
+
+export interface ChecklistProgress {
+  totalItems: number
+  completedItems: number
+  completionPercentage: number
+  incompleteItems: ChecklistPreviewItem[]
+}
+
+export interface ChecklistPreviewItem {
+  id: number
+  task: string
+  isShared: boolean
+}
+
+export interface TodayScheduleItem {
+  id: number
+  time: string
+  title: string
+  location: string
+}
+
+export interface AlbumPreview {
+  albumId: number
+  albumTitle: string
+  albumDate: string
+  thumbnailUrl: string | null
+  photoCount: number
+}
+
+export interface TripMember {
+  userId: number
+  userName: string
+  email: string
+  profileImage?: string
+  role: string
+}
+
+// ============================================
+// 체크리스트 관련 타입
+// ============================================
+
+export interface ChecklistItem {
+  id: number
+  task: string
+  completed: boolean
+  isShared: boolean  // true: 공용, false: 개인
+  assigneeUserId?: number
+  assigneeName?: string
+  completedAt?: string
+  displayOrder: number
+}
+
+export interface CreateChecklistRequest {
+  task: string
+  isShared: boolean
+  assigneeUserId?: number
+}

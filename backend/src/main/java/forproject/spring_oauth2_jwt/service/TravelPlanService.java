@@ -308,7 +308,7 @@ public class TravelPlanService {
     /**
      * 통계 계산(COUNT,SUM)
      */
-    private TravelStatisticsDTO calculateStatistics(Long tripId, BigDecimal estimatedBudget) {
+    private TravelStatisticsDTO calculateStatistics(Long tripId, Long estimatedBudget) {
         // COUNT 쿼리들
         int itineraryCount = itineraryRepository.countByTripId(tripId);
         int photoCount = photoRepository.countByTripId(tripId);
@@ -318,14 +318,14 @@ public class TravelPlanService {
         // SUM 쿼리
         BigDecimal totalExpenses = expenseRepository.sumAmountByTripId(tripId);
 
+        // Long으로 변환
+        long totalExpensesLong = totalExpenses != null ? totalExpenses.longValue() : 0L;
+        long estimatedBudgetLong = estimatedBudget != null ? estimatedBudget : 0L;
+
         // 예산 사용률 계산
-        double budgetUsagePercentage = 0.0;
-        if (estimatedBudget != null && estimatedBudget.compareTo(BigDecimal.ZERO) > 0) {
-            budgetUsagePercentage = totalExpenses
-                    .divide(estimatedBudget, 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100))
-                    .doubleValue();
-        }
+        double budgetUsagePercentage = estimatedBudgetLong > 0
+                ? (totalExpensesLong * 100.0 / estimatedBudgetLong)
+                : 0.0;
 
         return TravelStatisticsDTO.builder()
                 .itineraryCount(itineraryCount)
@@ -676,28 +676,85 @@ public class TravelPlanService {
     /**
      * 체크리스트 조회 (옵션 B)
      */
-    @Transactional(readOnly = true)
-    public List<ChecklistResponse> getChecklists(Long tripId) {
-        List<TravelChecklist> checklists = checklistRepository.findByTripIdOrderByDisplayOrderAsc(tripId);
-
-        // 담당자 정보 조회
-        List<Long> assigneeIds = checklists.stream()
-                .map(TravelChecklist::getAssigneeUserId)
-                .filter(id -> id != null)
-                .distinct()
-                .collect(Collectors.toList());
-
-        Map<Long, UserEntity> userMap = userRepository.findAllById(assigneeIds).stream()
-                .collect(Collectors.toMap(UserEntity::getId, user -> user));
+//    @Transactional(readOnly = true)
+//    public List<ChecklistResponse> getChecklists(Long tripId) {
+//        List<TravelChecklist> checklists = checklistRepository.findByTripIdOrderByDisplayOrderAsc(tripId);
+//
+//        // 담당자 정보 조회
+//        List<Long> assigneeIds = checklists.stream()
+//                .map(TravelChecklist::getAssigneeUserId)
+//                .filter(id -> id != null)
+//                .distinct()
+//                .collect(Collectors.toList());
+//
+//        Map<Long, UserEntity> userMap = userRepository.findAllById(assigneeIds).stream()
+//                .collect(Collectors.toMap(UserEntity::getId, user -> user));
+//
+//        return checklists.stream()
+//                .map(checklist -> {
+//                    UserEntity assignee = checklist.getAssigneeUserId() != null
+//                            ? userMap.get(checklist.getAssigneeUserId())
+//                            : null;
+//                    return ChecklistResponse.fromEntity(checklist, assignee);
+//                })
+//                .collect(Collectors.toList());
+//    }
+    /**
+     * 공용 체크리스트 조회
+     */
+    public List<ChecklistResponse> getSharedChecklists(Long tripId) {
+        List<TravelChecklist> checklists = checklistRepository
+                .findByTripIdAndIsSharedTrueOrderByDisplayOrderAsc(tripId);
 
         return checklists.stream()
-                .map(checklist -> {
-                    UserEntity assignee = checklist.getAssigneeUserId() != null
-                            ? userMap.get(checklist.getAssigneeUserId())
+                .map(c -> {
+                    UserEntity assignee = c.getAssigneeUserId() != null
+                            ? userRepository.findById(c.getAssigneeUserId()).orElse(null)
                             : null;
-                    return ChecklistResponse.fromEntity(checklist, assignee);
+                    return ChecklistResponse.fromEntity(c, assignee);
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 개인 체크리스트 조회
+     */
+    public List<ChecklistResponse> getPersonalChecklists(Long tripId, Long userId) {
+        List<TravelChecklist> checklists = checklistRepository
+                .findByTripIdAndIsSharedFalseAndAssigneeUserIdOrderByDisplayOrderAsc(tripId, userId);
+
+        UserEntity assignee = userRepository.findById(userId).orElse(null);
+
+        return checklists.stream()
+                .map(c -> ChecklistResponse.fromEntity(c, assignee))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 체크리스트 생성
+     */
+    public ChecklistResponse createChecklist(Long tripId, ChecklistCreateRequestDTO dto, Long currentUserId) {
+        // displayOrder 자동 설정
+        Integer maxOrder = checklistRepository
+                .findMaxDisplayOrderByTripIdAndIsShared(tripId, dto.getIsShared());
+        int nextOrder = (maxOrder != null ? maxOrder : 0) + 1;
+
+        TravelChecklist checklist = TravelChecklist.builder()
+                .tripId(tripId)
+                .task(dto.getTask())
+                .isShared(dto.getIsShared() != null ? dto.getIsShared() : false)
+                .assigneeUserId(dto.getIsShared() ? null : dto.getAssigneeUserId())
+                .completed(false)
+                .displayOrder(nextOrder)
+                .build();
+
+        checklist = checklistRepository.save(checklist);
+
+        UserEntity assignee = checklist.getAssigneeUserId() != null
+                ? userRepository.findById(checklist.getAssigneeUserId()).orElse(null)
+                : null;
+
+        return ChecklistResponse.fromEntity(checklist, assignee);
     }
 
    /**

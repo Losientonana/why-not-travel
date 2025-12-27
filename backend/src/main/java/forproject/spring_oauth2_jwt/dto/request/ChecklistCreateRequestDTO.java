@@ -22,4 +22,6 @@ public class ChecklistCreateRequestDTO {
     private Long assigneeUserId;
     // displayOrder는 백엔드에서 자동 할당 (제거됨)
 
+    private Boolean isShared;
+
 }

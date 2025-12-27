@@ -2,6 +2,8 @@ package forproject.spring_oauth2_jwt.repository;
 
 import forproject.spring_oauth2_jwt.entity.TravelPhoto;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -33,4 +35,10 @@ public interface TravelPhotoRepository extends JpaRepository<TravelPhoto, Long> 
      * 특정 여행의 사진 개수
      */
     int countByTripId(Long tripId);
+
+    /**
+     * 여러 앨범의 사진 조회 (앨범별 대표 사진 가져오기용)
+     */
+    @Query("SELECT p FROM TravelPhoto p WHERE p.albumId IN :albumIds ORDER BY p.albumId ASC, p.createdAt ASC")
+    List<TravelPhoto> findByAlbumIdIn(@Param("albumIds") List<Long> albumIds);
 }

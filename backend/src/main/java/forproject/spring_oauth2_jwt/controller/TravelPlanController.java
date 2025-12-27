@@ -107,16 +107,30 @@ public class TravelPlanController {
 //    }
 
     /**
-     * 옵션 B: 체크리스트 조회 (체크리스트 탭 클릭 시)
-     * GET /api/trips/{tripId}/checklists
+     * 공용 체크리스트 조회
+     * GET /api/trips/{tripId}/checklists/shared
      */
-    @GetMapping("/{tripId}/checklists")
-    public ResponseEntity<List<ChecklistResponse>> getChecklists(@PathVariable Long tripId) {
-        log.info("GET /api/trips/{}/checklists", tripId);
-
-        List<ChecklistResponse> checklists = travelPlanService.getChecklists(tripId);
-        return ResponseEntity.ok(checklists);
+    @GetMapping("/{tripId}/checklists/shared")
+    public ResponseEntity<ApiResponse<List<ChecklistResponse>>> getSharedChecklists(
+            @PathVariable Long tripId
+    ) {
+        List<ChecklistResponse> checklists = travelPlanService.getSharedChecklists(tripId);
+        return ResponseEntity.ok(ApiResponse.success(checklists));
     }
+
+    /**
+     * 개인 체크리스트 조회
+     * GET /api/trips/{tripId}/checklists/personal
+     */
+    @GetMapping("/{tripId}/checklists/personal")
+    public ResponseEntity<ApiResponse<List<ChecklistResponse>>> getPersonalChecklists(
+            @PathVariable Long tripId,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        List<ChecklistResponse> checklists = travelPlanService.getPersonalChecklists(tripId, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(checklists));
+    }
+
 
     /**
      * 옵션 B: 경비 조회 (경비 탭 클릭 시)
@@ -130,25 +144,50 @@ public class TravelPlanController {
         return ResponseEntity.ok(expenses);
     }
 
-    @PostMapping("/detail/checklists")
+//    @PostMapping("/detail/checklists")
+//    public ResponseEntity<ApiResponse<ChecklistResponse>> createChecklist(
+//            @RequestBody @Valid ChecklistCreateRequestDTO request,
+//            @AuthenticationPrincipal UserPrincipal user
+//            ){
+//        ChecklistResponse response = travelPlanService.createChecklist(request, user.getId());
+//        return ResponseEntity.ok(ApiResponse.success(response));
+//    }
+    /**
+     * 체크리스트 생성 (공용 또는 개인)
+     * POST /api/trips/{tripId}/checklists
+     */
+    @PostMapping("/{tripId}/checklists")
     public ResponseEntity<ApiResponse<ChecklistResponse>> createChecklist(
-            @RequestBody @Valid ChecklistCreateRequestDTO request,
+            @PathVariable Long tripId,
+            @RequestBody @Valid ChecklistCreateRequestDTO dto,
             @AuthenticationPrincipal UserPrincipal user
-            ){
-        ChecklistResponse response = travelPlanService.createChecklist(request, user.getId());
+    ) {
+        ChecklistResponse response = travelPlanService.createChecklist(tripId, dto, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+    /**
+     * 체크리스트 토글 (완료/미완료)
+     * PATCH /api/trips/{id}/checklists
+     */
+    @PatchMapping("/{id}/checklists")
+    public ResponseEntity<ApiResponse<UpdateChecklistResponse>> updateChecklist(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        UpdateChecklistResponse response = travelPlanService.toggleChecklist(id, user.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @PatchMapping("{id}/checklists")
-    public ResponseEntity<ApiResponse<UpdateChecklistResponse>> updateChecklist(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal user) {
-        UpdateChecklistResponse response = travelPlanService.toggleChecklist(id,user.getId());
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-
-    @DeleteMapping("{id}/checklists")
-    public ResponseEntity<ApiResponse<DeleteChecklistResponse>> deleteChecklist(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal user){
-        DeleteChecklistResponse response = travelPlanService.toggleDelete(id,user.getId());
+    /**
+     * 체크리스트 삭제
+     * DELETE /api/trips/{id}/checklists
+     */
+    @DeleteMapping("/{id}/checklists")
+    public ResponseEntity<ApiResponse<DeleteChecklistResponse>> deleteChecklist(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        DeleteChecklistResponse response = travelPlanService.toggleDelete(id, user.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

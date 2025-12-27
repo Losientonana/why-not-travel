@@ -252,10 +252,29 @@ export const getPhotos = async (tripId: number) => {
   return response.data;
 };
 
-// 여행 체크리스트 조회
+// ============================================
+// 체크리스트 API
+// ============================================
+
+// 공용 체크리스트 조회
+export const getSharedChecklists = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/checklists/shared`);
+  return response.data.data;
+};
+
+// 개인 체크리스트 조회
+export const getPersonalChecklists = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/checklists/personal`);
+  return response.data.data;
+};
+
+// 전체 체크리스트 조회 (하위 호환성)
 export const getChecklists = async (tripId: number) => {
-  const response = await api.get(`/api/trips/${tripId}/checklists`);
-  return response.data;
+  const [shared, personal] = await Promise.all([
+    getSharedChecklists(tripId),
+    getPersonalChecklists(tripId)
+  ]);
+  return [...shared, ...personal];
 };
 
 // 여행 경비 조회
@@ -264,15 +283,15 @@ export const getExpenses = async (tripId: number) => {
   return response.data;
 };
 
-// 체크리스트 항목 추가 (displayOrder는 백엔드에서 자동 할당)
-export const createChecklist = async (tripId: number, task: string, assigneeUserId?: number) => {
-  const response = await api.post('/api/trips/detail/checklists', {
-    tripId,
+// 체크리스트 항목 추가
+export const createChecklist = async (tripId: number, task: string, isShared: boolean, assigneeUserId?: number) => {
+  const response = await api.post(`/api/trips/${tripId}/checklists`, {
+    tripId,  // DTO에서 필수
     task,
-    assigneeUserId,
-    // displayOrder는 백엔드에서 자동으로 마지막 순서 + 1로 설정됨
+    isShared,
+    assigneeUserId: isShared ? undefined : assigneeUserId,
   });
-  return response.data.data; // ApiResponse의 data 필드
+  return response.data.data;
 };
 
 // 체크리스트 항목 체크 토글 (완료/미완료)
@@ -590,5 +609,11 @@ export const getSettlements = async (tripId: number, status?: 'PENDING' | 'APPRO
 // 지출 통계 조회
 export const getExpenseStatistics = async (tripId: number) => {
   const response = await api.get(`/api/trips/${tripId}/statistics/expenses`);
+  return response.data.data;
+};
+
+// 여행 개요 조회
+export const getTripOverview = async (tripId: number) => {
+  const response = await api.get(`/api/trips/${tripId}/overview`);
   return response.data.data;
 };
