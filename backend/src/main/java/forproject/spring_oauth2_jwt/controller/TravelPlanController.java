@@ -24,6 +24,7 @@ import java.util.List;
 @RequestMapping("/api/trips")
 public class TravelPlanController {
     private final TravelPlanService travelPlanService;
+    private final forproject.spring_oauth2_jwt.service.TravelInvitationService travelInvitationService;
 
     // 일정 생성 (로그인 사용자만)
     @PostMapping
@@ -93,19 +94,6 @@ public class TravelPlanController {
         return ResponseEntity.ok(itineraries);
     }
 
-
-//    /**
-//     * 옵션 B: 사진 조회 (사진 탭 클릭 시)
-//     * GET /api/trips/{tripId}/photos
-//     */
-//    @GetMapping("/{tripId}/photos")
-//    public ResponseEntity<List<PhotoResponse>> getPhotos(@PathVariable Long tripId) {
-//        log.info("GET /api/trips/{}/photos", tripId);
-//
-//        List<PhotoResponse> photos = travelPlanService.getPhotos(tripId);
-//        return ResponseEntity.ok(photos);
-//    }
-
     /**
      * 공용 체크리스트 조회
      * GET /api/trips/{tripId}/checklists/shared
@@ -144,14 +132,6 @@ public class TravelPlanController {
         return ResponseEntity.ok(expenses);
     }
 
-//    @PostMapping("/detail/checklists")
-//    public ResponseEntity<ApiResponse<ChecklistResponse>> createChecklist(
-//            @RequestBody @Valid ChecklistCreateRequestDTO request,
-//            @AuthenticationPrincipal UserPrincipal user
-//            ){
-//        ChecklistResponse response = travelPlanService.createChecklist(request, user.getId());
-//        return ResponseEntity.ok(ApiResponse.success(response));
-//    }
     /**
      * 체크리스트 생성 (공용 또는 개인)
      * POST /api/trips/{tripId}/checklists
@@ -546,6 +526,38 @@ public class TravelPlanController {
         }
     }
 
+    /**
+     * 여행 멤버 초대
+     * POST /api/trips/{tripId}/invitations
+     */
+    @PostMapping("/{tripId}/invitations")
+    public ResponseEntity<ApiResponse<String>> inviteMembers(
+            @PathVariable Long tripId,
+            @RequestBody java.util.Map<String, List<String>> request,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        log.info("여행 초대 요청 - tripId: {}, userId: {}", tripId, user.getId());
+
+        List<String> invitedEmails = request.get("invitedEmails");
+
+        if (invitedEmails == null || invitedEmails.isEmpty()) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error("VALIDATION_ERROR", "초대할 이메일을 입력해주세요.")
+            );
+        }
+
+        try {
+            travelInvitationService.createInvitations(tripId, user.getId(), invitedEmails);
+            return ResponseEntity.ok(
+                    ApiResponse.success("초대가 성공적으로 전송되었습니다.")
+            );
+        } catch (Exception e) {
+            log.error("초대 전송 중 오류: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(
+                    ApiResponse.error("INTERNAL_ERROR", "초대 전송 중 오류가 발생했습니다.")
+            );
+        }
+    }
 
 }
 

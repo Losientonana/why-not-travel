@@ -24,40 +24,6 @@ public class SseController {
     private final SseService sseService;
     private final NotificationService notificationService;
 
-//    /**
-//     * SSE 연결 수락 엔드포인트
-//     * GET /api/notification/stream
-//     */
-//    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-//    public SseEmitter subscribe(
-//            @AuthenticationPrincipal UserPrincipal userPrincipal,
-//            @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId
-//            ) {
-//        Long userId = userPrincipal.getId();
-//        log.info("SSE 연결 요청 - userId: {}", userId);
-//
-//        SseEmitter emitter = sseService.createEmitter(userId);
-//
-//        if (lastEventId != null) {
-//            log.info("재연결 감지: Last-Event-ID={}", lastEventId);
-//            // TODO: lastEventId 이후 알림 재전송 로직
-//        }
-//
-//        notificationService.getUnreadNotifications(userId).forEach(notification -> {
-//            sseService.sendWithId(
-//                    //userId
-//                    userId,
-//                    //eventId
-//                    "notif-" + notification.getId(),
-//                    //eventName
-//                    notification.getType().name().toLowerCase(),
-//                    //Data
-//                    notification
-//            );
-//        });
-//
-//        return emitter;
-//    }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(

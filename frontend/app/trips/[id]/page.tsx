@@ -32,6 +32,8 @@ import {
   CalendarPlus,
   Receipt,
   CheckSquare,
+  LayoutDashboard,
+  Hotel,
   // GripVertical, // TODO: 드래그 앤 드롭 기능용 - 나중에 구현
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -48,6 +50,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreateAlbumDialog } from "@/components/trip/create-album-dialog"
 import { PhotoUploadDialog } from "@/components/trip/photo-upload-dialog"
 import { AlbumCard } from "@/components/trip/album-card"
+import { InviteMemberDialog } from "@/components/trip/invite-member-dialog"
 import ExpenseTabs from "@/components/expenses/ExpenseTabs"
 // TODO: 드래그 앤 드롭 기능 - 나중에 구현
 // import {
@@ -1192,13 +1195,101 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
           </Card>
         </div>
 
-        {/* Tabs */}
+        {/* Responsive Navigation */}
+        <div className="flex gap-6">
+          {/* Desktop Sidebar Navigation */}
+          <aside className="hidden lg:block w-64 flex-shrink-0">
+            <nav className="sticky top-4 space-y-1 bg-white rounded-lg border p-2">
+              <button
+                onClick={() => setActiveTab("overview")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeTab === "overview"
+                    ? "bg-blue-50 text-blue-600 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                <span>개요</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("itinerary")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeTab === "itinerary"
+                    ? "bg-blue-50 text-blue-600 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <Calendar className="w-5 h-5" />
+                <span>일정</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("photos")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeTab === "photos"
+                    ? "bg-blue-50 text-blue-600 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <Camera className="w-5 h-5" />
+                <span>사진</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("checklist")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeTab === "checklist"
+                    ? "bg-blue-50 text-blue-600 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <CheckSquare className="w-5 h-5" />
+                <span>체크리스트</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("reservations")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeTab === "reservations"
+                    ? "bg-blue-50 text-blue-600 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <Hotel className="w-5 h-5" />
+                <span>예약</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("expenses")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeTab === "expenses"
+                    ? "bg-blue-50 text-blue-600 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <Receipt className="w-5 h-5" />
+                <span>경비</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("members")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeTab === "members"
+                    ? "bg-blue-50 text-blue-600 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <Users className="w-5 h-5" />
+                <span>멤버</span>
+              </button>
+            </nav>
+          </aside>
+
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          {/* Hide default TabsList */}
+          <TabsList className="hidden">
             <TabsTrigger value="overview">개요</TabsTrigger>
             <TabsTrigger value="itinerary">일정</TabsTrigger>
             <TabsTrigger value="photos">사진</TabsTrigger>
             <TabsTrigger value="checklist">체크리스트</TabsTrigger>
+            <TabsTrigger value="reservations">예약</TabsTrigger>
             <TabsTrigger value="expenses">경비</TabsTrigger>
             <TabsTrigger value="members">멤버</TabsTrigger>
           </TabsList>
@@ -1215,7 +1306,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
             ) : overviewData ? (
               <>
             {/* D-Day Counter & Trip Info */}
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 gap-6">
               {/* D-Day Card */}
               <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
                 <CardContent className="p-6">
@@ -1243,19 +1334,9 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                     <Badge variant="outline">여행 기간</Badge>
                   </div>
                   <p className="text-2xl font-bold mb-1">{overviewData.tripDuration - 1}박 {overviewData.tripDuration}일</p>
-                  <p className="text-sm text-gray-600">{overviewData.description || overviewData.destination}</p>
-                </CardContent>
-              </Card>
-
-              {/* Trip Progress */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <TrendingUp className="w-5 h-5 text-green-600" />
-                    <Badge variant="outline">준비 진행률</Badge>
-                  </div>
-                  <p className="text-2xl font-bold mb-2">{overviewData.checklistProgress.completionPercentage}%</p>
-                  <Progress value={overviewData.checklistProgress.completionPercentage} className="h-2" />
+                  <p className="text-sm text-gray-600">
+                    {new Date(overviewData.startDate).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })} - {new Date(overviewData.endDate).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })}
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -1333,8 +1414,19 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">진행률</span>
+                      <span className="font-semibold text-blue-600">
+                        {overviewData.checklistProgress.completedItems} / {overviewData.checklistProgress.totalItems} 완료 ({overviewData.checklistProgress.completionPercentage}%)
+                      </span>
+                    </div>
+                    <Progress value={overviewData.checklistProgress.completionPercentage} className="h-2.5" />
+                  </div>
+
                   {overviewData.checklistProgress.incompleteItems && overviewData.checklistProgress.incompleteItems.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">남은 항목 {overviewData.checklistProgress.totalItems - overviewData.checklistProgress.completedItems}개</p>
                       {overviewData.checklistProgress.incompleteItems.map((item) => (
                         <div
                           key={item.id}
@@ -1351,14 +1443,11 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                           )}
                         </div>
                       ))}
-                      <div className="pt-2 text-center text-xs text-gray-500">
-                        {overviewData.checklistProgress.completedItems} / {overviewData.checklistProgress.totalItems} 완료
-                      </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8">
+                    <div className="text-center py-6">
                       <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 mb-2">
                         {overviewData.checklistProgress.totalItems === 0
                           ? "체크리스트가 아직 없습니다"
                           : "모든 체크리스트를 완료했습니다!"}
@@ -1367,7 +1456,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                         variant="outline"
                         size="sm"
                         onClick={() => setActiveTab("checklist")}
-                        className="mt-3"
+                        className="mt-2"
                       >
                         체크리스트 관리
                       </Button>
@@ -1412,75 +1501,48 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>빠른 작업</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button
-                      variant="outline"
-                      className="h-20 flex flex-col space-y-2 bg-transparent"
-                      onClick={() => setActiveTab("itinerary")}
-                    >
-                      <CalendarPlus className="w-6 h-6" />
-                      <span className="text-sm">일정 추가</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-20 flex flex-col space-y-2 bg-transparent"
-                      onClick={() => setActiveTab("photos")}
-                    >
-                      <Camera className="w-6 h-6" />
-                      <span className="text-sm">사진 업로드</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-20 flex flex-col space-y-2 bg-transparent"
-                      onClick={() => setActiveTab("members")}
-                    >
-                      <UserPlus className="w-6 h-6" />
-                      <span className="text-sm">멤버 초대</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-20 flex flex-col space-y-2 bg-transparent"
-                      onClick={() => setActiveTab("expenses")}
-                    >
-                      <Receipt className="w-6 h-6" />
-                      <span className="text-sm">지출 추가</span>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recent Activities */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">최근 활동</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentActivities.map((activity) => (
-                      <div key={activity.id} className="flex items-start space-x-3">
-                        <Avatar className="w-8 h-8 flex-shrink-0">
-                          <AvatarImage src={activity.avatar || "/placeholder.svg"} />
-                          <AvatarFallback>{activity.user[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm">
-                            <span className="font-medium">{activity.user}</span>님이 {activity.action}
-                          </p>
-                          <p className="text-xs text-gray-500">{activity.time}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>빠른 작업</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Button
+                    variant="outline"
+                    className="h-20 flex flex-col space-y-2 bg-transparent"
+                    onClick={() => setActiveTab("itinerary")}
+                  >
+                    <CalendarPlus className="w-6 h-6" />
+                    <span className="text-sm">일정 추가</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-20 flex flex-col space-y-2 bg-transparent"
+                    onClick={() => setActiveTab("photos")}
+                  >
+                    <Camera className="w-6 h-6" />
+                    <span className="text-sm">사진 업로드</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-20 flex flex-col space-y-2 bg-transparent"
+                    onClick={() => setActiveTab("members")}
+                  >
+                    <UserPlus className="w-6 h-6" />
+                    <span className="text-sm">멤버 초대</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-20 flex flex-col space-y-2 bg-transparent"
+                    onClick={() => setActiveTab("expenses")}
+                  >
+                    <Receipt className="w-6 h-6" />
+                    <span className="text-sm">지출 추가</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Photo Gallery Preview */}
             <Card>
@@ -2800,10 +2862,10 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
           <TabsContent value="members" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">동행자 관리</h2>
-              <Button className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600">
-                <Users className="w-4 h-4 mr-2" />
-                멤버 초대
-              </Button>
+              <InviteMemberDialog
+                tripId={Number(params.id)}
+                tripTitle={displayTrip.title || '여행'}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2867,7 +2929,102 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Reservations Tab */}
+          <TabsContent value="reservations" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">예약 관리</h2>
+              <Button className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600">
+                <Plus className="w-4 h-4 mr-2" />
+                예약 추가
+              </Button>
+            </div>
+
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Hotel className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-semibold mb-2">예약 관리 기능</h3>
+                <p className="text-gray-600 mb-4">
+                  숙소, 교통편, 관광지 예약을 한 곳에서 관리하세요.
+                </p>
+                <p className="text-sm text-gray-500">
+                  이 기능은 곧 추가될 예정입니다.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+          </div>
+        </div>
+
+        {/* Mobile Bottom Navigation - Horizontal Scroll */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50 safe-area-inset-bottom">
+          <div className="flex overflow-x-auto scrollbar-hide">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[80px] h-16 flex-shrink-0 ${
+                activeTab === "overview" ? "text-blue-600" : "text-gray-600"
+              }`}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              <span className="text-xs">개요</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("itinerary")}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[80px] h-16 flex-shrink-0 ${
+                activeTab === "itinerary" ? "text-blue-600" : "text-gray-600"
+              }`}
+            >
+              <Calendar className="w-5 h-5" />
+              <span className="text-xs">일정</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("photos")}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[80px] h-16 flex-shrink-0 ${
+                activeTab === "photos" ? "text-blue-600" : "text-gray-600"
+              }`}
+            >
+              <Camera className="w-5 h-5" />
+              <span className="text-xs">사진</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("checklist")}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[80px] h-16 flex-shrink-0 ${
+                activeTab === "checklist" ? "text-blue-600" : "text-gray-600"
+              }`}
+            >
+              <CheckSquare className="w-5 h-5" />
+              <span className="text-xs">체크리스트</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("reservations")}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[80px] h-16 flex-shrink-0 ${
+                activeTab === "reservations" ? "text-blue-600" : "text-gray-600"
+              }`}
+            >
+              <Hotel className="w-5 h-5" />
+              <span className="text-xs">예약</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("expenses")}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[80px] h-16 flex-shrink-0 ${
+                activeTab === "expenses" ? "text-blue-600" : "text-gray-600"
+              }`}
+            >
+              <Receipt className="w-5 h-5" />
+              <span className="text-xs">경비</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("members")}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[80px] h-16 flex-shrink-0 ${
+                activeTab === "members" ? "text-blue-600" : "text-gray-600"
+              }`}
+            >
+              <Users className="w-5 h-5" />
+              <span className="text-xs">멤버</span>
+            </button>
+          </div>
+        </nav>
       </div>
     </div>
   )

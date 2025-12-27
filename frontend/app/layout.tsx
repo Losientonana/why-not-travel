@@ -8,13 +8,28 @@ import AuthGuard from "@/components/auth/auth-guard"
 import { AuthProvider } from "@/contexts/auth-context"
 import { NotificationProvider } from "@/contexts/notification-context"
 import { LogoutRedirectHandler } from "@/components/auth/logout-redirect-handler"
+import { PWARegister } from "@/components/pwa-register"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "TravelMate - 함께 만드는 여행 이야기",
   description: "친구들과 함께 여행을 계획하고, 추억을 기록하고, 공유하세요.",
-    generator: 'v0.app'
+  generator: 'v0.app',
+  manifest: '/manifest.json',
+  themeColor: '#3b82f6',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'TravelMate',
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: 'cover',
+  },
 }
 
 export default function RootLayout({
@@ -25,6 +40,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full">
       <body className={`${inter.className} flex flex-col min-h-screen`}>
+        <PWARegister />
         <AuthProvider>
           <NotificationProvider>
             <LogoutRedirectHandler />

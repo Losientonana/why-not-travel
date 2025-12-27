@@ -87,11 +87,11 @@ public class TravelOverviewService {
     }
 
     /**
-     * 체크리스트 진행률 계산
+     * 체크리스트 진행률 계산 (공용 체크리스트 기준)
      */
     private TravelOverviewResponse.ChecklistProgress calculateChecklistProgress(Long tripId){
         long totalItems = travelChecklistRepository.countByTripIdAndIsSharedTrue(tripId);
-        long completedItems = travelChecklistRepository.countCompletedByTripId(tripId);
+        long completedItems = travelChecklistRepository.countCompletedSharedByTripId(tripId);
 
         double completionPercentage = totalItems > 0
                 ? (completedItems * 100.0 / totalItems)
