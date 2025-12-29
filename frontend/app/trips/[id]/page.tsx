@@ -48,6 +48,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CreateAlbumDialog } from "@/components/trip/create-album-dialog"
+import ReservationTabs from "@/components/reservations/ReservationTabs"
 import { PhotoUploadDialog } from "@/components/trip/photo-upload-dialog"
 import { AlbumCard } from "@/components/trip/album-card"
 import { InviteMemberDialog } from "@/components/trip/invite-member-dialog"
@@ -2932,26 +2933,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
           {/* Reservations Tab */}
           <TabsContent value="reservations" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">예약 관리</h2>
-              <Button className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600">
-                <Plus className="w-4 h-4 mr-2" />
-                예약 추가
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Hotel className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-semibold mb-2">예약 관리 기능</h3>
-                <p className="text-gray-600 mb-4">
-                  숙소, 교통편, 관광지 예약을 한 곳에서 관리하세요.
-                </p>
-                <p className="text-sm text-gray-500">
-                  이 기능은 곧 추가될 예정입니다.
-                </p>
-              </CardContent>
-            </Card>
+            <ReservationTabs />
           </TabsContent>
         </Tabs>
           </div>

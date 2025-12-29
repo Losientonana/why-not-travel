@@ -398,3 +398,72 @@ export interface CreateChecklistRequest {
   isShared: boolean
   assigneeUserId?: number
 }
+
+// ============================================
+// 예약(Reservation) 관련 타입
+// ============================================
+
+export type ReservationType = "flight" | "accommodation" | "attraction" | "transport" | "restaurant" | "activity"
+
+export type ReservationStatus = "confirmed" | "pending" | "cancelled"
+
+export interface Location {
+  address: string
+  latitude?: number
+  longitude?: number
+  placeId?: string // For Google Maps API integration
+}
+
+export interface Reservation {
+  id: number
+  tripId: number
+  type: ReservationType
+  title: string
+  description?: string
+  status: ReservationStatus
+  startDate: string
+  endDate?: string
+  startTime?: string
+  endTime?: string
+  location?: Location
+  price?: number
+  currency?: string
+  confirmationNumber?: string
+  bookingPlatform?: string
+  bookingUrl?: string
+  notes?: string
+  attachments?: string[]
+  createdBy: {
+    userId: number
+    userName: string
+  }
+  createdAt: string
+  updatedAt: string
+  // For flights
+  flightNumber?: string
+  airline?: string
+  departureAirport?: string
+  arrivalAirport?: string
+  // For accommodations
+  checkInTime?: string
+  checkOutTime?: string
+  roomType?: string
+  guestCount?: number
+  // For restaurants
+  reservationTime?: string
+  partySize?: number
+  // For transport
+  transportType?: "bus" | "train" | "subway" | "taxi" | "rental"
+  pickupLocation?: Location
+  dropoffLocation?: Location
+}
+
+export interface ReservationSummary {
+  totalReservations: number
+  byType: {
+    [key in ReservationType]: number
+  }
+  upcoming: number
+  confirmed: number
+  pending: number
+}
