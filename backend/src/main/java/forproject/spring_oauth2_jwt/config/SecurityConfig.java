@@ -11,6 +11,7 @@ import forproject.spring_oauth2_jwt.service.CustomLogoutFilter;
 import forproject.spring_oauth2_jwt.service.CustomOAuth2UserService;
 import forproject.spring_oauth2_jwt.service.RefreshTokenService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -43,6 +44,9 @@ public class SecurityConfig {
     private final JWTUtil jwtUtil;
     //Redis 사용
     private final RefreshTokenService refreshTokenService;
+
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
 
     // 인증 매니저 빈을 직접 등록해서 필터에서 사용 가능하게 함
@@ -79,7 +83,7 @@ public class SecurityConfig {
                         CorsConfiguration configuration = new CorsConfiguration();
 
                         // 해당 경로만 허용
-                        configuration.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
+                        configuration.setAllowedOrigins(Collections.singletonList(frontendUrl));
                         // GET POST PUT DELETE 모두 허용
                         configuration.setAllowedMethods(Collections.singletonList("*"));
                         // 클라이언트로부터 쿠키나 인증 정보를 포함한 요청을 허용 -> true 를 해야 JWT 토큰을 담은 쿠키가 백엔드로 전송 가능
@@ -129,8 +133,7 @@ public class SecurityConfig {
                                 "/api/auth/send-verification-code",
                                 "/api/auth/verify-code",
                                 "/api/auth/check-email",
-                                "/api/invitations/token/**",
-                                "**"
+                                "/api/invitations/token/**"
                         ).permitAll()
                         .anyRequest().authenticated());
 

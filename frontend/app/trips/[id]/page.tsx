@@ -264,7 +264,7 @@ const mockTrip = {
 }
 
 const statusConfig = {
-  planning: { label: "계획중", color: "bg-yellow-100 text-yellow-800" },
+  planning: { label: "계획중", color: "bg-yellow-500 text-white" },
   upcoming: { label: "예정", color: "bg-blue-100 text-blue-800" },
   ongoing: { label: "여행중", color: "bg-green-100 text-green-800" },
   completed: { label: "완료", color: "bg-gray-100 text-gray-800" },
@@ -1166,36 +1166,6 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{displayItinerary.length}</div>
-              <div className="text-sm text-gray-600">일정</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{totalPhotoCount}</div>
-              <div className="text-sm text-gray-600">사진</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {completedSharedTasks + completedPersonalTasks}/{totalSharedTasks + totalPersonalTasks}
-              </div>
-              <div className="text-sm text-gray-600">체크리스트</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">{Math.round(budgetProgress)}%</div>
-              <div className="text-sm text-gray-600">예산 사용</div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Responsive Navigation */}
         <div className="flex gap-6">
           {/* Desktop Sidebar Navigation */}

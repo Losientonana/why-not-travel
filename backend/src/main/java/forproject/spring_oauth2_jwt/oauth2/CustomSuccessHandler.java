@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -21,6 +22,21 @@ import java.util.Iterator;
 public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
     private final JWTUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
+
+    @Value("${frontend.url}")
+    private String frontendUrl;
+
+    @Value("${jwt.access-token.expiration}")
+    private Long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token.expiration}")
+    private Long refreshTokenExpiration;
+
+    @Value("${jwt.refresh-cookie.max-age}")
+    private Integer refreshCookieMaxAge;
+
+    @Value("${cookie.secure}")
+    private boolean cookieSecure;
 
     public CustomSuccessHandler(JWTUtil jwtUtil, RefreshTokenService refreshTokenService) {
         this.jwtUtil = jwtUtil;
@@ -41,19 +57,19 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         GrantedAuthority auth = iterator.next();
         String role = auth.getAuthority();
 
-        // email을 사용하여 JWT를 생성합니다. (실무 표준: Access 15분, Refresh 7일)
-        String access = jwtUtil.createJwt("access", email, role, 900000L);      // 15분
-        String refresh = jwtUtil.createJwt("refresh", email, role, 604800000L); // 7일
+        // email을 사용하여 JWT를 생성합니다.
+        String access = jwtUtil.createJwt("access", email, role, accessTokenExpiration);      // 15분
+        String refresh = jwtUtil.createJwt("refresh", email, role, refreshTokenExpiration); // 7일
 
         // Redis에 Refresh 토큰을 email을 key로 하여 저장합니다.
-        refreshTokenService.save(email, refresh, 604_800_000L); // 7일
+        refreshTokenService.save(email, refresh, refreshTokenExpiration); // 7일
 
         //응답 설정
         response.setHeader("access", access);
         response.addCookie(createCookie("refresh", refresh));
         response.setStatus(HttpStatus.OK.value());
 
-        response.sendRedirect("http://localhost:3000/oauth2/redirect");
+        response.sendRedirect(frontendUrl + "/oauth2/redirect");
     }
 
     private Cookie createCookie(String key, String value) {
@@ -62,6 +78,7 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         //cookie.setSecure(true);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
+        cookie.setSecure(cookieSecure);
 
         return cookie;
     }
