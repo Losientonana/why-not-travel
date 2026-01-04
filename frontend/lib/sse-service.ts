@@ -34,7 +34,7 @@ class SSEService {
     this.isConnecting = true;
     this.abortController = new AbortController();
 
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const baseURL = process.env.NEXT_PUBLIC_API_URL
     const url = `${baseURL}/api/notifications/stream`;
 
     console.log('🔌 [SSE] 연결 시작...', url);

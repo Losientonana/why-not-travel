@@ -82,8 +82,9 @@ public class SecurityConfig {
 
                         CorsConfiguration configuration = new CorsConfiguration();
 
-                        // 해당 경로만 허용
-                        configuration.setAllowedOrigins(Collections.singletonList(frontendUrl));
+                        // 여러 프론트엔드 도메인 허용 (로컬, Vercel 등)
+                        // 환경변수에서 쉼표로 구분된 URL들을 배열로 변환
+                        configuration.setAllowedOrigins(Arrays.asList(frontendUrl.split(",")));
                         // GET POST PUT DELETE 모두 허용
                         configuration.setAllowedMethods(Collections.singletonList("*"));
                         // 클라이언트로부터 쿠키나 인증 정보를 포함한 요청을 허용 -> true 를 해야 JWT 토큰을 담은 쿠키가 백엔드로 전송 가능
