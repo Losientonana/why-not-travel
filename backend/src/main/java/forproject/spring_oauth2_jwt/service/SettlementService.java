@@ -11,6 +11,8 @@ import forproject.spring_oauth2_jwt.entity.Settlement;
 import forproject.spring_oauth2_jwt.entity.UserEntity;
 import forproject.spring_oauth2_jwt.enums.NotificationType;
 import forproject.spring_oauth2_jwt.enums.SettlementStatus;
+import forproject.spring_oauth2_jwt.exception.ForbiddenException;
+import forproject.spring_oauth2_jwt.exception.ResourceNotFoundException;
 import forproject.spring_oauth2_jwt.repository.ExpenseParticipantRepository;
 import forproject.spring_oauth2_jwt.repository.SettlementRepository;
 import forproject.spring_oauth2_jwt.repository.UserRepository;
@@ -301,15 +303,29 @@ public class SettlementService {
         log.info("정산 승인 - tripId: {}, settlementId: {}, userId: {}", tripId, settlementId, userId);
 
         Settlement settlement = settlementRepository.findByIdAndTripId(settlementId, tripId)
-                .orElseThrow(() -> new IllegalArgumentException("정산 내역을 찾을 수 없습니다"));
+                .orElseThrow(() -> {
+                    log.warn("정산 승인 실패 - 정산 없음: settlementId={}, tripId={}", settlementId, tripId);
+                    return new ResourceNotFoundException(
+                            "요청한 정산 내역을 찾을 수 없습니다",
+                            String.format("Settlement not found: settlementId=%d, tripId=%d", settlementId, tripId)
+                    );
+                });
 
         // 권한 확인 (채권자만)
         if (!settlement.getToUserId().equals(userId)) {
-            throw new IllegalArgumentException("채권자만 정산을 승인할 수 있습니다");
+            log.warn("정산 승인 실패 - 권한 없음: settlementId={}, creditorId={}, requesterId={}",
+                    settlementId, settlement.getToUserId(), userId);
+            throw new ForbiddenException(
+                    "채권자만 정산을 승인할 수 있습니다",
+                    String.format("Not a creditor: settlementId=%d, creditorId=%d, requesterId=%d",
+                            settlementId, settlement.getToUserId(), userId)
+            );
         }
 
         // 상태 확인
         if (settlement.getStatus() != SettlementStatus.PENDING) {
+            log.warn("정산 승인 실패 - 상태 불일치: settlementId={}, currentStatus={}",
+                    settlementId, settlement.getStatus());
             throw new IllegalStateException("대기 중인 정산만 승인할 수 있습니다");
         }
 

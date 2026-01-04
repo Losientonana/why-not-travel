@@ -133,7 +133,9 @@ public class SecurityConfig {
                                 "/api/auth/send-verification-code",
                                 "/api/auth/verify-code",
                                 "/api/auth/check-email",
-                                "/api/invitations/token/**"
+                                "/api/invitations/token/**",
+                                "/hc",
+                                "/env"
                         ).permitAll()
                         .anyRequest().authenticated());
 

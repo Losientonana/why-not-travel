@@ -40,7 +40,8 @@ public class SharedFundService {
      * @param tripId
      * @return
      */
-    private SharedFund createSharedFund(Long tripId) {
+    @RequiresTripParticipant
+    private SharedFund createSharedFund(Long tripId,Long userId) {
         if (tripId == null) {
             throw new IllegalArgumentException("여행 ID는 필수입니다.");
         }
@@ -60,7 +61,7 @@ public class SharedFundService {
         log.info("공동 경비 조회 - tripId: {}", tripId);
 
         // 권한 체크는 Aspect가 자동으로 처리!
-        SharedFund sharedFund = sharedFundRepository.findByTripId(tripId).orElseGet(() -> createSharedFund(tripId));
+        SharedFund sharedFund = sharedFundRepository.findByTripId(tripId).orElseGet(() -> createSharedFund(tripId,userId));
         return SharedFundResponse.fromEntity(sharedFund);
     }
 
@@ -71,7 +72,7 @@ public class SharedFundService {
     @RequiresTripParticipant
     public List<SharedFundTradeResponse> getTradeList(Long tripId, Long userId) {
         SharedFund sharedFund = sharedFundRepository.findByTripId(tripId)
-                .orElseGet(()-> createSharedFund(tripId));
+                .orElseGet(()-> createSharedFund(tripId,userId));
 
         List<SharedFundTrade> tradeList = sharedFundTradeRepository
                 .findBySharedFundIdOrderByCreatedAtDesc(sharedFund.getId());
@@ -132,7 +133,7 @@ public class SharedFundService {
         Long totalAmount = request.getAmountPerPerson() * participantCount;
 
         // 2. 공동 경비 계좌 조회 (비관적 락)
-        SharedFund sharedFund = sharedFundRepository.findByTripIdWithLock(tripId).orElseGet(() -> createSharedFund(tripId));
+        SharedFund sharedFund = sharedFundRepository.findByTripIdWithLock(tripId).orElseGet(() -> createSharedFund(tripId,userId));
 
         Long balanceAfter = sharedFund.getCurrentBalance() + totalAmount;
         sharedFund.setCurrentBalance(balanceAfter);
@@ -178,7 +179,7 @@ public class SharedFundService {
         }
 
         // 2. 공동 경비 계좌 조회 (비관적 락)
-        SharedFund sharedFund = sharedFundRepository.findByTripIdWithLock(tripId).orElseGet(() -> createSharedFund(tripId));
+        SharedFund sharedFund = sharedFundRepository.findByTripIdWithLock(tripId).orElseGet(() -> createSharedFund(tripId,userId));
 
         // 3. 잔액 부족 체크
         if (sharedFund.getCurrentBalance() < request.getAmount()) {

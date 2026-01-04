@@ -2,12 +2,15 @@
 # 환경 변수 파일 (🚨 절대 커밋 금지!)
 # ========================================
 .env
-.env.local
+.env.blue
+.env.green
 .env.*.local
 backend/.env
 frontend/.env
 **/.env
 !.env.example
+.env.example
+.docker-compose.yml
 
 # ========================================
 # macOS
@@ -65,11 +68,15 @@ backend/uploads/
 frontend/public/uploads/
 
 # ========================================
-# Spring Boot 설정 파일 (환경변수로 대체)
+# Spring Boot 설정 파일 (프로필별 설정은 커밋 허용)
 # ========================================
-backend/src/main/resources/application.properties
-backend/src/main/resources/application-*.properties
-!backend/src/main/resources/application-example.properties
+# 공통 설정 파일과 프로필별 설정은 Git에 포함
+# application.properties (공통 설정)
+# application-local.properties (로컬 개발)
+# application-blue.properties (Blue 서버)
+# application-green.properties (Green 서버)
+# 단, 백업 파일은 제외
+backend/src/main/resources/*backup*.properties
 
 # ========================================
 # Git 관련

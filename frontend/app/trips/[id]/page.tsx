@@ -779,11 +779,11 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
       const activityData = {
         time: newActivity.time + ":00", // 초 단위 추가 (HH:mm:ss 형식)
         title: newActivity.title,
-        location: newActivity.location || null,
+        location: newActivity.location || undefined,
         activityType: newActivity.type?.toUpperCase(),
-        durationMinutes: totalMinutes > 0 ? totalMinutes : null,
+        durationMinutes: totalMinutes > 0 ? totalMinutes : undefined,
         cost: newActivity.cost || 0,
-        notes: newActivity.notes || null,
+        notes: newActivity.notes || undefined,
       }
 
       await createActivity(selectedDayForActivity.id, activityData)
@@ -1398,7 +1398,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                   {overviewData.checklistProgress.incompleteItems && overviewData.checklistProgress.incompleteItems.length > 0 ? (
                     <div className="space-y-2.5">
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">남은 항목 {overviewData.checklistProgress.totalItems - overviewData.checklistProgress.completedItems}개</p>
-                      {overviewData.checklistProgress.incompleteItems.map((item) => (
+                      {overviewData.checklistProgress.incompleteItems.map((item: any) => (
                         <div
                           key={item.id}
                           className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -1453,7 +1453,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               <CardContent>
                 {overviewData.todaySchedule && overviewData.todaySchedule.length > 0 ? (
                   <div className="space-y-3">
-                    {overviewData.todaySchedule.map((schedule) => (
+                    {overviewData.todaySchedule.map((schedule: any) => (
                       <div key={schedule.id} className="flex items-start space-x-4 p-3 bg-gray-50 rounded-lg">
                         <div className="w-16 text-sm font-medium text-gray-600 flex-shrink-0">{schedule.time}</div>
                         <div className="flex-1">
@@ -1531,7 +1531,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               <CardContent>
                 {overviewData.albumPreview && overviewData.albumPreview.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {overviewData.albumPreview.slice(0, 5).map((album) => (
+                    {overviewData.albumPreview.slice(0, 5).map((album: any) => (
                       <div
                         key={album.albumId}
                         className="rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
@@ -1601,7 +1601,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               <CardContent>
                 {overviewData.members && overviewData.members.length > 0 ? (
                   <div className="flex flex-wrap gap-4">
-                    {overviewData.members.map((member) => (
+                    {overviewData.members.map((member: any) => (
                       <div key={member.userId} className="text-center">
                         <Avatar className="w-12 h-12 mx-auto mb-2">
                           <AvatarImage src={member.profileImage || "/placeholder.svg"} />
@@ -1976,7 +1976,8 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                         title: "",
                         location: "",
                         type: "activity",
-                        duration: "",
+                        durationHours: 0,
+                        durationMinutes: 0,
                         cost: 0,
                         notes: ""
                       })

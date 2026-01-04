@@ -10,6 +10,7 @@ import forproject.spring_oauth2_jwt.entity.TravelPlanEntity;
 import forproject.spring_oauth2_jwt.entity.UserEntity;
 import forproject.spring_oauth2_jwt.enums.InvitationStatus;
 import forproject.spring_oauth2_jwt.enums.NotificationType;
+import forproject.spring_oauth2_jwt.exception.ResourceNotFoundException;
 import forproject.spring_oauth2_jwt.repository.*;
 import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
@@ -43,12 +44,24 @@ public class TravelInvitationService {
      */
 //    @Transactional
     public void createInvitations(Long tripId, Long inviterId, List<String> inviteEmails) {
-        log.info("🎫 초대 생성 시작 - tripId: {}, 초대 수: {}", tripId, inviteEmails.size());
+        log.info("초대 생성 시작: tripId={}, inviterId={}, emailCount={}", tripId, inviterId, inviteEmails.size());
         TravelPlanEntity trip = travelPlanRepository.findById(tripId)
-                .orElseThrow(() -> new IllegalArgumentException("여행을 찾을 수 없습니다."));
+                .orElseThrow(() -> {
+                    log.warn("초대 생성 실패 - 여행 없음: tripId={}", tripId);
+                    return new ResourceNotFoundException(
+                            "요청한 여행을 찾을 수 없습니다",
+                            "TravelPlan not found: tripId=" + tripId
+                    );
+                });
 
         UserEntity inviter = userRepository.findById(inviterId)
-                .orElseThrow(() -> new IllegalArgumentException("초대자를 찾을 수 없습니다."));
+                .orElseThrow(() -> {
+                    log.warn("초대 생성 실패 - 초대자 없음: inviterId={}", inviterId);
+                    return new ResourceNotFoundException(
+                            "초대자를 찾을 수 없습니다",
+                            "Inviter not found: inviterId=" + inviterId
+                    );
+                });
 
         for (String email : inviteEmails) {
             // 중복 초대 방지

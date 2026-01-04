@@ -16,6 +16,9 @@ export interface Trip {
   participants: number
   photos: number
   description?: string
+  isOwner?: boolean
+  budget?: number
+  spent?: number
 }
 
 export interface TripCreate {
@@ -107,6 +110,9 @@ export interface PopularTrip {
   author: string
   likes: number
   coverImage?: string
+  imageUrl?: string
+  participants?: number
+  duration?: string
 }
 
 // ============================================
@@ -467,3 +473,51 @@ export interface ReservationSummary {
   confirmed: number
   pending: number
 }
+
+// ============================================
+// Schedule (일정) 관련 타입
+// ============================================
+
+export interface Schedule {
+  id: number
+  itineraryId: number
+  time: string
+  title: string
+  location?: string
+  activityType?: string
+  durationMinutes?: number
+  cost?: number
+  notes?: string
+  displayOrder?: number
+}
+
+export interface Itinerary {
+  id: number
+  tripId: number
+  dayNumber: number
+  date: string
+  activities: Schedule[]
+}
+
+export interface Album {
+  id: number
+  tripId: number
+  albumTitle: string
+  albumDate: string
+  displayOrder?: number
+  photos: Photo[]
+}
+
+export interface Photo {
+  id: number
+  albumId: number
+  imageUrl: string
+  uploadedAt: string
+  uploadedBy: {
+    userId: number
+    userName: string
+  }
+}
+
+// Settlement 별칭 (SettlementResponse와 동일)
+export type Settlement = SettlementResponse

@@ -3,6 +3,8 @@ package forproject.spring_oauth2_jwt.service;
 import forproject.spring_oauth2_jwt.dto.TravelPlanStatusResponse;
 import forproject.spring_oauth2_jwt.entity.TravelPlanEntity;
 import forproject.spring_oauth2_jwt.enums.TravelPlanStatus;
+import forproject.spring_oauth2_jwt.exception.ForbiddenException;
+import forproject.spring_oauth2_jwt.exception.ResourceNotFoundException;
 import forproject.spring_oauth2_jwt.repository.TravelPlanRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,12 +28,27 @@ public class TravelPlanStatusService {
      */
 
     public TravelPlanStatusResponse getTravelPlanStatus(Long tripId, Long userId) {
-        TravelPlanEntity trip = travelPlanRepository.findByIdAndIsDeletedFalse(tripId).orElseThrow(() ->
-                new IllegalArgumentException("여행을 찾을 수 없습니다."));
+        TravelPlanEntity trip = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
+                .orElseThrow(() -> {
+                    log.warn("여행 상태 조회 실패 - 여행 없음: tripId={}", tripId);
+                    return new ResourceNotFoundException(
+                            "요청한 여행을 찾을 수 없습니다",
+                            "TravelPlan not found: tripId=" + tripId
+                    );
+                });
+
 
         if (!trip.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("여행 접근 권한이 없습니다.");
+            log.warn("여행 상태 조회 실패 - 권한 없음: tripId={}, ownerId={}, requesterId={}",
+                    tripId, trip.getUser().getId(), userId);
+
+            throw new ForbiddenException(
+                    "해당 여행에 접근할 권한이 없습니다",
+                    String.format("Access denied: tripId=%d, ownerId=%d, requesterId=%d",
+                            tripId, trip.getUser().getId(), userId)
+            );
         }
+
         return TravelPlanStatusResponse.from(tripId, trip.getStartDate(), trip.getEndDate());
     }
 

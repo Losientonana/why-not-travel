@@ -8,6 +8,8 @@ import forproject.spring_oauth2_jwt.dto.response.*;
 import forproject.spring_oauth2_jwt.entity.*;
 import forproject.spring_oauth2_jwt.enums.BudgetLevel;
 import forproject.spring_oauth2_jwt.enums.TravelStyle;
+import forproject.spring_oauth2_jwt.exception.ForbiddenException;
+import forproject.spring_oauth2_jwt.exception.ResourceNotFoundException;
 import forproject.spring_oauth2_jwt.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,10 +55,17 @@ public class TravelPlanService {
     @Transactional
     public TravelPlanResponse createTravelPlan(TravelPlanCreateRequestDTO req, Long userId) {
         try {
-            log.info("여행 계획 생성 시작 - 사용자: {}, 제목: {}", userId, req.getTitle());
+            log.info("여행 계획 생성 시작: userId={}, title={}, destination={}",
+                    userId, req.getTitle(), req.getDestination());
 
             UserEntity user = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                    .orElseThrow(() -> {
+                        log.warn("여행 계획 생성 실패 - 사용자 없음: userId={}", userId);
+                        return new ResourceNotFoundException(
+                                "사용자를 찾을 수 없습니다",
+                                "User not found: userId=" + userId
+                        );
+                    });
 
             // 태그를 JSON으로 변환
             String tagsJson = null;
@@ -134,11 +143,11 @@ public class TravelPlanService {
             resp.setName(user.getName());
             resp.setVisibility(saved.getVisibility());
 
-            log.info("여행 계획 생성 완료 - ID: {}", saved.getId());
+            log.info("✓ 여행 계획 생성 완료: tripId={}, userId={}", saved.getId(), userId);
             return resp;
 
         } catch (JsonProcessingException e) {
-            log.error("태그 JSON 변환 실패: {}", e.getMessage());
+            log.error("여행 계획 생성 실패 - JSON 변환 오류: userId={}, tags={}", userId, req.getTags(), e);
             throw new RuntimeException("여행 계획 생성 중 오류가 발생했습니다.", e);
         }
     }
@@ -168,15 +177,29 @@ public class TravelPlanService {
 
     @Transactional(readOnly = true)
     public TravelPlanResponse getTravelPlan(Long tripId, Long userId) {
+        log.info("여행 계획 조회: tripId={}, userId={}", tripId, userId);
+
         TravelPlanEntity plan = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없음"));
+                .orElseThrow(() -> {
+                    log.warn("여행 계획 조회 실패 - 존재하지 않음: tripId={}, userId={}", tripId, userId);
+                    return new ResourceNotFoundException(
+                            "요청한 여행 계획을 찾을 수 없습니다",
+                            String.format("TravelPlan not found or deleted: tripId=%d, userId=%d", tripId, userId)
+                    );
+                });
 
         // 변경: OWNER이거나 PARTICIPANT인지 확인
         boolean isOwner = plan.getUser().getId().equals(userId);
         boolean isParticipant = travelParticipantRepository.existsByTripIdAndUserId(tripId, userId);
 
         if (!isOwner && !isParticipant) {
-            throw new IllegalArgumentException("이 여행 계획을 조회할 권한이 없습니다.");
+            log.warn("여행 계획 조회 실패 - 권한 없음: tripId={}, ownerId={}, requesterId={}",
+                    tripId, plan.getUser().getId(), userId);
+            throw new ForbiddenException(
+                    "이 여행 계획을 조회할 권한이 없습니다",
+                    String.format("Access denied: tripId=%d, ownerId=%d, requesterId=%d",
+                            tripId, plan.getUser().getId(), userId)
+            );
         }
 
         TravelPlanResponse resp = new TravelPlanResponse();
@@ -196,11 +219,25 @@ public class TravelPlanService {
 
     @Transactional
     public TravelPlanResponse updateTravelPlan(Long tripId, TravelPlanCreateRequestDTO req, Long userId) {
+        log.info("여행 계획 수정 시작: tripId={}, userId={}", tripId, userId);
+
         TravelPlanEntity travelPlanEntity = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없음"));
+                .orElseThrow(() -> {
+                    log.warn("여행 계획 수정 실패 - 존재하지 않음: tripId={}", tripId);
+                    return new ResourceNotFoundException(
+                            "요청한 여행 계획을 찾을 수 없습니다",
+                            "TravelPlan not found for update: tripId=" + tripId
+                    );
+                });
 
         if (!travelPlanEntity.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("이 여행 계획을 수정할 권한이 없습니다.");
+            log.warn("여행 계획 수정 실패 - 권한 없음: tripId={}, ownerId={}, requesterId={}",
+                    tripId, travelPlanEntity.getUser().getId(), userId);
+            throw new ForbiddenException(
+                    "이 여행 계획을 수정할 권한이 없습니다",
+                    String.format("Update access denied: tripId=%d, ownerId=%d, requesterId=%d",
+                            tripId, travelPlanEntity.getUser().getId(), userId)
+            );
         }
         travelPlanEntity.setTitle(req.getTitle());
         travelPlanEntity.setStartDate(req.getStartDate());
@@ -222,17 +259,32 @@ public class TravelPlanService {
 
     @Transactional
     public void deleteTravelPlan(Long tripId, Long userId) {
+        log.info("여행 계획 삭제 시도: tripId={}, userId={}", tripId, userId);
+
         // 1. 여행 일정 조회 또는 예외 발생
         TravelPlanEntity travelPlanEntity = travelPlanRepository.findByIdAndIsDeletedFalse(tripId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 여행 계획을 찾을 수 없습니다."));
+                .orElseThrow(() -> {
+                    log.warn("여행 계획 삭제 실패 - 존재하지 않음: tripId={}", tripId);
+                    return new ResourceNotFoundException(
+                            "요청한 여행 계획을 찾을 수 없습니다",
+                            "TravelPlan not found for deletion: tripId=" + tripId
+                    );
+                });
 
         // 2. 소유권 확인 (ID가 다를 경우 예외 발생)
         if (!travelPlanEntity.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("이 여행을 삭제할 권한이 없습니다.");
+            log.warn("여행 계획 삭제 실패 - 권한 없음: tripId={}, ownerId={}, requesterId={}",
+                    tripId, travelPlanEntity.getUser().getId(), userId);
+            throw new ForbiddenException(
+                    "이 여행을 삭제할 권한이 없습니다",
+                    String.format("Delete access denied: tripId=%d, ownerId=%d, requesterId=%d",
+                            tripId, travelPlanEntity.getUser().getId(), userId)
+            );
         }
 
         // 3. 논리적 삭제 (isDeleted 플래그를 true로 변경)
         travelPlanEntity.setDeleted(true);
+        log.info("✓ 여행 계획 삭제 완료: tripId={}, userId={}", tripId, userId);
         // @Transactional 어노테이션에 의해 메소드 종료 시 자동으로 DB에 반영됩니다.
     }
 
@@ -249,7 +301,13 @@ public class TravelPlanService {
 
         // 여행의 기본 정보 조회
         TravelPlanEntity trip = travelPlanRepository.findById(tripId)
-                .orElseThrow(() -> new IllegalArgumentException("여행을 찾을 수 없습니다: " + tripId));
+                .orElseThrow(() -> {
+                    log.warn("여행 상세 조회 실패 - 존재하지 않음: tripId={}", tripId);
+                    return new ResourceNotFoundException(
+                            "요청한 여행을 찾을 수 없습니다",
+                            "TravelPlan not found: tripId=" + tripId
+                    );
+                });
 
         // 참여자 조회
         List<TravelParticipant> participants = travelParticipantRepository.findByTripIdOrderByJoinedAt(tripId);
@@ -357,7 +415,11 @@ public class TravelPlanService {
                 travelParticipantRepository.findByTripIdAndUserId(tripId, user);
 
         if (participantOpt.isEmpty()) {
-            throw new IllegalStateException("해당 여행의 참여자가 아닙니다.");
+            log.warn("일정 조회 실패 - 참여자 아님: tripId={}, userId={}", tripId, user);
+            throw new ForbiddenException(
+                    "여행 참여자만 일정을 조회할 수 있습니다",
+                    String.format("Not a participant: tripId=%d, userId=%d", tripId, user)
+            );
         }
         // 일정 조회
         List<TravelItinerary> itineraries = itineraryRepository.findByTripIdOrderByDayNumber(tripId);
@@ -418,12 +480,24 @@ public class TravelPlanService {
 
         // 1. 여행 계획 존재 확인
         TravelPlanEntity trip = travelPlanRepository.findById(tripId)
-                .orElseThrow(() -> new RuntimeException("여행 계획을 찾을 수 없습니다."));
+                .orElseThrow(() -> {
+                    log.warn("앨범 생성 실패 - 여행 없음: tripId={}", tripId);
+                    return new ResourceNotFoundException(
+                            "요청한 여행을 찾을 수 없습니다",
+                            "TravelPlan not found: tripId=" + tripId
+                    );
+                });
 
         // 2. 참여자 권한 확인
         TravelParticipant participant = participantRepository
                 .findByTripIdAndUserId(tripId, userId)
-                .orElseThrow(() -> new RuntimeException("여행 참여자만 앨범을 생성할 수 있습니다."));
+                .orElseThrow(() -> {
+                    log.warn("앨범 생성 실패 - 참여자 아님: tripId={}, userId={}", tripId, userId);
+                    return new ForbiddenException(
+                            "여행 참여자만 앨범을 생성할 수 있습니다",
+                            String.format("Not a participant: tripId=%d, userId=%d", tripId, userId)
+                    );
+                });
 
         // 3. 앨범 생성
         PhotoAlbum album = PhotoAlbum.builder()

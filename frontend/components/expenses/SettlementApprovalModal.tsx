@@ -61,7 +61,7 @@ export default function SettlementApprovalModal({ open, onOpenChange, settlement
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">요청 일시</span>
               <span className="text-sm font-medium">
-                {format(new Date(settlement.requestedAt), "yyyy년 MM월 dd일 HH:mm", { locale: ko })}
+                {format(new Date(settlement.createdAt), "yyyy년 MM월 dd일 HH:mm", { locale: ko })}
               </span>
             </div>
             <div className="flex justify-between">
