@@ -9,9 +9,9 @@ import type {
 
 // 여행 멤버 (현재 로그인 사용자는 userId: 1)
 export const tripMembers: TripMember[] = [
-  { userId: 1, userName: "김철수", profileImage: "👨" },
-  { userId: 2, userName: "이영희", profileImage: "👩" },
-  { userId: 3, userName: "박민수", profileImage: "🧑" },
+  { userId: 1, userName: "김철수", email: "kim@example.com", profileImage: "👨", role: "OWNER" },
+  { userId: 2, userName: "이영희", email: "lee@example.com", profileImage: "👩", role: "EDITOR" },
+  { userId: 3, userName: "박민수", email: "park@example.com", profileImage: "🧑", role: "VIEWER" },
 ]
 
 // 공동 경비 거래 내역
@@ -195,10 +195,11 @@ export const settlements: Settlement[] = [
     toUserName: "김철수",
     amount: 50000,
     status: "APPROVED",
-    requestedAt: "2025-12-12T10:00:00Z",
-    approvedAt: "2025-12-12T11:30:00Z",
+    requestedBy: 2,
+    requestedByName: "이영희",
+    createdAt: "2025-12-12T10:00:00Z",
+    completedAt: "2025-12-12T11:30:00Z",
     memo: "한라산 케이블카 비용 정산",
-    relatedExpenses: [2],
   },
   {
     id: 2,
@@ -209,15 +210,16 @@ export const settlements: Settlement[] = [
     toUserName: "김철수",
     amount: 30000,
     status: "PENDING",
-    requestedAt: "2025-12-12T15:00:00Z",
+    requestedBy: 3,
+    requestedByName: "박민수",
+    createdAt: "2025-12-12T15:00:00Z",
     memo: "카페 비용 정산 요청",
-    relatedExpenses: [4],
   },
 ]
 
 // 통계 데이터
 export const expenseStatistics: ExpenseStatistics = {
-  totalExpense: 495000,
+  myTotalExpense: 495000,
   averagePerPerson: 165000,
   categoryBreakdown: [
     { category: "식비", amount: 135000, percentage: 27.3, color: "#ef4444" },

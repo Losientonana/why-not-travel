@@ -83,6 +83,7 @@ import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -103,6 +104,18 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     private final JWTUtil jwtUtil;
 
     private final RefreshTokenService refreshTokenService;
+
+    @Value("${jwt.access-token.expiration}")
+    private Long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token.expiration}")
+    private Long refreshTokenExpiration;
+
+    @Value("${jwt.refresh-cookie.max-age}")
+    private Integer refreshCookieMaxAge;
+
+    @Value("${cookie.secure}")
+    private boolean cookieSecure;
 
     LoginDTO loginDTO = new LoginDTO();
     public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil, RefreshTokenService refreshTokenService) {
@@ -153,8 +166,8 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
             String role = auth.getAuthority();
 
             //토큰 생성 (실무 표준: Access 15분, Refresh 7일)
-            String access = jwtUtil.createJwt("access", email, role, 900000L);      // 15분
-            String refresh = jwtUtil.createJwt("refresh", email, role, 604800000L); // 7일
+            String access = jwtUtil.createJwt("access", email, role, accessTokenExpiration);      // 15분
+            String refresh = jwtUtil.createJwt("refresh", email, role, refreshTokenExpiration); // 7일
 
             // Redis에 Refresh 저장 (email을 key로 사용)
             refreshTokenService.save(email, refresh, 604_800_000L); // 7일
@@ -171,7 +184,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         cookie.setSecure(true);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
-
+        cookie.setSecure(cookieSecure);
         return cookie;
     }
 

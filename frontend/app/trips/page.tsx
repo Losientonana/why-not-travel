@@ -455,7 +455,7 @@ export default function TripsPage() {
                   <Link href={`/explore/${trip.id}`}>
                     <div className="relative">
                       <img
-                        src={trip.imageUrl || "/placeholder.svg"}
+                        src={trip.coverImage || "/placeholder.svg"}
                         alt={trip.title}
                         className="w-full h-48 object-cover"
                       />

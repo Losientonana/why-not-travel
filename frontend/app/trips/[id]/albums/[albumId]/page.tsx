@@ -227,7 +227,7 @@ export default function AlbumDetailPage({ params }: { params: { id: string; albu
         open={showPhotoDetail}
         onOpenChange={setShowPhotoDetail}
         onDelete={handleDeletePhoto}
-        canDelete={selectedPhoto && user?.id === selectedPhoto.userId}
+        canDelete={!!(selectedPhoto && user?.id === selectedPhoto.userId)}
       />
     </div>
   )

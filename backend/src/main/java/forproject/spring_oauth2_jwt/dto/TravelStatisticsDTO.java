@@ -40,7 +40,7 @@ public class TravelStatisticsDTO {
     /**
      * 예상 예산
      */
-    private BigDecimal estimatedBudget;
+    private Long estimatedBudget;
 
     /**
      * 예산 사용률(%)

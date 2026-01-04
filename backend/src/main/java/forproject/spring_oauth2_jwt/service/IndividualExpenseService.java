@@ -90,6 +90,8 @@ public class IndividualExpenseService {
                 .sum();
 
         if (!totalShareAmount.equals(request.getAmount())) {
+            log.warn("공유지출 등록 실패 - 금액 불일치: tripId={}, totalAmount={}, shareAmountSum={}",
+                    tripId, request.getAmount(), totalShareAmount);
             throw new IllegalArgumentException(
                     String.format("총액(%d원)과 분담액 합계(%d원)가 일치하지 않습니다",
                             request.getAmount(), totalShareAmount)

@@ -15,7 +15,7 @@ export function useTrip(id: string) {
       setLoading(true)
       // 실제 구현에서는 API 호출
       const tripData = getTripDetail(id)
-      setTrip(tripData)
+      setTrip(tripData as Trip)
     } catch (err) {
       setError("여행 정보를 불러오는데 실패했습니다.")
     } finally {

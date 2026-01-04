@@ -31,7 +31,6 @@ export const MOCK_TRIPS: Trip[] = [
     budget: 800000,
     spent: 320000,
     isOwner: true,
-    isPublic: false,
   },
   // ... 더 많은 여행
 ]
@@ -53,8 +52,8 @@ export const getTripDetail = (id: string) => {
   // 실제 구현에서는 API 호출
   return {
     ...MOCK_TRIPS.find((trip) => trip.id === id),
-    schedules: MOCK_SCHEDULES.filter((s) => s.tripId === id),
-    albums: MOCK_ALBUMS.filter((a) => a.tripId === id),
-    checklist: MOCK_CHECKLIST.filter((c) => c.tripId === id),
+    schedules: MOCK_SCHEDULES.filter((s: any) => s.tripId === id),
+    albums: MOCK_ALBUMS.filter((a: any) => a.tripId === id),
+    checklist: MOCK_CHECKLIST.filter((c: any) => c.tripId === id),
   }
 }

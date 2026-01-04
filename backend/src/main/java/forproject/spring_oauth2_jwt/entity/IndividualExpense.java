@@ -37,7 +37,7 @@ public class IndividualExpense {
      * - PARTIAL_SHARED: 공유 지출 (여러 명, 정산 필요)
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "ExpenseType", nullable = false)
+    @Column(name = "expense_type", nullable = false)
     private ExpenseType expenseType;
 
 

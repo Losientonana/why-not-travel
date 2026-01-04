@@ -7,6 +7,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +19,18 @@ public class ReissueController {
 
     private final JWTUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
+
+    @Value("${jwt.access-token.expiration}")
+    private Long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token.expiration}")
+    private Long refreshTokenExpiration;
+
+    @Value("${jwt.refresh-cookie.max-age}")
+    private Integer refreshCookieMaxAge;
+
+    @Value("${cookie.secure}")
+    private boolean cookieSecure;
 
     public ReissueController(JWTUtil jwtUtil, RefreshTokenService refreshTokenService) {
         this.jwtUtil = jwtUtil;
@@ -69,11 +82,11 @@ public class ReissueController {
 
         String role = jwtUtil.getRole(refresh);
         // 실무 표준: Access 15분, Refresh 7일
-        String newAccess = jwtUtil.createJwt("access", email, role, 900_000L);      // 15분
-        String newRefresh = jwtUtil.createJwt("refresh", email, role, 604_800_000L); // 7일
+        String newAccess = jwtUtil.createJwt("access", email, role, accessTokenExpiration);      // 15분
+        String newRefresh = jwtUtil.createJwt("refresh", email, role, refreshTokenExpiration); // 7일
 
         refreshTokenService.delete(email);
-        refreshTokenService.save(email, newRefresh, 604_800_000L); // 7일
+        refreshTokenService.save(email, newRefresh, refreshTokenExpiration); // 7일
 
         response.setHeader("access", newAccess);
         response.addCookie(createCookie("refresh", newRefresh));
@@ -84,9 +97,10 @@ public class ReissueController {
 
     private Cookie createCookie(String key, String value) {
         Cookie cookie = new Cookie(key, value);
-        cookie.setMaxAge(604_800); // 7일
+        cookie.setMaxAge(refreshCookieMaxAge); // 7일
         cookie.setPath("/");
         cookie.setHttpOnly(true);
+        cookie.setSecure(cookieSecure);
         return cookie;
     }
 }

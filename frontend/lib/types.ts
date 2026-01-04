@@ -16,6 +16,9 @@ export interface Trip {
   participants: number
   photos: number
   description?: string
+  isOwner?: boolean
+  budget?: number
+  spent?: number
 }
 
 export interface TripCreate {
@@ -107,6 +110,9 @@ export interface PopularTrip {
   author: string
   likes: number
   coverImage?: string
+  imageUrl?: string
+  participants?: number
+  duration?: string
 }
 
 // ============================================
@@ -313,3 +319,205 @@ export interface ExpenseStatistics {
     amount: number
   }>
 }
+
+// ============================================
+// 여행 개요(Overview) 관련 타입
+// ============================================
+
+export interface TripOverview {
+  tripId: number
+  title: string
+  destination: string
+  startDate: string
+  endDate: string
+  description?: string
+  imageUrl?: string
+  daysUntilTrip: number | null  // D-Day (과거면 null)
+  tripDuration: number  // 여행 기간 (일수)
+  budgetStatus: BudgetStatus
+  checklistProgress: ChecklistProgress
+  todaySchedule: TodayScheduleItem[]
+  albumPreview: AlbumPreview[]
+  members: TripMember[]
+}
+
+export interface BudgetStatus {
+  totalBudget: number
+  spentAmount: number
+  remainingBudget: number
+  usagePercentage: number
+}
+
+export interface ChecklistProgress {
+  totalItems: number
+  completedItems: number
+  completionPercentage: number
+  incompleteItems: ChecklistPreviewItem[]
+}
+
+export interface ChecklistPreviewItem {
+  id: number
+  task: string
+  isShared: boolean
+}
+
+export interface TodayScheduleItem {
+  id: number
+  time: string
+  title: string
+  location: string
+}
+
+export interface AlbumPreview {
+  albumId: number
+  albumTitle: string
+  albumDate: string
+  thumbnailUrl: string | null
+  photoCount: number
+}
+
+export interface TripMember {
+  userId: number
+  userName: string
+  email: string
+  profileImage?: string
+  role: string
+}
+
+// ============================================
+// 체크리스트 관련 타입
+// ============================================
+
+export interface ChecklistItem {
+  id: number
+  task: string
+  completed: boolean
+  isShared: boolean  // true: 공용, false: 개인
+  assigneeUserId?: number
+  assigneeName?: string
+  completedAt?: string
+  displayOrder: number
+}
+
+export interface CreateChecklistRequest {
+  task: string
+  isShared: boolean
+  assigneeUserId?: number
+}
+
+// ============================================
+// 예약(Reservation) 관련 타입
+// ============================================
+
+export type ReservationType = "flight" | "accommodation" | "attraction" | "transport" | "restaurant" | "activity"
+
+export type ReservationStatus = "confirmed" | "pending" | "cancelled"
+
+export interface Location {
+  address: string
+  latitude?: number
+  longitude?: number
+  placeId?: string // For Google Maps API integration
+}
+
+export interface Reservation {
+  id: number
+  tripId: number
+  type: ReservationType
+  title: string
+  description?: string
+  status: ReservationStatus
+  startDate: string
+  endDate?: string
+  startTime?: string
+  endTime?: string
+  location?: Location
+  price?: number
+  currency?: string
+  confirmationNumber?: string
+  bookingPlatform?: string
+  bookingUrl?: string
+  notes?: string
+  attachments?: string[]
+  createdBy: {
+    userId: number
+    userName: string
+  }
+  createdAt: string
+  updatedAt: string
+  // For flights
+  flightNumber?: string
+  airline?: string
+  departureAirport?: string
+  arrivalAirport?: string
+  // For accommodations
+  checkInTime?: string
+  checkOutTime?: string
+  roomType?: string
+  guestCount?: number
+  // For restaurants
+  reservationTime?: string
+  partySize?: number
+  // For transport
+  transportType?: "bus" | "train" | "subway" | "taxi" | "rental"
+  pickupLocation?: Location
+  dropoffLocation?: Location
+}
+
+export interface ReservationSummary {
+  totalReservations: number
+  byType: {
+    [key in ReservationType]: number
+  }
+  upcoming: number
+  confirmed: number
+  pending: number
+}
+
+// ============================================
+// Schedule (일정) 관련 타입
+// ============================================
+
+export interface Schedule {
+  id: number
+  itineraryId: number
+  time: string
+  title: string
+  location?: string
+  activityType?: string
+  durationMinutes?: number
+  cost?: number
+  notes?: string
+  displayOrder?: number
+}
+
+export interface Itinerary {
+  id: number
+  tripId: number
+  dayNumber: number
+  date: string
+  activities: Schedule[]
+}
+
+export interface Album {
+  id: number
+  tripId: number
+  albumTitle: string
+  albumDate: string
+  displayOrder?: number
+  photos: Photo[]
+}
+
+export interface Photo {
+  id: number
+  albumId: number
+  imageUrl: string
+  uploadedAt: string
+  uploadedBy: {
+    userId: number
+    userName: string
+  }
+}
+
+// Settlement 별칭 (SettlementResponse와 동일)
+export type Settlement = SettlementResponse

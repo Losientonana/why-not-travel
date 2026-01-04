@@ -5,8 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -28,7 +26,7 @@ public class TravelDetailResponse {
     private LocalDate startDate;
     private LocalDate endDate;
     private String imageUrl;
-    private BigDecimal estimatedCost;
+    private Long estimatedCost;
     private String visibility;
 
     // 상태 정보

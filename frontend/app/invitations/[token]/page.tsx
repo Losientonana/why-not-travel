@@ -18,7 +18,7 @@ import { InvitationDetailResponse } from '@/lib/types';
 export default function InvitationPage() {
   const params = useParams();
   const router = useRouter();
-  const { isAuthenticated, user } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const token = params.token as string;
 
   const [invitation, setInvitation] = useState<InvitationDetailResponse | null>(null);

@@ -37,7 +37,8 @@ public class TravelPlanCreateRequestDTO {
 
     private String imageUri;
 
-    private BigDecimal estimatedCost;
+    private Long
+            estimatedCost;
 
     @Valid
     @Size(max = 10, message = "태그는 최대 10개까지 선택 가능합니다")

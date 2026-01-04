@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.awt.print.Pageable;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,4 +32,18 @@ public interface TravelActivityRepository extends JpaRepository<TravelActivity, 
     Optional<Integer> findMaxDisplayOrderByItineraryId(@Param("itineraryId") Long itineraryId);
 
     int countByItineraryId(Long itineraryId);
+
+    @Query("""
+    SELECT a
+    FROM TravelActivity a
+    JOIN TravelItinerary i ON a.itineraryId = i.id
+    WHERE i.tripId = :tripId
+      AND i.date = :date
+    ORDER BY a.time ASC
+""")
+    List<TravelActivity> findTop3ByTripIdAndDate(
+            @Param("tripId") Long tripId,
+            @Param("date") LocalDate date
+    );
+
 }

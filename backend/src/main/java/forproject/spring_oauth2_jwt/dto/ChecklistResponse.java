@@ -19,6 +19,7 @@ public class ChecklistResponse {
     private Boolean completed;
     private Long assigneeUserId;
     private String assigneeName;
+    private Boolean isShared;
     private LocalDateTime completedAt;
     private Integer displayOrder;
 
@@ -27,6 +28,7 @@ public class ChecklistResponse {
                 .id(checklist.getId())
                 .task(checklist.getTask())
                 .completed(checklist.getCompleted())
+                .isShared(checklist.getIsShared())
                 .assigneeUserId(checklist.getAssigneeUserId())
                 .assigneeName(assignee != null ? assignee.getName() : null)
                 .completedAt(checklist.getCompletedAt())

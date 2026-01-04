@@ -379,7 +379,7 @@ export default function DashboardPage() {
       y: 0,
       opacity: 1,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 100,
       },
     },
@@ -390,7 +390,7 @@ export default function DashboardPage() {
       y: -8,
       scale: 1.02,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 300,
       },
     },
