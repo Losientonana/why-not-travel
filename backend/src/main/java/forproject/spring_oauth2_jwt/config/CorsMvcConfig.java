@@ -17,9 +17,17 @@ public class CorsMvcConfig implements WebMvcConfigurer {
 
         //모든 경로에 대한 CORS 설정을 적용
         corsRegistry.addMapping("/**")
-                // 응답에서 클라이언트가 접근 가능한 헤더에 "Set- Cookie"를 추가
+                // 여러 프론트엔드 도메인 허용 (환경변수에서 쉼표로 구분)
+                .allowedOrigins(frontendUrl.split(","))
+                // 허용할 HTTP 메서드
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                // 허용할 헤더
+                .allowedHeaders("*")
+                // 응답에서 클라이언트가 접근 가능한 헤더
                 .exposedHeaders("Set-Cookie", "Authorization", "access")
-                // 오직 3000번 포트에서 오는 요청만 허용
-                .allowedOrigins(frontendUrl);
+                // 쿠키/인증 정보 포함 허용
+                .allowCredentials(true)
+                // preflight 요청 캐시 시간 (1시간)
+                .maxAge(3600);
     }
 }
