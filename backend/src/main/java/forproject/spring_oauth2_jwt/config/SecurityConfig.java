@@ -124,6 +124,7 @@ public class SecurityConfig {
                                 "/api/login",
                                 "/",
                                 "/api/join",
+                                "/api/join/test",
                                 "/oauth2/**",
                                 "/reissue",
                                 "/api/token",

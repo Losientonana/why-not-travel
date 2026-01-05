@@ -4,11 +4,11 @@ import forproject.spring_oauth2_jwt.dto.UserPrincipal;
 import forproject.spring_oauth2_jwt.jwt.JWTUtil;
 import forproject.spring_oauth2_jwt.service.RefreshTokenService;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -66,20 +66,22 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         //응답 설정
         response.setHeader("access", access);
-        response.addCookie(createCookie("refresh", refresh));
+        response.addHeader("Set-Cookie", createCookie("refresh", refresh));
         response.setStatus(HttpStatus.OK.value());
 
         response.sendRedirect(frontendUrl + "/oauth2/redirect");
     }
 
-    private Cookie createCookie(String key, String value) {
-        Cookie cookie = new Cookie(key, value);
-        cookie.setMaxAge(600 * 600 * 600);
-        //cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(cookieSecure);
+    private String createCookie(String key, String value) {
+        ResponseCookie cookie = ResponseCookie.from(key, value)
+                .maxAge(600 * 600 * 600)
+                .path("/")
+                .domain(".whynottravel.xyz")  // 최상위 도메인 설정 (api, www 공유)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite("None")  // 크로스 사이트 쿠키 지원
+                .build();
 
-        return cookie;
+        return cookie.toString();
     }
 }

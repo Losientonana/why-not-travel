@@ -10,6 +10,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.ResponseCookie;
 import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
@@ -80,10 +81,15 @@ public class CustomLogoutFilter extends GenericFilterBean {
         refreshTokenService.delete(email);
 
         // Refresh 토큰 Cookie 삭제
-        Cookie cookie = new Cookie("refresh", null);
-        cookie.setMaxAge(0);
-        cookie.setPath("/");
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from("refresh", "")
+                .maxAge(0)
+                .path("/")
+                .domain(".whynotravel.xyz")  // 최상위 도메인 설정 (api, www 공유)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")  // 크로스 사이트 쿠키 지원
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
         response.setStatus(HttpServletResponse.SC_OK);
     }
 }

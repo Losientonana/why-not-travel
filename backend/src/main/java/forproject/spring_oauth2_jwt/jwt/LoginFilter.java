@@ -80,11 +80,11 @@ import forproject.spring_oauth2_jwt.service.RefreshTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletInputStream;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -174,18 +174,20 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
             //응답 설정
             response.setHeader("access", access);
-            response.addCookie(createCookie("refresh", refresh));
+            response.addHeader("Set-Cookie", createCookie("refresh", refresh));
             response.setStatus(HttpStatus.OK.value());
         }
-    private Cookie createCookie(String key, String value) {
+    private String createCookie(String key, String value) {
+        ResponseCookie cookie = ResponseCookie.from(key, value)
+                .maxAge(24*60*60)
+                .path("/")
+                .domain(".whynotravel.xyz")  // 최상위 도메인 설정 (api, www 공유)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite("None")  // 크로스 사이트 쿠키 지원
+                .build();
 
-        Cookie cookie = new Cookie(key, value);
-        cookie.setMaxAge(24*60*60);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(cookieSecure);
-        return cookie;
+        return cookie.toString();
     }
 
     //로그인 실패시 실행하는 메소드
