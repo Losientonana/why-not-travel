@@ -68,8 +68,28 @@ dependencies {
 
     // Thymeleaf (이메일 템플릿)
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'com.amazonaws:aws-java-sdk-ses:1.12.3'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// ========================================
+// Resources 포함 설정 (jar 배포 시 템플릿 포함)
+// ========================================
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDir 'src/main/resources'
+            include '**/*.properties', '**/*.yml', '**/*.html'
+        }
+    }
 }

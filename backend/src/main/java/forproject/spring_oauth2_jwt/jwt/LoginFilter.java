@@ -121,6 +121,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil, RefreshTokenService refreshTokenService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
+        super.setAuthenticationManager(authenticationManager);
 
         this.setFilterProcessesUrl("/api/login");
         this.setUsernameParameter("email");

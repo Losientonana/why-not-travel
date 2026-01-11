@@ -61,6 +61,11 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    @Bean
+    public LoginFilter loginFilter(AuthenticationManager authenticationManager) {
+        return new LoginFilter(authenticationManager, jwtUtil, refreshTokenService);
+    }
+
 
     public SecurityConfig(UserRepository userRepository, AuthenticationConfiguration authenticationConfiguration, CustomOAuth2UserService customOAuth2UserService, CustomSuccessHandler customSuccessHandler, JWTUtil jwtUtil, RefreshTokenService refreshTokenService) {
         this.userRepository = userRepository;
@@ -149,9 +154,10 @@ public class SecurityConfig {
         // 커스텀 LoginFilter 을 등록해서 로그인 요청을 받아 JWT 를 발급한다.
         http
                 .addFilterAt(
-                new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil,refreshTokenService),
-                UsernamePasswordAuthenticationFilter.class
-        );
+                        loginFilter(authenticationManager(authenticationConfiguration)),
+                        UsernamePasswordAuthenticationFilter.class
+                );
+
 
         // 로그아웃 필터
         http
