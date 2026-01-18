@@ -52,5 +52,6 @@ jobs:
             cd ~/travel
             export DOCKER_USERNAME=edcqazs123
             docker pull edcqazs123/travel_live_server:latest
-            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --force-recreate --no-deps blue
+            docker compose --env-file .env.prod -f docker-compose.prod.yml down
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
             docker image prune -f
