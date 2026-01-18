@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -89,18 +90,22 @@ public class ReissueController {
         refreshTokenService.save(email, newRefresh, refreshTokenExpiration); // 7일
 
         response.setHeader("access", newAccess);
-        response.addCookie(createCookie("refresh", newRefresh));
+        response.addHeader("Set-Cookie", createCookie("refresh", newRefresh));
 
         log.info("Successfully reissued tokens for userEmail: {}", email);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    private Cookie createCookie(String key, String value) {
-        Cookie cookie = new Cookie(key, value);
-        cookie.setMaxAge(refreshCookieMaxAge); // 7일
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(cookieSecure);
-        return cookie;
+    private String createCookie(String key, String value) {
+        ResponseCookie cookie = ResponseCookie.from(key, value)
+                .maxAge(refreshCookieMaxAge)  // 7일
+                .path("/")
+                .domain(".whynotravel.xyz")  // 최상위 도메인 설정 (api, www 공유)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite("None")  // 크로스 사이트 쿠키 지원
+                .build();
+
+        return cookie.toString();
     }
 }

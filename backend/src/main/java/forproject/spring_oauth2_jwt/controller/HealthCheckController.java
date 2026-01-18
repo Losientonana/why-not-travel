@@ -14,6 +14,9 @@ public class HealthCheckController {
     @GetMapping("/hc")
     public ResponseEntity<?> healthCheck() {
         Map<String,String> response = new HashMap<>();
+        response.put("status", "OK");
+        response.put("message", "GitHub Actions auto-deploy test");
+        response.put("version", "1.0.1");
 
         return ResponseEntity.ok().body(response);
     }
