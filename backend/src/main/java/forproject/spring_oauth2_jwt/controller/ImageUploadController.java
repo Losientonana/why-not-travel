@@ -4,7 +4,6 @@ import forproject.spring_oauth2_jwt.dto.ApiResponse;
 import forproject.spring_oauth2_jwt.dto.ImageUploadResponse;
 import forproject.spring_oauth2_jwt.dto.UserPrincipal;
 import forproject.spring_oauth2_jwt.service.ImageUploadService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
