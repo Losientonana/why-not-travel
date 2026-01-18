@@ -50,6 +50,6 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/travel
-            docker compose -f docker-compose.prod.yml pull backend-blue
-            docker compose -f docker-compose.prod.yml up -d --force-recreate backend-blue
+            docker compose -f docker-compose.prod.yml pull blue
+            docker compose -f docker-compose.prod.yml up -d --force-recreate blue
             docker image prune -f
