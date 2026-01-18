@@ -15,8 +15,9 @@ public class HealthCheckController {
     public ResponseEntity<?> healthCheck() {
         Map<String,String> response = new HashMap<>();
         response.put("status", "OK");
-        response.put("message", "GitHub Actions auto-deploy test");
-        response.put("version", "1.0.1");
+        response.put("message", "🚀 AUTO DEPLOY SUCCESS!");
+        response.put("version", "2.0.0");
+        response.put("deployedAt", java.time.LocalDateTime.now().toString());
 
         return ResponseEntity.ok().body(response);
     }
