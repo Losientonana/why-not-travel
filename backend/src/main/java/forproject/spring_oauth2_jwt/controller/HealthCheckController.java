@@ -16,7 +16,7 @@ public class HealthCheckController {
         Map<String,String> response = new HashMap<>();
         response.put("status", "OK");
         response.put("message", "🚀 AUTO DEPLOY SUCCESS!");
-        response.put("version", "2.0.0");
+        response.put("version", "3.0.0");
         response.put("deployedAt", java.time.LocalDateTime.now().toString());
 
         return ResponseEntity.ok().body(response);
