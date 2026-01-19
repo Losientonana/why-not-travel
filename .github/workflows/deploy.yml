@@ -71,5 +71,5 @@ jobs:
           script: |
             cd ~/travel
             chmod +x deploy.sh
-            ./deploy.sh
+            ./deploy-ec2.sh
 
