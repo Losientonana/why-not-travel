@@ -90,7 +90,7 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env.blue
+      - .env.prod
     depends_on:
       mysql-db:
         condition: service_healthy
@@ -98,36 +98,13 @@ services:
         condition: service_healthy
     networks:
       - travel-network
+    volumes:
+      - ./uploads:/app/uploads
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
-
-  # ======================================
-  # Spring Boot 백엔드 - GREEN (Port 8081)
-  # ======================================
-  green:
-    image: ${DOCKER_USERNAME}/travel_live_server:latest
-    container_name: travel-backend-green
-    restart: always
-    ports:
-      - "8081:8081"
-    env_file:
-      - .env.green
-    depends_on:
-      mysql-db:
-        condition: service_healthy
-      redis-cache:
-        condition: service_healthy
-    networks:
-      - travel-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 60s
 
   # ======================================
