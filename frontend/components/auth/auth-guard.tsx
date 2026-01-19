@@ -14,6 +14,14 @@ const PUBLIC_ROUTES = [
   "/signup",
   "/oauth2/redirect",
   "/", // 홈페이지는 공개
+  "/explore", // 여행 둘러보기
+  "/community", // 커뮤니티
+  "/pricing", // 요금제
+  "/help", // 도움말
+  "/faq", // 자주 묻는 질문
+  "/contact", // 문의하기
+  "/terms", // 이용약관
+  "/privacy", // 개인정보처리방침
 ]
 
 // OAuth2 관련 경로들
