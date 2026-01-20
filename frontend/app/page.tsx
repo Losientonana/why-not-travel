@@ -391,33 +391,33 @@ export default function HomePage() {
             <div className="relative">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-4">
-                  <div className="bg-gradient-to-br from-pink-400 to-orange-400 rounded-2xl h-48 overflow-hidden shadow-lg">
+                  <div className="rounded-2xl h-48 overflow-hidden shadow-lg">
                     <img
-                      src="/placeholder.svg?height=300&width=300&text=Tokyo+Tower"
-                      alt="Travel memory"
+                      src="/images/destinations/tokyo.jpg"
+                      alt="도쿄 여행"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="bg-gradient-to-br from-blue-400 to-purple-400 rounded-2xl h-32 overflow-hidden shadow-lg">
+                  <div className="rounded-2xl h-32 overflow-hidden shadow-lg">
                     <img
-                      src="/placeholder.svg?height=200&width=300&text=Sunset"
-                      alt="Travel memory"
+                      src="/images/destinations/osaka.jpg"
+                      alt="오사카 여행"
                       className="w-full h-full object-cover"
                     />
                   </div>
                 </div>
                 <div className="space-y-4 pt-8">
-                  <div className="bg-gradient-to-br from-green-400 to-teal-400 rounded-2xl h-32 overflow-hidden shadow-lg">
+                  <div className="rounded-2xl h-32 overflow-hidden shadow-lg">
                     <img
-                      src="/placeholder.svg?height=200&width=300&text=Beach"
-                      alt="Travel memory"
+                      src="/images/destinations/jeju.jpg"
+                      alt="제주도 여행"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="bg-gradient-to-br from-yellow-400 to-red-400 rounded-2xl h-48 overflow-hidden shadow-lg">
+                  <div className="rounded-2xl h-48 overflow-hidden shadow-lg">
                     <img
-                      src="/placeholder.svg?height=300&width=300&text=Street+Food"
-                      alt="Travel memory"
+                      src="/images/destinations/busan.jpg"
+                      alt="부산 여행"
                       className="w-full h-full object-cover"
                     />
                   </div>
