@@ -46,7 +46,7 @@ export default function Header() {
                     </nav>
 
                     {/* Right Actions */}
-                    <div className="flex items-center gap-1 shrink-0 min-w-fit">
+                    <div className="flex items-center gap-1 flex-shrink-0 flex-nowrap">
 
                         {isLoggedIn ? (
                             <>
