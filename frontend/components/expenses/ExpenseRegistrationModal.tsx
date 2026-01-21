@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +29,8 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
 
   const [tripMembers, setTripMembers] = useState<Array<{ userId: number; userName: string }>>([])
   const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
   const [expenseMode, setExpenseMode] = useState<"shared" | "individual">("shared")
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [category, setCategory] = useState("")
@@ -71,6 +73,8 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
   }
 
   const handleSubmit = async () => {
+    setErrorMessage(null) // 에러 초기화
+
     // Validation
     if (!category) {
       toast({ title: "카테고리를 선택해주세요", variant: "destructive" })
@@ -96,15 +100,16 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
       toast({ title: "지불자는 참여자 중에서 선택해야 합니다", variant: "destructive" })
       return
     }
-    if (expenseMode === "shared" && splitMethod === "custom") {
-      const total = selectedParticipants.reduce((sum, userId) => {
-        return sum + (Number.parseFloat(customAmounts[userId]) || 0)
-      }, 0)
-      if (Math.abs(total - Number.parseFloat(amount)) > 0.01) {
-        toast({ title: "분담 금액의 합계가 총 금액과 일치하지 않습니다", variant: "destructive" })
-        return
-      }
-    }
+    // 프론트 검증 비활성화 - 백엔드 예외처리 테스트용
+    // if (expenseMode === "shared" && splitMethod === "custom") {
+    //   const total = selectedParticipants.reduce((sum, userId) => {
+    //     return sum + (Number.parseFloat(customAmounts[userId]) || 0)
+    //   }, 0)
+    //   if (Math.abs(total - Number.parseFloat(amount)) > 0.01) {
+    //     toast({ title: "분담 금액의 합계가 총 금액과 일치하지 않습니다", variant: "destructive" })
+    //     return
+    //   }
+    // }
 
     setLoading(true)
     try {
@@ -159,11 +164,10 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
       onSuccess?.()
     } catch (error: any) {
       console.error("지출 등록 실패:", error)
-      toast({
-        title: "지출 등록 실패",
-        description: error.response?.data?.message || "다시 시도해주세요",
-        variant: "destructive",
-      })
+      const message = error.response?.data?.message || error.message || "다시 시도해주세요"
+      setErrorMessage(message)
+      // 스크롤 최상단으로 이동
+      contentRef.current?.scrollTo({ top: 0, behavior: "smooth" })
     } finally {
       setLoading(false)
     }
@@ -177,6 +181,7 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
     setDescription("")
     setSplitMethod("equal")
     setCustomAmounts({})
+    setErrorMessage(null)
     if (user?.id) {
       setPayerId(user.id)
     }
@@ -189,10 +194,26 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent ref={contentRef} className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>지출 등록</DialogTitle>
         </DialogHeader>
+
+        {/* 에러 메시지 배너 */}
+        {errorMessage && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2">
+            <span className="text-lg">⚠️</span>
+            <div className="flex-1">
+              <p className="font-medium text-sm">{errorMessage}</p>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="text-red-500 hover:text-red-700 text-lg leading-none"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         <div className="space-y-6 py-4">
           {/* Toggle: 공동 / 개별 */}
