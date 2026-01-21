@@ -341,4 +341,28 @@ public class GlobalExceptionHandler {
                         "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요."  // 스택 트레이스 노출 절대 금지!
                 ));
     }
+
+    /**
+     * 개별지출 등록시 금액 불일치 예외 핸들러
+     * @param e
+     * @param request
+     * @return
+     */
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(
+            IllegalArgumentException e,
+            HttpServletRequest request) {
+
+        log.warn("❌ [400] 잘못된 요청: path={}, message={}",
+                request.getRequestURI(),
+                e.getMessage());
+
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.error(
+                        "BAD_REQUEST",
+                        e.getMessage()
+                ));
+    }
 }

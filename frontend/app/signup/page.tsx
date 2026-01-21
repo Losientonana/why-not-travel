@@ -11,7 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Lock, Eye, EyeOff, Check, ArrowLeft, Mail, Shield } from "lucide-react"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
+const API_BASE_URL = "process.env.NEXT_PUBLIC_API_URL"
+// const API_BASE_URL = "http://localhost:8080"
 
 export default function SignupPage() {
   const router = useRouter()

@@ -4,6 +4,7 @@ import axios from 'axios';
 // axios 인스턴스 생성
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
+    // baseURL: "http://localhost:8080",
   withCredentials: true, // 쿠키 자동 전송 (refresh token용)
   timeout: 10000, // 10초 타임아웃
 });
@@ -130,8 +131,9 @@ class TokenRefreshManager {
 
       // 백엔드의 /reissue 엔드포인트 호출 (refresh 토큰은 쿠키에 자동 포함)
       const reissueResponse = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL}/reissue`,// 로컬 개발용 하드코딩
-        {},
+          // `${process.env.NEXT_PUBLIC_API_URL}/reissue`,// 로컬 개발용 하드코딩
+           `http://localhost:8080/reissue`,// 로컬 개발용 하드코딩
+          {},
         { withCredentials: true }
       );
 

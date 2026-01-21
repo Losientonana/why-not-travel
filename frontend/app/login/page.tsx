@@ -65,6 +65,7 @@ export default function LoginPage() {
           {/* Social Login */}
           <div className="space-y-3">
             <Link href={`${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/google`} className="block w-full" passHref>
+                {/*<Link href={`http://localhost:8080/oauth2/authorization/google`} className="block w-full" passHref>*/}
               <Button variant="outline" className="w-full bg-transparent" size="lg">
                 <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -76,6 +77,7 @@ export default function LoginPage() {
               </Button>
             </Link>
             <Link href={`${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/naver`} className="block w-full" passHref>
+            {/*    <Link href={`http://localhost:8080ㄴ/oauth2/authorization/naver`} className="block w-full" passHref>*/}
               <Button variant="outline" className="w-full bg-transparent" size="lg">
                 <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                   <path fill="#03C75A" d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727v12.845z"/>

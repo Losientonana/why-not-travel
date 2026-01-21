@@ -507,6 +507,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
   // 탭 전환 시 해당 탭 데이터 로드
   useEffect(() => {
+    window.scrollTo(0, 0); // Add this line
     const loadTabData = async () => {
       if (!params.id) return
 

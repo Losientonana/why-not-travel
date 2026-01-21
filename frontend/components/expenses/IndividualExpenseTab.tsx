@@ -103,7 +103,15 @@ export default function IndividualExpenseTab() {
   }
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6">
+      {/* Action Button at Top */}
+      <div className="flex justify-end mb-4">
+        <Button size="sm" onClick={() => setShowRegistrationModal(true)}>
+          <Plus className="w-4 h-4 mr-1" />
+          지출 등록
+        </Button>
+      </div>
+
       {/* Filter Buttons */}
       <div className="flex space-x-2">
         <Button
@@ -189,14 +197,6 @@ export default function IndividualExpenseTab() {
         )}
       </div>
 
-      {/* FAB Button */}
-      <div className="fixed bottom-8 right-8 z-50">
-        <Button size="lg" className="rounded-full shadow-lg h-14 px-6" onClick={() => setShowRegistrationModal(true)}>
-          <Plus className="w-5 h-5 mr-2" />
-          지출 등록
-        </Button>
-      </div>
-
       <ExpenseRegistrationModal
         open={showRegistrationModal}
         onOpenChange={setShowRegistrationModal}
@@ -208,3 +208,4 @@ export default function IndividualExpenseTab() {
     </div>
   )
 }
+
