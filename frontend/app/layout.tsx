@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { NotificationProvider } from "@/contexts/notification-context"
 import { LogoutRedirectHandler } from "@/components/auth/logout-redirect-handler"
 import { PWARegister } from "@/components/pwa-register"
+import { ScrollToTop } from "@/components/scroll-to-top"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -42,6 +43,7 @@ export default function RootLayout({
       <body className={`${inter.className} flex flex-col min-h-screen`}>
         <PWARegister />
         <AuthProvider>
+          <ScrollToTop />
           <NotificationProvider>
             <LogoutRedirectHandler />
             <AuthGuard>
