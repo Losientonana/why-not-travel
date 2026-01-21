@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { getTripDetail, getTripOverview, getItineraries, getPhotos, getSharedChecklists, getPersonalChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist, createItinerary, deleteItinerary, createActivity, updateActivity, deleteActivity, getAlbums, createAlbum, uploadPhotoToAlbum, deleteAlbum } from "@/lib/api"
+import { getTripDetail, getTripOverview, getItineraries, getPhotos, getSharedChecklists, getPersonalChecklists, getExpenses, createChecklist, toggleChecklist, deleteChecklist, createItinerary, deleteItinerary, createActivity, updateActivity, deleteActivity, getAlbums, createAlbum, uploadPhotoToAlbum, deleteAlbum, getTripInvitations } from "@/lib/api"
+import { TripInvitationStatus } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-context"
 import {
   ArrowLeft,
@@ -479,6 +480,10 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
   const [showPhotoUpload, setShowPhotoUpload] = useState(false)
   const [selectedAlbum, setSelectedAlbum] = useState<any>(null)
 
+  // 초대 목록 상태
+  const [invitations, setInvitations] = useState<TripInvitationStatus[]>([])
+  const [invitationsLoading, setInvitationsLoading] = useState(false)
+
   // API 호출
   useEffect(() => {
     const fetchTripDetail = async () => {
@@ -553,6 +558,12 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               console.log('✅ 경비 데이터 로딩 완료:', data)
               setExpensesData(data || [])
             }
+            break
+          case 'members':
+            console.log('🔥 초대 목록 로딩 시작')
+            const invitationsData = await getTripInvitations(Number(params.id))
+            console.log('✅ 초대 목록 로딩 완료:', invitationsData)
+            setInvitations(invitationsData || [])
             break
         }
       } catch (err) {
@@ -2837,14 +2848,30 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
               <InviteMemberDialog
                 tripId={Number(params.id)}
                 tripTitle={displayTrip.title || '여행'}
+                onInviteSuccess={async () => {
+                  // 초대 후 목록 새로고침
+                  try {
+                    const data = await getTripInvitations(Number(params.id))
+                    setInvitations(data)
+                  } catch (e) {
+                    console.error('초대 목록 새로고침 실패:', e)
+                  }
+                }}
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(displayTrip.participants || mockTrip.participants).map((participant: any) => (
-                <Card key={participant.participantId || participant.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center space-x-4">
+            {/* 합류한 동행자 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  합류한 동행자 ({(displayTrip.participants || []).length}명)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(displayTrip.participants || mockTrip.participants).map((participant: any) => (
+                    <div key={participant.participantId || participant.id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
                       <Avatar className="w-12 h-12">
                         <AvatarImage src={participant.avatar || "/placeholder.svg"} alt={participant.userName || participant.name} />
                         <AvatarFallback>{(participant.userName || participant.name)?.[0]}</AvatarFallback>
@@ -2862,10 +2889,10 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                             }
                             className="text-xs"
                           >
-                            {(participant.role === "OWNER" || participant.role === "owner") ? "방장" : (participant.role === "EDITOR" || participant.role === "editor") ? "편집자" : "뷰어"}
+                            {(participant.role === "OWNER" || participant.role === "owner") ? "방장" : (participant.role === "EDITOR" || participant.role === "editor") ? "편집자" : "멤버"}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">{participant.userEmail || participant.email}</p>
+                        <p className="text-sm text-gray-500">{participant.userEmail || participant.email}</p>
                       </div>
                       {participant.role !== "OWNER" && participant.role !== "owner" && (
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -2873,10 +2900,82 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                         </Button>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 초대 대기중 */}
+            {invitations.filter(inv => inv.status === 'PENDING').length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-yellow-600" />
+                    초대 대기중 ({invitations.filter(inv => inv.status === 'PENDING').length}명)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {invitations.filter(inv => inv.status === 'PENDING').map((invitation) => (
+                      <div key={invitation.id} className="flex items-center space-x-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <Avatar className="w-12 h-12 bg-yellow-100">
+                          <AvatarFallback className="bg-yellow-100 text-yellow-700">
+                            {invitation.name?.[0] || invitation.invitedEmail[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h3 className="font-medium text-gray-900">
+                              {invitation.name || invitation.invitedEmail}
+                            </h3>
+                            <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
+                              대기중
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500">{invitation.invitedEmail}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 거절됨/만료됨 */}
+            {invitations.filter(inv => inv.status === 'REJECTED' || inv.status === 'EXPIRED').length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2 text-gray-500">
+                    <X className="w-5 h-5" />
+                    거절/만료 ({invitations.filter(inv => inv.status === 'REJECTED' || inv.status === 'EXPIRED').length}명)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {invitations.filter(inv => inv.status === 'REJECTED' || inv.status === 'EXPIRED').map((invitation) => (
+                      <div key={invitation.id} className="flex items-center space-x-4 p-4 bg-gray-100 rounded-lg opacity-60">
+                        <Avatar className="w-12 h-12 bg-gray-200">
+                          <AvatarFallback className="bg-gray-200 text-gray-500">
+                            {invitation.name?.[0] || invitation.invitedEmail[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h3 className="font-medium text-gray-600">
+                              {invitation.name || invitation.invitedEmail}
+                            </h3>
+                            <Badge variant="outline" className="text-xs bg-gray-200 text-gray-500">
+                              {invitation.status === 'REJECTED' ? '거절됨' : '만료됨'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-400">{invitation.invitedEmail}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Role Permissions Info */}
             <Card>
@@ -2894,8 +2993,8 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
                     <span>일정 편집, 사진 업로드, 체크리스트 관리</span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Badge variant="outline">뷰어</Badge>
-                    <span>조회만 가능</span>
+                    <Badge variant="outline">멤버</Badge>
+                    <span>조회 및 기본 참여</span>
                   </div>
                 </div>
               </CardContent>

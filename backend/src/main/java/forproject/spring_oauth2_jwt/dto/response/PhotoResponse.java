@@ -29,7 +29,7 @@ public class PhotoResponse {
                 .thumbnailUrl(photo.getThumbnailUrl())
                 .likesCount(photo.getLikesCount())
                 .userId(photo.getUserId())
-                .userName(user != null ? user.getUsername() : "Unknown")
+                .userName(user.getName())
                 .createdAt(photo.getCreatedAt())
                 .build();
     }

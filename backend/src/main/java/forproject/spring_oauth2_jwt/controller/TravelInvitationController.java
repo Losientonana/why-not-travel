@@ -1,11 +1,9 @@
 package forproject.spring_oauth2_jwt.controller;
 
 
+import forproject.spring_oauth2_jwt.dto.ApiResponse;
 import forproject.spring_oauth2_jwt.dto.UserPrincipal;
-import forproject.spring_oauth2_jwt.dto.response.InvitationAcceptResponse;
-import forproject.spring_oauth2_jwt.dto.response.InvitationDetailResponse;
-import forproject.spring_oauth2_jwt.dto.response.InvitationRejectResponse;
-import forproject.spring_oauth2_jwt.dto.response.InvitationResponse;
+import forproject.spring_oauth2_jwt.dto.response.*;
 import forproject.spring_oauth2_jwt.entity.TravelInvitation;
 import forproject.spring_oauth2_jwt.service.TravelInvitationService;
 import lombok.RequiredArgsConstructor;
@@ -89,6 +87,19 @@ public class TravelInvitationController {
                 travelInvitationService.rejectInvitation(token, user.getId());
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 여행의 초대 현황 조회
+     * GET /api/invitations/{tripId}
+     */
+    @GetMapping("/{tripId}")
+    public ResponseEntity<ApiResponse<List<InvitationStatusResponse>>> getTravelInvitations(
+            @PathVariable Long tripId,
+            @AuthenticationPrincipal UserPrincipal user
+    ){
+        List<InvitationStatusResponse> invitations = travelInvitationService.getTripInvitations(tripId, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(invitations));
     }
 
 }

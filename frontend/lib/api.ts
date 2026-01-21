@@ -206,6 +206,7 @@ import {
   InvitationAcceptResponse,
   InvitationRejectResponse,
   InvitationResponse,
+  TripInvitationStatus,
   AppNotification,
   SharedFund,
   SharedFundTransaction,
@@ -448,6 +449,12 @@ export const rejectInvitation = async (token: string): Promise<InvitationRejectR
 export const getMyInvitations = async (): Promise<InvitationResponse[]> => {
   const response = await api.get('/api/invitations/my');
   return response.data;
+};
+
+// 특정 여행의 초대 현황 조회 (동행자 관리용)
+export const getTripInvitations = async (tripId: number): Promise<TripInvitationStatus[]> => {
+  const response = await api.get(`/api/invitations/${tripId}`);
+  return response.data.data;
 };
 
 // ============================================

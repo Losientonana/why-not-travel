@@ -157,6 +157,14 @@ export interface InvitationResponse {
   expiresAt: string
 }
 
+// 여행별 초대 현황 (동행자 관리용)
+export interface TripInvitationStatus {
+  id: number
+  invitedEmail: string
+  name: string | null  // 회원인 경우 이름, 비회원은 null
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
+}
+
 // ============================================
 // 알림(Notification) 관련 타입
 // ============================================

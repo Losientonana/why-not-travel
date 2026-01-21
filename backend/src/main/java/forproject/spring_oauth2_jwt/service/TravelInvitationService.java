@@ -1,9 +1,7 @@
 package forproject.spring_oauth2_jwt.service;
 
-import forproject.spring_oauth2_jwt.dto.response.InvitationAcceptResponse;
-import forproject.spring_oauth2_jwt.dto.response.InvitationDetailResponse;
-import forproject.spring_oauth2_jwt.dto.response.InvitationRejectResponse;
-import forproject.spring_oauth2_jwt.dto.response.InvitationResponse;
+import forproject.spring_oauth2_jwt.annotation.RequiresTripParticipant;
+import forproject.spring_oauth2_jwt.dto.response.*;
 import forproject.spring_oauth2_jwt.entity.TravelInvitation;
 import forproject.spring_oauth2_jwt.entity.TravelParticipant;
 import forproject.spring_oauth2_jwt.entity.TravelPlanEntity;
@@ -273,6 +271,38 @@ public class TravelInvitationService {
                             invitation.getInviterId(), "알 수 없음");
 
                     return InvitationResponse.fromEntity(invitation, tripTitle, inviterName);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @RequiresTripParticipant
+    public List<InvitationStatusResponse> getTripInvitations(
+            Long tripId, Long userId
+    ) {
+        List<TravelInvitation> invitations = travelInvitationRepository.findByTripId(tripId);
+
+        // 초대받은 사람 중 회원인 경우 이름 조회
+        List<Long> userIds = invitations.stream()
+                .filter(inv -> inv.getUserId() != null)
+                .map(TravelInvitation::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, String> userNameMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserEntity::getId, UserEntity::getName));
+
+        return invitations.stream()
+                .map(inv -> {
+                    String name = null;
+                    if (inv.getUserId() != null) {
+                        name = userNameMap.get(inv.getUserId());
+                    }
+                    return new InvitationStatusResponse(
+                            inv.getId(),
+                            inv.getInvitedEmail(),
+                            name,
+                            inv.getStatus()
+                    );
                 })
                 .collect(Collectors.toList());
     }
