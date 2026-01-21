@@ -31,4 +31,6 @@ public interface TravelInvitationRepository extends JpaRepository<TravelInvitati
      * 특정 이메일로 온 PENDING 상태 초대 조회 (가입 후 알림 생성용)
      */
     List<TravelInvitation> findByInvitedEmailAndStatus(String email, InvitationStatus status);
+
+    List<TravelInvitation> findByTripId(Long tripId);
 }

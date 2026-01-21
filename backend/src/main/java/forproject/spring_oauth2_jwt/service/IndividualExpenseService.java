@@ -146,8 +146,14 @@ public class IndividualExpenseService {
         log.info("전체 지출 조회 - tripId: {}, userId: {}", tripId, userId);
 
         // 1. Fetch Join으로 expense + participants 한 번에 조회
+        // 개인지출은 본인 것만, 공유지출은 전체 조회
         List<IndividualExpense> expenses = individualExpenseRepository
-                .findByTripIdWithParticipants(tripId);
+                .findByTripIdWithParticipants(tripId)
+                .stream()
+                .filter(expense ->
+                    expense.getExpenseType() == ExpenseType.PARTIAL_SHARED ||
+                    expense.getCreatedBy().equals(userId))
+                .collect(Collectors.toList());
 
         // 2. 필요한 모든 userId 수집
         List<Long> userIds = collectUserIds(expenses);
@@ -169,7 +175,10 @@ public class IndividualExpenseService {
         log.info("개인지출 조회 - tripId: {}, userId: {}", tripId, userId);
 
         List<IndividualExpense> expenses = individualExpenseRepository
-                .findByTripIdAndExpenseTypeWithParticipants(tripId, ExpenseType.PERSONAL);
+                .findByTripIdAndExpenseTypeWithParticipants(tripId, ExpenseType.PERSONAL)
+                .stream()
+                .filter(expense -> expense.getCreatedBy().equals(userId))
+                .collect(Collectors.toList());
 
         List<Long> userIds = collectUserIds(expenses);
         Map<Long, UserEntity> userMap = getUserMap(userIds);

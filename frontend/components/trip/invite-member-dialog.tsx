@@ -20,9 +20,10 @@ import { useToast } from '@/components/ui/use-toast';
 interface InviteMemberDialogProps {
   tripId: number;
   tripTitle: string;
+  onInviteSuccess?: () => void;
 }
 
-export function InviteMemberDialog({ tripId, tripTitle }: InviteMemberDialogProps) {
+export function InviteMemberDialog({ tripId, tripTitle, onInviteSuccess }: InviteMemberDialogProps) {
   const [open, setOpen] = useState(false);
   const [emails, setEmails] = useState<string[]>(['']);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,6 +84,9 @@ export function InviteMemberDialog({ tripId, tripTitle }: InviteMemberDialogProp
       // 초기화
       setEmails(['']);
       setOpen(false);
+
+      // 콜백 호출
+      onInviteSuccess?.();
     } catch (error: any) {
       console.error('❌ [InviteMemberDialog] 초대 실패:', error);
       toast({
