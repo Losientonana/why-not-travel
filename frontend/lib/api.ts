@@ -626,3 +626,44 @@ export const getTripOverview = async (tripId: number) => {
   const response = await api.get(`/api/trips/${tripId}/overview`);
   return response.data.data;
 };
+
+// ============================================
+// 예약(Reservation) 관련 API
+// ============================================
+
+import type { Reservation, ReservationSummary } from './types';
+
+// 예약 목록 조회
+export const getReservations = async (tripId: number): Promise<Reservation[]> => {
+  const response = await api.get(`/api/trips/${tripId}/reservations`);
+  return response.data.data;
+};
+
+// 단일 예약 조회
+export const getReservation = async (tripId: number, reservationId: number): Promise<Reservation> => {
+  const response = await api.get(`/api/trips/${tripId}/reservations/${reservationId}`);
+  return response.data.data;
+};
+
+// 예약 생성
+export const createReservation = async (tripId: number, data: Partial<Reservation>): Promise<Reservation> => {
+  const response = await api.post(`/api/trips/${tripId}/reservations`, data);
+  return response.data.data;
+};
+
+// 예약 수정
+export const updateReservation = async (tripId: number, reservationId: number, data: Partial<Reservation>): Promise<Reservation> => {
+  const response = await api.put(`/api/trips/${tripId}/reservations/${reservationId}`, data);
+  return response.data.data;
+};
+
+// 예약 삭제
+export const deleteReservation = async (tripId: number, reservationId: number): Promise<void> => {
+  await api.delete(`/api/trips/${tripId}/reservations/${reservationId}`);
+};
+
+// 예약 요약 조회
+export const getReservationSummary = async (tripId: number): Promise<ReservationSummary> => {
+  const response = await api.get(`/api/trips/${tripId}/reservations/summary`);
+  return response.data.data;
+};

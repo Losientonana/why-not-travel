@@ -13,6 +13,7 @@ import forproject.spring_oauth2_jwt.repository.IndividualExpenseRepository;
 import forproject.spring_oauth2_jwt.repository.SharedFundRepository;
 import forproject.spring_oauth2_jwt.repository.SharedFundTradeRepository;
 import forproject.spring_oauth2_jwt.repository.UserRepository;
+import forproject.spring_oauth2_jwt.repository.TravelParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ public class StatisticsService {
     private final SharedFundRepository sharedFundRepository;
     private final SharedFundTradeRepository sharedFundTradeRepository;
     private final UserRepository userRepository;
+    private final TravelParticipantRepository travelParticipantRepository;
 
     /**
      * 지출 통계 조회
@@ -130,8 +132,8 @@ public class StatisticsService {
 
         long totalExpense = individualTotal + sharedTotal;
 
-        // 참가자 수
-        long participantCount = expenseParticipantRepository.countDistinctUserIdsByTripId(tripId);
+        // 참가자 수 (여행 참가자 전체 기준)
+        long participantCount = travelParticipantRepository.countByTripId(tripId);
 
         return participantCount > 0 ? totalExpense / participantCount : 0L;
     }
