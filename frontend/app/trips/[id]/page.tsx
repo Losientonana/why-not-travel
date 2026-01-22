@@ -3004,7 +3004,7 @@ export default function TripDetailPage({ params }: { params: { id: string } }) {
 
           {/* Reservations Tab */}
           <TabsContent value="reservations" className="space-y-6">
-            <ReservationTabs />
+            <ReservationTabs tripId={Number(params.id)} />
           </TabsContent>
         </Tabs>
           </div>
