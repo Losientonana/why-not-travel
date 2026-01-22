@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { createReservation, updateReservation } from "@/lib/api"
 import type { ReservationType, ReservationStatus, Reservation } from "@/lib/types"
 import { toast } from "sonner"
@@ -47,12 +48,22 @@ export default function ReservationRegistrationModal({ tripId, open, onOpenChang
   const [airline, setAirline] = useState("")
   const [departureAirport, setDepartureAirport] = useState("")
   const [arrivalAirport, setArrivalAirport] = useState("")
+  const [checkedBaggageEnabled, setCheckedBaggageEnabled] = useState(false)
+  const [checkedBaggageWeight, setCheckedBaggageWeight] = useState("")
+  const [carryOnBaggageEnabled, setCarryOnBaggageEnabled] = useState(false)
+  const [carryOnBaggageWeight, setCarryOnBaggageWeight] = useState("")
+  const [flightDuration, setFlightDuration] = useState("")
+  const [checkInDeadline, setCheckInDeadline] = useState("")
+  const [seatAssigned, setSeatAssigned] = useState(false)
+  const [seatNumber, setSeatNumber] = useState("")
 
   // 숙박 전용
   const [checkInTime, setCheckInTime] = useState("")
   const [checkOutTime, setCheckOutTime] = useState("")
   const [roomType, setRoomType] = useState("")
   const [guestCount, setGuestCount] = useState("")
+  const [hotelPhone, setHotelPhone] = useState("")
+  const [breakfastIncluded, setBreakfastIncluded] = useState(false)
 
   // 식당 전용
   const [reservationTime, setReservationTime] = useState("")
@@ -60,6 +71,13 @@ export default function ReservationRegistrationModal({ tripId, open, onOpenChang
 
   // 교통 전용
   const [transportType, setTransportType] = useState<"bus" | "train" | "subway" | "taxi" | "rental">("bus")
+
+  // 기차 전용
+  const [departureStation, setDepartureStation] = useState("")
+  const [arrivalStation, setArrivalStation] = useState("")
+  const [trainDuration, setTrainDuration] = useState("")
+  const [trainSeatNumber, setTrainSeatNumber] = useState("")
+  const [trainSeatClass, setTrainSeatClass] = useState("")
 
   // 수정 모드일 때 초기값 로드
   useEffect(() => {
@@ -83,11 +101,21 @@ export default function ReservationRegistrationModal({ tripId, open, onOpenChang
       setAirline(reservation.airline || "")
       setDepartureAirport(reservation.departureAirport || "")
       setArrivalAirport(reservation.arrivalAirport || "")
+      setCheckedBaggageEnabled(reservation.checkedBaggageEnabled || false)
+      setCheckedBaggageWeight(reservation.checkedBaggageWeight?.toString() || "")
+      setCarryOnBaggageEnabled(reservation.carryOnBaggageEnabled || false)
+      setCarryOnBaggageWeight(reservation.carryOnBaggageWeight?.toString() || "")
+      setFlightDuration(reservation.flightDuration?.toString() || "")
+      setCheckInDeadline(reservation.checkInDeadline?.substring(0, 5) || "")
+      setSeatAssigned(reservation.seatAssigned || false)
+      setSeatNumber(reservation.seatNumber || "")
       // 숙박
       setCheckInTime(reservation.checkInTime?.substring(0, 5) || "")
       setCheckOutTime(reservation.checkOutTime?.substring(0, 5) || "")
       setRoomType(reservation.roomType || "")
       setGuestCount(reservation.guestCount?.toString() || "")
+      setHotelPhone(reservation.hotelPhone || "")
+      setBreakfastIncluded(reservation.breakfastIncluded || false)
       // 식당
       setReservationTime(reservation.reservationTime?.substring(0, 5) || "")
       setPartySize(reservation.partySize?.toString() || "")
@@ -95,6 +123,12 @@ export default function ReservationRegistrationModal({ tripId, open, onOpenChang
       if (reservation.transportType) {
         setTransportType(reservation.transportType.toLowerCase() as any)
       }
+      // 기차
+      setDepartureStation(reservation.departureStation || "")
+      setArrivalStation(reservation.arrivalStation || "")
+      setTrainDuration(reservation.trainDuration?.toString() || "")
+      setTrainSeatNumber(reservation.trainSeatNumber || "")
+      setTrainSeatClass(reservation.trainSeatClass || "")
     } else if (open && !reservation) {
       resetForm()
     }
@@ -115,17 +149,37 @@ export default function ReservationRegistrationModal({ tripId, open, onOpenChang
     setBookingPlatform("")
     setBookingUrl("")
     setNotes("")
+    // 항공
     setFlightNumber("")
     setAirline("")
     setDepartureAirport("")
     setArrivalAirport("")
+    setCheckedBaggageEnabled(false)
+    setCheckedBaggageWeight("")
+    setCarryOnBaggageEnabled(false)
+    setCarryOnBaggageWeight("")
+    setFlightDuration("")
+    setCheckInDeadline("")
+    setSeatAssigned(false)
+    setSeatNumber("")
+    // 숙소
     setCheckInTime("")
     setCheckOutTime("")
     setRoomType("")
     setGuestCount("")
+    setHotelPhone("")
+    setBreakfastIncluded(false)
+    // 식당
     setReservationTime("")
     setPartySize("")
+    // 교통
     setTransportType("bus")
+    // 기차
+    setDepartureStation("")
+    setArrivalStation("")
+    setTrainDuration("")
+    setTrainSeatNumber("")
+    setTrainSeatClass("")
     setErrorMessage(null)
   }
 
@@ -167,16 +221,34 @@ export default function ReservationRegistrationModal({ tripId, open, onOpenChang
         data.airline = airline || undefined
         data.departureAirport = departureAirport || undefined
         data.arrivalAirport = arrivalAirport || undefined
+        data.checkedBaggageEnabled = checkedBaggageEnabled || undefined
+        data.checkedBaggageWeight = checkedBaggageEnabled && checkedBaggageWeight ? Number(checkedBaggageWeight) : undefined
+        data.carryOnBaggageEnabled = carryOnBaggageEnabled || undefined
+        data.carryOnBaggageWeight = carryOnBaggageEnabled && carryOnBaggageWeight ? Number(carryOnBaggageWeight) : undefined
+        data.flightDuration = flightDuration ? Number(flightDuration) : undefined
+        data.checkInDeadline = checkInDeadline || undefined
+        data.seatAssigned = seatAssigned || undefined
+        data.seatNumber = seatAssigned && seatNumber ? seatNumber : undefined
       } else if (type === "accommodation") {
         data.checkInTime = checkInTime || undefined
         data.checkOutTime = checkOutTime || undefined
         data.roomType = roomType || undefined
         data.guestCount = guestCount ? Number(guestCount) : undefined
+        data.hotelPhone = hotelPhone || undefined
+        data.breakfastIncluded = breakfastIncluded || undefined
       } else if (type === "restaurant") {
         data.reservationTime = reservationTime || undefined
         data.partySize = partySize ? Number(partySize) : undefined
       } else if (type === "transport") {
         data.transportType = transportType
+        // 기차 전용
+        if (transportType === "train") {
+          data.departureStation = departureStation || undefined
+          data.arrivalStation = arrivalStation || undefined
+          data.trainDuration = trainDuration ? Number(trainDuration) : undefined
+          data.trainSeatNumber = trainSeatNumber || undefined
+          data.trainSeatClass = trainSeatClass || undefined
+        }
       }
 
       if (isEditMode && reservation) {
@@ -369,6 +441,69 @@ export default function ReservationRegistrationModal({ tripId, open, onOpenChang
                   <Input placeholder="KIX" value={arrivalAirport} onChange={(e) => setArrivalAirport(e.target.value)} />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>비행시간 (분)</Label>
+                  <Input type="number" placeholder="120" value={flightDuration} onChange={(e) => setFlightDuration(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>수속마감시간</Label>
+                  <Input type="time" value={checkInDeadline} onChange={(e) => setCheckInDeadline(e.target.value)} />
+                </div>
+              </div>
+              {/* 수하물 */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={checkedBaggageEnabled}
+                    onCheckedChange={(checked) => setCheckedBaggageEnabled(checked === true)}
+                  />
+                  <Label className="font-normal">위탁수화물</Label>
+                  {checkedBaggageEnabled && (
+                    <Input
+                      type="number"
+                      placeholder="23"
+                      className="w-20"
+                      value={checkedBaggageWeight}
+                      onChange={(e) => setCheckedBaggageWeight(e.target.value)}
+                    />
+                  )}
+                  {checkedBaggageEnabled && <span className="text-sm text-gray-600">kg</span>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={carryOnBaggageEnabled}
+                    onCheckedChange={(checked) => setCarryOnBaggageEnabled(checked === true)}
+                  />
+                  <Label className="font-normal">기내수화물</Label>
+                  {carryOnBaggageEnabled && (
+                    <Input
+                      type="number"
+                      placeholder="10"
+                      className="w-20"
+                      value={carryOnBaggageWeight}
+                      onChange={(e) => setCarryOnBaggageWeight(e.target.value)}
+                    />
+                  )}
+                  {carryOnBaggageEnabled && <span className="text-sm text-gray-600">kg</span>}
+                </div>
+              </div>
+              {/* 좌석 */}
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={seatAssigned}
+                  onCheckedChange={(checked) => setSeatAssigned(checked === true)}
+                />
+                <Label className="font-normal">좌석 지정</Label>
+                {seatAssigned && (
+                  <Input
+                    placeholder="12A"
+                    className="w-24"
+                    value={seatNumber}
+                    onChange={(e) => setSeatNumber(e.target.value)}
+                  />
+                )}
+              </div>
             </div>
           )}
 
@@ -395,6 +530,17 @@ export default function ReservationRegistrationModal({ tripId, open, onOpenChang
                   <Label>인원수</Label>
                   <Input type="number" placeholder="2" value={guestCount} onChange={(e) => setGuestCount(e.target.value)} />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>숙소 전화번호</Label>
+                <Input placeholder="02-1234-5678" value={hotelPhone} onChange={(e) => setHotelPhone(e.target.value)} />
+              </div>
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={breakfastIncluded}
+                  onCheckedChange={(checked) => setBreakfastIncluded(checked === true)}
+                />
+                <Label className="font-normal">조식 포함</Label>
               </div>
             </div>
           )}
@@ -435,6 +581,44 @@ export default function ReservationRegistrationModal({ tripId, open, onOpenChang
                   </SelectContent>
                 </Select>
               </div>
+              {/* 기차 전용 필드 */}
+              {transportType === "train" && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>출발역</Label>
+                      <Input placeholder="서울역" value={departureStation} onChange={(e) => setDepartureStation(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>도착역</Label>
+                      <Input placeholder="부산역" value={arrivalStation} onChange={(e) => setArrivalStation(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>소요시간 (분)</Label>
+                    <Input type="number" placeholder="150" value={trainDuration} onChange={(e) => setTrainDuration(e.target.value)} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>좌석번호</Label>
+                      <Input placeholder="7호차 12A" value={trainSeatNumber} onChange={(e) => setTrainSeatNumber(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>좌석등급</Label>
+                      <Select value={trainSeatClass} onValueChange={setTrainSeatClass}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="일반석">일반석</SelectItem>
+                          <SelectItem value="특실">특실</SelectItem>
+                          <SelectItem value="우등">우등</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

@@ -66,12 +66,22 @@ public class ReservationCreateRequest {
     private String airline;
     private String departureAirport;
     private String arrivalAirport;
+    private Boolean checkedBaggageEnabled;
+    private Integer checkedBaggageWeight;
+    private Boolean carryOnBaggageEnabled;
+    private Integer carryOnBaggageWeight;
+    private Integer flightDuration;
+    private LocalTime checkInDeadline;
+    private Boolean seatAssigned;
+    private String seatNumber;
 
     // 숙소 전용
     private LocalTime checkInTime;
     private LocalTime checkOutTime;
     private String roomType;
     private Integer guestCount;
+    private String hotelPhone;
+    private Boolean breakfastIncluded;
 
     // 레스토랑 전용
     private LocalTime reservationTime;
@@ -81,4 +91,11 @@ public class ReservationCreateRequest {
     private String transportType;
     private String pickupAddress;
     private String dropoffAddress;
+
+    // 기차 전용
+    private String departureStation;
+    private String arrivalStation;
+    private Integer trainDuration;
+    private String trainSeatNumber;
+    private String trainSeatClass;
 }

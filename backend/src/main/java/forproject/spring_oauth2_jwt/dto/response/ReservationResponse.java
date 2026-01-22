@@ -48,12 +48,22 @@ public class ReservationResponse {
     private String airline;
     private String departureAirport;
     private String arrivalAirport;
+    private Boolean checkedBaggageEnabled;
+    private Integer checkedBaggageWeight;
+    private Boolean carryOnBaggageEnabled;
+    private Integer carryOnBaggageWeight;
+    private Integer flightDuration;
+    private LocalTime checkInDeadline;
+    private Boolean seatAssigned;
+    private String seatNumber;
 
     // 숙소 전용
     private LocalTime checkInTime;
     private LocalTime checkOutTime;
     private String roomType;
     private Integer guestCount;
+    private String hotelPhone;
+    private Boolean breakfastIncluded;
 
     // 레스토랑 전용
     private LocalTime reservationTime;
@@ -63,6 +73,13 @@ public class ReservationResponse {
     private String transportType;
     private String pickupAddress;
     private String dropoffAddress;
+
+    // 기차 전용
+    private String departureStation;
+    private String arrivalStation;
+    private Integer trainDuration;
+    private String trainSeatNumber;
+    private String trainSeatClass;
 
     // 메타 정보
     private CreatedByInfo createdBy;
@@ -136,11 +153,21 @@ public class ReservationResponse {
                 .airline(reservation.getAirline())
                 .departureAirport(reservation.getDepartureAirport())
                 .arrivalAirport(reservation.getArrivalAirport())
+                .checkedBaggageEnabled(reservation.getCheckedBaggageEnabled())
+                .checkedBaggageWeight(reservation.getCheckedBaggageWeight())
+                .carryOnBaggageEnabled(reservation.getCarryOnBaggageEnabled())
+                .carryOnBaggageWeight(reservation.getCarryOnBaggageWeight())
+                .flightDuration(reservation.getFlightDuration())
+                .checkInDeadline(reservation.getCheckInDeadline())
+                .seatAssigned(reservation.getSeatAssigned())
+                .seatNumber(reservation.getSeatNumber())
                 // 숙소
                 .checkInTime(reservation.getCheckInTime())
                 .checkOutTime(reservation.getCheckOutTime())
                 .roomType(reservation.getRoomType())
                 .guestCount(reservation.getGuestCount())
+                .hotelPhone(reservation.getHotelPhone())
+                .breakfastIncluded(reservation.getBreakfastIncluded())
                 // 레스토랑
                 .reservationTime(reservation.getReservationTime())
                 .partySize(reservation.getPartySize())
@@ -148,6 +175,12 @@ public class ReservationResponse {
                 .transportType(reservation.getTransportType())
                 .pickupAddress(reservation.getPickupAddress())
                 .dropoffAddress(reservation.getDropoffAddress())
+                // 기차
+                .departureStation(reservation.getDepartureStation())
+                .arrivalStation(reservation.getArrivalStation())
+                .trainDuration(reservation.getTrainDuration())
+                .trainSeatNumber(reservation.getTrainSeatNumber())
+                .trainSeatClass(reservation.getTrainSeatClass())
                 // 메타
                 .createdBy(CreatedByInfo.builder()
                         .userId(reservation.getCreatedBy())

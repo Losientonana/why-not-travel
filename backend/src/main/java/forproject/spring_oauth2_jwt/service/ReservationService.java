@@ -62,11 +62,21 @@ public class ReservationService {
                 .airline(request.getAirline())
                 .departureAirport(request.getDepartureAirport())
                 .arrivalAirport(request.getArrivalAirport())
+                .checkedBaggageEnabled(request.getCheckedBaggageEnabled())
+                .checkedBaggageWeight(request.getCheckedBaggageWeight())
+                .carryOnBaggageEnabled(request.getCarryOnBaggageEnabled())
+                .carryOnBaggageWeight(request.getCarryOnBaggageWeight())
+                .flightDuration(request.getFlightDuration())
+                .checkInDeadline(request.getCheckInDeadline())
+                .seatAssigned(request.getSeatAssigned())
+                .seatNumber(request.getSeatNumber())
                 // 숙소
                 .checkInTime(request.getCheckInTime())
                 .checkOutTime(request.getCheckOutTime())
                 .roomType(request.getRoomType())
                 .guestCount(request.getGuestCount())
+                .hotelPhone(request.getHotelPhone())
+                .breakfastIncluded(request.getBreakfastIncluded())
                 // 레스토랑
                 .reservationTime(request.getReservationTime())
                 .partySize(request.getPartySize())
@@ -74,6 +84,12 @@ public class ReservationService {
                 .transportType(request.getTransportType())
                 .pickupAddress(request.getPickupAddress())
                 .dropoffAddress(request.getDropoffAddress())
+                // 기차
+                .departureStation(request.getDepartureStation())
+                .arrivalStation(request.getArrivalStation())
+                .trainDuration(request.getTrainDuration())
+                .trainSeatNumber(request.getTrainSeatNumber())
+                .trainSeatClass(request.getTrainSeatClass())
                 // 메타
                 .createdBy(userId)
                 .build();
@@ -183,11 +199,21 @@ public class ReservationService {
         if (request.getAirline() != null) reservation.setAirline(request.getAirline());
         if (request.getDepartureAirport() != null) reservation.setDepartureAirport(request.getDepartureAirport());
         if (request.getArrivalAirport() != null) reservation.setArrivalAirport(request.getArrivalAirport());
+        if (request.getCheckedBaggageEnabled() != null) reservation.setCheckedBaggageEnabled(request.getCheckedBaggageEnabled());
+        if (request.getCheckedBaggageWeight() != null) reservation.setCheckedBaggageWeight(request.getCheckedBaggageWeight());
+        if (request.getCarryOnBaggageEnabled() != null) reservation.setCarryOnBaggageEnabled(request.getCarryOnBaggageEnabled());
+        if (request.getCarryOnBaggageWeight() != null) reservation.setCarryOnBaggageWeight(request.getCarryOnBaggageWeight());
+        if (request.getFlightDuration() != null) reservation.setFlightDuration(request.getFlightDuration());
+        if (request.getCheckInDeadline() != null) reservation.setCheckInDeadline(request.getCheckInDeadline());
+        if (request.getSeatAssigned() != null) reservation.setSeatAssigned(request.getSeatAssigned());
+        if (request.getSeatNumber() != null) reservation.setSeatNumber(request.getSeatNumber());
         // 숙소
         if (request.getCheckInTime() != null) reservation.setCheckInTime(request.getCheckInTime());
         if (request.getCheckOutTime() != null) reservation.setCheckOutTime(request.getCheckOutTime());
         if (request.getRoomType() != null) reservation.setRoomType(request.getRoomType());
         if (request.getGuestCount() != null) reservation.setGuestCount(request.getGuestCount());
+        if (request.getHotelPhone() != null) reservation.setHotelPhone(request.getHotelPhone());
+        if (request.getBreakfastIncluded() != null) reservation.setBreakfastIncluded(request.getBreakfastIncluded());
         // 레스토랑
         if (request.getReservationTime() != null) reservation.setReservationTime(request.getReservationTime());
         if (request.getPartySize() != null) reservation.setPartySize(request.getPartySize());
@@ -195,6 +221,12 @@ public class ReservationService {
         if (request.getTransportType() != null) reservation.setTransportType(request.getTransportType());
         if (request.getPickupAddress() != null) reservation.setPickupAddress(request.getPickupAddress());
         if (request.getDropoffAddress() != null) reservation.setDropoffAddress(request.getDropoffAddress());
+        // 기차
+        if (request.getDepartureStation() != null) reservation.setDepartureStation(request.getDepartureStation());
+        if (request.getArrivalStation() != null) reservation.setArrivalStation(request.getArrivalStation());
+        if (request.getTrainDuration() != null) reservation.setTrainDuration(request.getTrainDuration());
+        if (request.getTrainSeatNumber() != null) reservation.setTrainSeatNumber(request.getTrainSeatNumber());
+        if (request.getTrainSeatClass() != null) reservation.setTrainSeatClass(request.getTrainSeatClass());
 
         Reservation updated = reservationRepository.save(reservation);
         log.info("예약 수정 완료 - reservationId: {}", updated.getId());

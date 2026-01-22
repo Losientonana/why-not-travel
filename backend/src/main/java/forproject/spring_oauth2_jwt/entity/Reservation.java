@@ -113,6 +113,30 @@ public class Reservation {
     @Column(name = "arrival_airport", length = 10)
     private String arrivalAirport;
 
+    @Column(name = "checked_baggage_enabled")
+    private Boolean checkedBaggageEnabled;
+
+    @Column(name = "checked_baggage_weight")
+    private Integer checkedBaggageWeight; // kg
+
+    @Column(name = "carry_on_baggage_enabled")
+    private Boolean carryOnBaggageEnabled;
+
+    @Column(name = "carry_on_baggage_weight")
+    private Integer carryOnBaggageWeight; // kg
+
+    @Column(name = "flight_duration")
+    private Integer flightDuration; // 분 단위
+
+    @Column(name = "check_in_deadline")
+    private LocalTime checkInDeadline; // 수속마감시간
+
+    @Column(name = "seat_assigned")
+    private Boolean seatAssigned;
+
+    @Column(name = "seat_number", length = 10)
+    private String seatNumber;
+
     // ========== 숙소 전용 필드 ==========
 
     @Column(name = "check_in_time")
@@ -126,6 +150,12 @@ public class Reservation {
 
     @Column(name = "guest_count")
     private Integer guestCount;
+
+    @Column(name = "hotel_phone", length = 30)
+    private String hotelPhone;
+
+    @Column(name = "breakfast_included")
+    private Boolean breakfastIncluded;
 
     // ========== 레스토랑 전용 필드 ==========
 
@@ -145,6 +175,22 @@ public class Reservation {
 
     @Column(name = "dropoff_address", length = 300)
     private String dropoffAddress;
+
+    // 기차 전용 필드
+    @Column(name = "departure_station", length = 50)
+    private String departureStation;
+
+    @Column(name = "arrival_station", length = 50)
+    private String arrivalStation;
+
+    @Column(name = "train_duration")
+    private Integer trainDuration; // 분 단위
+
+    @Column(name = "train_seat_number", length = 20)
+    private String trainSeatNumber;
+
+    @Column(name = "train_seat_class", length = 20)
+    private String trainSeatClass; // 일반석, 특실 등
 
     // ========== 메타 정보 ==========
 

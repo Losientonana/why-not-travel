@@ -458,11 +458,21 @@ export interface Reservation {
   airline?: string
   departureAirport?: string
   arrivalAirport?: string
+  checkedBaggageEnabled?: boolean
+  checkedBaggageWeight?: number // kg
+  carryOnBaggageEnabled?: boolean
+  carryOnBaggageWeight?: number // kg
+  flightDuration?: number // 분 단위
+  checkInDeadline?: string // HH:mm
+  seatAssigned?: boolean
+  seatNumber?: string
   // For accommodations
   checkInTime?: string
   checkOutTime?: string
   roomType?: string
   guestCount?: number
+  hotelPhone?: string
+  breakfastIncluded?: boolean
   // For restaurants
   reservationTime?: string
   partySize?: number
@@ -470,6 +480,12 @@ export interface Reservation {
   transportType?: "bus" | "train" | "subway" | "taxi" | "rental"
   pickupLocation?: Location
   dropoffLocation?: Location
+  // For train
+  departureStation?: string
+  arrivalStation?: string
+  trainDuration?: number // 분 단위
+  trainSeatNumber?: string
+  trainSeatClass?: string // 일반석, 특실 등
 }
 
 export interface ReservationSummary {

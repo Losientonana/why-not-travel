@@ -398,13 +398,20 @@ export default function ReservationTabs({ tripId }: Props) {
 
                     {/* Transport specific info */}
                     {normalizeType(reservation.type) === "transport" && reservation.transportType && (
-                      <Badge variant="outline" className="mt-2">
-                        {reservation.transportType.toLowerCase() === "bus" && "버스"}
-                        {reservation.transportType.toLowerCase() === "train" && "기차"}
-                        {reservation.transportType.toLowerCase() === "subway" && "지하철"}
-                        {reservation.transportType.toLowerCase() === "taxi" && "택시"}
-                        {reservation.transportType.toLowerCase() === "rental" && "렌터카"}
-                      </Badge>
+                      <div className="flex items-center space-x-4 text-sm mt-2">
+                        <Badge variant="outline">
+                          {reservation.transportType.toLowerCase() === "bus" && "버스"}
+                          {reservation.transportType.toLowerCase() === "train" && "기차"}
+                          {reservation.transportType.toLowerCase() === "subway" && "지하철"}
+                          {reservation.transportType.toLowerCase() === "taxi" && "택시"}
+                          {reservation.transportType.toLowerCase() === "rental" && "렌터카"}
+                        </Badge>
+                        {reservation.transportType.toLowerCase() === "train" && reservation.departureStation && reservation.arrivalStation && (
+                          <span className="text-gray-600">
+                            {reservation.departureStation} → {reservation.arrivalStation}
+                          </span>
+                        )}
+                      </div>
                     )}
 
                     {/* Confirmation Number */}
@@ -527,6 +534,21 @@ export default function ReservationTabs({ tripId }: Props) {
                   {selectedReservation.departureAirport && selectedReservation.arrivalAirport && (
                     <p className="text-sm">경로: {selectedReservation.departureAirport} → {selectedReservation.arrivalAirport}</p>
                   )}
+                  {selectedReservation.flightDuration && (
+                    <p className="text-sm">비행시간: {Math.floor(selectedReservation.flightDuration / 60)}시간 {selectedReservation.flightDuration % 60}분</p>
+                  )}
+                  {selectedReservation.checkInDeadline && (
+                    <p className="text-sm">수속마감: {formatTime(selectedReservation.checkInDeadline)}</p>
+                  )}
+                  {selectedReservation.checkedBaggageEnabled && (
+                    <p className="text-sm">위탁수화물: {selectedReservation.checkedBaggageWeight || '-'}kg</p>
+                  )}
+                  {selectedReservation.carryOnBaggageEnabled && (
+                    <p className="text-sm">기내수화물: {selectedReservation.carryOnBaggageWeight || '-'}kg</p>
+                  )}
+                  {selectedReservation.seatAssigned && selectedReservation.seatNumber && (
+                    <p className="text-sm">좌석: {selectedReservation.seatNumber}</p>
+                  )}
                 </div>
               )}
 
@@ -538,6 +560,8 @@ export default function ReservationTabs({ tripId }: Props) {
                   {selectedReservation.guestCount && <p className="text-sm">인원: {selectedReservation.guestCount}명</p>}
                   {selectedReservation.checkInTime && <p className="text-sm">체크인: {formatTime(selectedReservation.checkInTime)}</p>}
                   {selectedReservation.checkOutTime && <p className="text-sm">체크아웃: {formatTime(selectedReservation.checkOutTime)}</p>}
+                  {selectedReservation.hotelPhone && <p className="text-sm">전화번호: {selectedReservation.hotelPhone}</p>}
+                  {selectedReservation.breakfastIncluded && <p className="text-sm">조식 포함</p>}
                 </div>
               )}
 
@@ -554,6 +578,30 @@ export default function ReservationTabs({ tripId }: Props) {
                       selectedReservation.transportType.toLowerCase() === "rental" ? "렌터카" : selectedReservation.transportType
                     }
                   </p>
+                  {/* 기차 전용 정보 */}
+                  {selectedReservation.transportType.toLowerCase() === "train" && (
+                    <>
+                      {selectedReservation.departureStation && selectedReservation.arrivalStation && (
+                        <p className="text-sm">경로: {selectedReservation.departureStation} → {selectedReservation.arrivalStation}</p>
+                      )}
+                      {selectedReservation.trainDuration && (
+                        <p className="text-sm">소요시간: {Math.floor(selectedReservation.trainDuration / 60)}시간 {selectedReservation.trainDuration % 60}분</p>
+                      )}
+                      {selectedReservation.trainSeatClass && (
+                        <p className="text-sm">좌석등급: {selectedReservation.trainSeatClass}</p>
+                      )}
+                      {selectedReservation.trainSeatNumber && (
+                        <p className="text-sm">좌석번호: {selectedReservation.trainSeatNumber}</p>
+                      )}
+                    </>
+                  )}
+                  {/* 픽업/드롭오프 위치 */}
+                  {selectedReservation.pickupLocation?.address && (
+                    <p className="text-sm">픽업: {selectedReservation.pickupLocation.address}</p>
+                  )}
+                  {selectedReservation.dropoffLocation?.address && (
+                    <p className="text-sm">하차: {selectedReservation.dropoffLocation.address}</p>
+                  )}
                 </div>
               )}
 
