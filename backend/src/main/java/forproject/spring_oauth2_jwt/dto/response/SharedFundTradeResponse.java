@@ -15,6 +15,7 @@ public class SharedFundTradeResponse {
     private Long tripId;
     private String type;
     private Long amount;
+    private Long foreignCurrencyAmount;  // 외화 금액 (예: JPY)
     private Long balanceAfter;
     private String description;
     private String category;
@@ -44,6 +45,7 @@ public class SharedFundTradeResponse {
                 .tripId(tripId)
                 .type(trade.getTradeType().name())  // Enum → String
                 .amount(trade.getAmount())
+                .foreignCurrencyAmount(trade.getForeignCurrencyAmount())
                 .balanceAfter(trade.getBalanceAfter())
                 .description(trade.getDescription())
                 .category(trade.getCategory())

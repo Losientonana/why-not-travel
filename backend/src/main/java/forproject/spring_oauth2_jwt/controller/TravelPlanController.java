@@ -559,5 +559,51 @@ public class TravelPlanController {
         }
     }
 
+    /**
+     * 여행 외화 설정 조회
+     * GET /api/trips/{tripId}/currency
+     */
+    @GetMapping("/{tripId}/currency")
+    public ResponseEntity<ApiResponse<CurrencySettingsResponse>> getCurrencySettings(
+            @PathVariable Long tripId,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        log.info("GET /api/trips/{}/currency - userId: {}", tripId, user.getId());
+
+        try {
+            CurrencySettingsResponse response = travelPlanService.getCurrencySettings(tripId, user.getId());
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (Exception e) {
+            log.error("외화 설정 조회 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error("FETCH_FAILED", e.getMessage())
+            );
+        }
+    }
+
+    /**
+     * 여행 외화 설정 저장
+     * PUT /api/trips/{tripId}/currency
+     */
+    @PutMapping("/{tripId}/currency")
+    public ResponseEntity<ApiResponse<CurrencySettingsResponse>> updateCurrencySettings(
+            @PathVariable Long tripId,
+            @RequestBody @Valid CurrencySettingsRequest request,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        log.info("PUT /api/trips/{}/currency - userId: {}, currency: {}, rate: {}",
+                tripId, user.getId(), request.getForeignCurrency(), request.getExchangeRate());
+
+        try {
+            CurrencySettingsResponse response = travelPlanService.updateCurrencySettings(tripId, user.getId(), request);
+            return ResponseEntity.ok(ApiResponse.success(response, "외화 설정이 저장되었습니다."));
+        } catch (Exception e) {
+            log.error("외화 설정 저장 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error("UPDATE_FAILED", e.getMessage())
+            );
+        }
+    }
+
 }
 
