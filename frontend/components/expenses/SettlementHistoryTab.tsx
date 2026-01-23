@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowRight, Loader2, TrendingDown, TrendingUp, Lightbulb, Check, X } from "lucide-react"
-import { BalanceSummaryResponse, SettlementListResponse, SettlementResponse } from "@/lib/types"
+import { BalanceSummaryResponse, SettlementListResponse, SettlementResponse, CurrencySettings } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-context"
-import { getBalanceSummary, getSettlements, createSettlement, approveSettlement, rejectSettlement } from "@/lib/api"
+import { getBalanceSummary, getSettlements, createSettlement, approveSettlement, rejectSettlement, getCurrencySettings } from "@/lib/api"
+import { hasForeignCurrency, convertFromKRW } from "@/lib/currency"
 
 interface SettlementHistoryTabProps {
   tripId: number
@@ -24,6 +25,7 @@ export default function SettlementHistoryTab({ tripId }: SettlementHistoryTabPro
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<SettlementStatusFilter>("ALL")
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [currencySettings, setCurrencySettings] = useState<CurrencySettings | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -32,12 +34,14 @@ export default function SettlementHistoryTab({ tripId }: SettlementHistoryTabPro
   const fetchData = async () => {
     try {
       setLoading(true)
-      const [summaryData, settlementsData] = await Promise.all([
+      const [summaryData, settlementsData, currencyData] = await Promise.all([
         getBalanceSummary(tripId),
-        getSettlements(tripId, statusFilter === "ALL" ? undefined : statusFilter as any)
+        getSettlements(tripId, statusFilter === "ALL" ? undefined : statusFilter as any),
+        getCurrencySettings(tripId).catch(() => null)
       ])
       setSummary(summaryData)
       setSettlements(settlementsData.settlements || [])
+      setCurrencySettings(currencyData)
     } catch (err: any) {
       console.error("정산 데이터 조회 실패:", err)
       setError(err.response?.data?.message || err.message || "데이터를 불러오는데 실패했습니다")
@@ -144,6 +148,11 @@ export default function SettlementHistoryTab({ tripId }: SettlementHistoryTabPro
                 {summary.totalToReceive.toLocaleString()}
                 <span className="text-base ml-1">원</span>
               </p>
+              {hasForeignCurrency(currencySettings) && (
+                <p className="text-sm text-green-500 mt-1">
+                  ({currencySettings!.currencySymbol}{convertFromKRW(summary.totalToReceive, currencySettings!.exchangeRate!).toLocaleString()})
+                </p>
+              )}
             </div>
             <div className="bg-white rounded-lg p-4 text-center shadow-sm">
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -154,6 +163,11 @@ export default function SettlementHistoryTab({ tripId }: SettlementHistoryTabPro
                 {summary.totalToPay.toLocaleString()}
                 <span className="text-base ml-1">원</span>
               </p>
+              {hasForeignCurrency(currencySettings) && (
+                <p className="text-sm text-red-500 mt-1">
+                  ({currencySettings!.currencySymbol}{convertFromKRW(summary.totalToPay, currencySettings!.exchangeRate!).toLocaleString()})
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -249,18 +263,31 @@ export default function SettlementHistoryTab({ tripId }: SettlementHistoryTabPro
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <p
-                          className={`text-2xl font-bold ${
-                            isMyTransaction
-                              ? isMySending
-                                ? "text-red-600"
-                                : "text-green-600"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {plan.amount.toLocaleString()}
-                          <span className="text-sm ml-1">원</span>
-                        </p>
+                        <div className="text-right">
+                          <p
+                            className={`text-2xl font-bold ${
+                              isMyTransaction
+                                ? isMySending
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            {plan.amount.toLocaleString()}
+                            <span className="text-sm ml-1">원</span>
+                          </p>
+                          {hasForeignCurrency(currencySettings) && (
+                            <p className={`text-sm ${
+                              isMyTransaction
+                                ? isMySending
+                                  ? "text-red-500"
+                                  : "text-green-500"
+                                : "text-gray-500"
+                            }`}>
+                              ({currencySettings!.currencySymbol}{convertFromKRW(plan.amount, currencySettings!.exchangeRate!).toLocaleString()})
+                            </p>
+                          )}
+                        </div>
                         {isMyTransaction && (
                           <div className="flex gap-2">
                             {isMySending && (
@@ -368,6 +395,11 @@ export default function SettlementHistoryTab({ tripId }: SettlementHistoryTabPro
                         </div>
                         <p className="text-2xl font-bold text-gray-900">
                           {settlement.amount.toLocaleString()}원
+                          {hasForeignCurrency(currencySettings) && (
+                            <span className="text-sm text-gray-500 font-normal ml-2">
+                              ({currencySettings!.currencySymbol}{convertFromKRW(settlement.amount, currencySettings!.exchangeRate!).toLocaleString()})
+                            </span>
+                          )}
                         </p>
                         {settlement.memo && (
                           <p className="text-sm text-gray-600 mt-1">{settlement.memo}</p>

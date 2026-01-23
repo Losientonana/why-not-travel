@@ -48,6 +48,7 @@ export interface SharedFundTransaction {
   tripId: number
   type: "DEPOSIT" | "EXPENSE"
   amount: number
+  foreignCurrencyAmount?: number  // 외화 금액 (예: JPY)
   balanceAfter: number
   description: string
   category?: string
@@ -61,6 +62,7 @@ export interface SharedFundTransaction {
 // 입금 요청
 export interface SharedFundDepositRequest {
   amountPerPerson: number
+  foreignCurrencyAmountPerPerson?: number  // 1인당 외화 금액
   description?: string
 }
 
@@ -69,6 +71,7 @@ export interface SharedFundExpenseRequest {
   date: string  // yyyy-MM-dd
   category: string
   amount: number
+  foreignCurrencyAmount?: number  // 외화 금액
   description: string
 }
 
@@ -204,6 +207,7 @@ export interface SharedFundTransaction {
   tripId: number
   type: "DEPOSIT" | "EXPENSE"
   amount: number
+  foreignCurrencyAmount?: number  // 외화 금액 (예: JPY)
   balanceAfter: number
   description: string
   category?: string
@@ -227,6 +231,7 @@ export interface IndividualExpense {
   tripId: number
   expenseType: "PERSONAL" | "PARTIAL_SHARED"
   totalAmount: number
+  foreignCurrencyAmount?: number  // 외화 금액 (예: JPY)
   description: string
   category: string
   date: string
@@ -545,3 +550,19 @@ export interface Photo {
 
 // Settlement 별칭 (SettlementResponse와 동일)
 export type Settlement = SettlementResponse
+
+// ============================================
+// 외화(Currency) 관련 타입
+// ============================================
+
+export interface CurrencySettings {
+  tripId: number
+  foreignCurrency: string | null  // "JPY", "USD" 등 (null이면 KRW만)
+  exchangeRate: number | null     // 1 외화 = X 원 (예: 9.3 = 1엔당 9.3원)
+  currencySymbol: string          // "¥", "$" 등
+}
+
+export interface CurrencySettingsRequest {
+  foreignCurrency: string | null
+  exchangeRate: number | null
+}

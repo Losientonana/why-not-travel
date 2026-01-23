@@ -120,15 +120,15 @@ export default function Header() {
                         <nav className="flex flex-col space-y-4">
                             {isLoggedIn ? (
                                 <>
-                                    <Link href="/trips">내 여행</Link>
-                                    <Link href="/trip/create">여행 만들기</Link>
-                                    <Link href="/explore">둘러보기</Link>
-                                    <Link href="/profile">마이페이지</Link>
+                                    <Link href="/trips" onClick={() => setIsMenuOpen(false)}>내 여행</Link>
+                                    <Link href="/trip/create" onClick={() => setIsMenuOpen(false)}>여행 만들기</Link>
+                                    <Link href="/explore" onClick={() => setIsMenuOpen(false)}>둘러보기</Link>
+                                    <Link href="/profile" onClick={() => setIsMenuOpen(false)}>마이페이지</Link>
                                 </>
                             ) : (
                                 <>
-                                    <Link href="/login">로그인</Link>
-                                    <Link href="/signup">회원가입</Link>
+                                    <Link href="/login" onClick={() => setIsMenuOpen(false)}>로그인</Link>
+                                    <Link href="/signup" onClick={() => setIsMenuOpen(false)}>회원가입</Link>
                                 </>
                             )}
                         </nav>

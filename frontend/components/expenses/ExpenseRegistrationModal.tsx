@@ -14,14 +14,17 @@ import { useParams } from "next/navigation"
 import { createPersonalExpense, createSharedExpense } from "@/lib/api"
 import { getTripDetail } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { CurrencySettings } from "@/lib/types"
+import { hasForeignCurrency, convertToKRW, convertFromKRW } from "@/lib/currency"
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
+  currencySettings?: CurrencySettings | null
 }
 
-export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess }: Props) {
+export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess, currencySettings }: Props) {
   const { toast } = useToast()
   const params = useParams()
   const tripId = Number(params.id)
@@ -35,11 +38,36 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [category, setCategory] = useState("")
   const [amount, setAmount] = useState("")
+  const [foreignAmount, setForeignAmount] = useState("")
   const [description, setDescription] = useState("")
   const [selectedParticipants, setSelectedParticipants] = useState<number[]>([])
   const [payerId, setPayerId] = useState<number | null>(null)
   const [splitMethod, setSplitMethod] = useState<"equal" | "custom">("equal")
   const [customAmounts, setCustomAmounts] = useState<Record<number, string>>({})
+
+  const hasForeign = hasForeignCurrency(currencySettings)
+
+  // 외화 입력 시 원화 자동 계산
+  const handleForeignAmountChange = (value: string) => {
+    setForeignAmount(value)
+    if (value && currencySettings?.exchangeRate) {
+      const krwAmount = convertToKRW(Number(value), currencySettings.exchangeRate)
+      setAmount(String(krwAmount))
+    } else if (!value) {
+      setAmount("")
+    }
+  }
+
+  // 원화 입력 시 외화 자동 계산
+  const handleAmountChange = (value: string) => {
+    setAmount(value)
+    if (hasForeign && value && currencySettings?.exchangeRate) {
+      const foreignAmt = convertFromKRW(Number(value), currencySettings.exchangeRate)
+      setForeignAmount(String(foreignAmt))
+    } else if (!value) {
+      setForeignAmount("")
+    }
+  }
 
   // 여행 참여자 목록 불러오기
   useEffect(() => {
@@ -119,6 +147,7 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
           date,
           category,
           amount: Number.parseFloat(amount),
+          foreignCurrencyAmount: foreignAmount ? Number.parseFloat(foreignAmount) : undefined,
           description,
         })
       } else {
@@ -152,6 +181,7 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
           date,
           category,
           amount: Number.parseFloat(amount),
+          foreignCurrencyAmount: foreignAmount ? Number.parseFloat(foreignAmount) : undefined,
           description,
           splitMethod: splitMethod === "equal" ? "EQUAL" : "CUSTOM",
           participants,
@@ -178,6 +208,7 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
     setDate(new Date().toISOString().split("T")[0])
     setCategory("")
     setAmount("")
+    setForeignAmount("")
     setDescription("")
     setSplitMethod("equal")
     setCustomAmounts({})
@@ -258,11 +289,39 @@ export default function ExpenseRegistrationModal({ open, onOpenChange, onSuccess
             </Select>
           </div>
 
-          {/* Amount */}
+          {/* Foreign Amount (if enabled) */}
+          {hasForeign && (
+            <div className="space-y-2">
+              <Label>금액 ({currencySettings?.currencySymbol})</Label>
+              <Input
+                type="number"
+                placeholder={`${currencySettings?.currencySymbol} 금액 입력`}
+                value={foreignAmount}
+                onChange={(e) => handleForeignAmountChange(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">
+                환율: 1{currencySettings?.currencySymbol} = {currencySettings?.exchangeRate}원
+              </p>
+            </div>
+          )}
+
+          {/* Amount (KRW) */}
           <div className="space-y-2">
-            <Label>금액</Label>
-            <Input type="number" placeholder="금액 입력" value={amount} onChange={(e) => setAmount(e.target.value)} />
-            {amount && <p className="text-sm text-gray-600">{Number.parseFloat(amount).toLocaleString()}원</p>}
+            <Label>금액 (원화)</Label>
+            <Input
+              type="number"
+              placeholder="금액 입력"
+              value={amount}
+              onChange={(e) => handleAmountChange(e.target.value)}
+            />
+            {amount && (
+              <p className="text-sm text-gray-600">
+                {Number.parseFloat(amount).toLocaleString()}원
+                {hasForeign && foreignAmount && (
+                  <span className="text-gray-500"> ({currencySettings?.currencySymbol}{Number.parseFloat(foreignAmount).toLocaleString()})</span>
+                )}
+              </p>
+            )}
           </div>
 
           {/* Description */}

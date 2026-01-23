@@ -9,14 +9,16 @@ import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import ExpenseRegistrationModal from "./ExpenseRegistrationModal"
 import ExpenseDetailModal from "./ExpenseDetailModal"
-import type { IndividualExpense } from "@/lib/types"
+import type { IndividualExpense, CurrencySettings } from "@/lib/types"
 import { useParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import {
   getAllIndividualExpenses,
   getPersonalExpenses,
   getSharedExpenses,
+  getCurrencySettings,
 } from "@/lib/api"
+import { hasForeignCurrency } from "@/lib/currency"
 
 export default function IndividualExpenseTab() {
   const params = useParams()
@@ -30,6 +32,7 @@ export default function IndividualExpenseTab() {
 
   const [expenses, setExpenses] = useState<IndividualExpense[]>([])
   const [loading, setLoading] = useState(true)
+  const [currencySettings, setCurrencySettings] = useState<CurrencySettings | null>(null)
 
   // 데이터 새로고침
   const fetchData = async () => {
@@ -45,6 +48,10 @@ export default function IndividualExpenseTab() {
       } else {
         expensesData = await getSharedExpenses(tripId)
       }
+
+      // 외화 설정 조회
+      const currencyData = await getCurrencySettings(tripId).catch(() => null)
+      if (currencyData) setCurrencySettings(currencyData)
 
       setExpenses(expensesData)
     } catch (error) {
@@ -188,6 +195,11 @@ export default function IndividualExpenseTab() {
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-bold">{expense.totalAmount.toLocaleString()}원</p>
+                      {expense.foreignCurrencyAmount && currencySettings && (
+                        <p className="text-sm text-gray-500">
+                          ({currencySettings.currencySymbol}{expense.foreignCurrencyAmount.toLocaleString()})
+                        </p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -201,6 +213,7 @@ export default function IndividualExpenseTab() {
         open={showRegistrationModal}
         onOpenChange={setShowRegistrationModal}
         onSuccess={fetchData}
+        currencySettings={currencySettings}
       />
       {selectedExpense && (
         <ExpenseDetailModal open={showDetailModal} onOpenChange={setShowDetailModal} expense={selectedExpense} />

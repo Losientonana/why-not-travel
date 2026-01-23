@@ -9,9 +9,10 @@ import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import SharedFundDepositModal from "./SharedFundDepositModal"
 import SharedFundExpenseModal from "./SharedFundExpenseModal"
-import { getSharedFund, getSharedFundTransactions } from "@/lib/api"
-import { SharedFund, SharedFundTransaction } from "@/lib/types"
+import { getSharedFund, getSharedFundTransactions, getCurrencySettings } from "@/lib/api"
+import { SharedFund, SharedFundTransaction, CurrencySettings } from "@/lib/types"
 import { useParams } from "next/navigation"
+import { formatDualCurrency, hasForeignCurrency, convertFromKRW } from "@/lib/currency"
 
 export default function SharedFundTab() {
     const params = useParams()
@@ -23,15 +24,18 @@ export default function SharedFundTab() {
     const [transactions, setTransactions] = useState<SharedFundTransaction[]>([])
     const [loading, setLoading] = useState(true)
     const [participantCount, setParticipantCount] = useState(1) // TODO: 실제 참여자 수 API에서 가져오기
+    const [currencySettings, setCurrencySettings] = useState<CurrencySettings | null>(null)
 
     const refreshData = async () => {
         try {
-            const [fundData, transactionsData] = await Promise.all([
+            const [fundData, transactionsData, currencyData] = await Promise.all([
                 getSharedFund(tripId),
-                getSharedFundTransactions(tripId)
+                getSharedFundTransactions(tripId),
+                getCurrencySettings(tripId).catch(() => null)
             ])
             setSharedFund(fundData)
             setTransactions(transactionsData)
+            if (currencyData) setCurrencySettings(currencyData)
         } catch (error) {
             console.error("공동 경비 데이터 새로고침 실패:", error)
         }
@@ -93,6 +97,11 @@ export default function SharedFundTab() {
                         <div>
                             <p className="text-blue-100 text-sm mb-1">현재 공동 경비 잔액</p>
                             <p className="text-3xl font-bold">{currentBalance.toLocaleString()}원</p>
+                            {hasForeignCurrency(currencySettings) && (
+                                <p className="text-lg text-blue-100 mt-1">
+                                    ≈ {currencySettings?.currencySymbol}{convertFromKRW(currentBalance, currencySettings?.exchangeRate || 1).toLocaleString()}
+                                </p>
+                            )}
                         </div>
                         <Wallet className="w-12 h-12 text-blue-200" />
                     </div>
@@ -183,6 +192,11 @@ export default function SharedFundTab() {
                                             {transaction.type === "DEPOSIT" ? "+" : "-"}
                                             {transaction.amount.toLocaleString()}원
                                         </p>
+                                        {transaction.foreignCurrencyAmount && currencySettings && (
+                                            <p className="text-sm text-gray-500">
+                                                ({currencySettings.currencySymbol}{transaction.foreignCurrencyAmount.toLocaleString()})
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>
@@ -197,6 +211,7 @@ export default function SharedFundTab() {
                 onOpenChange={setShowDepositModal}
                 participantCount={participantCount}
                 onSuccess={refreshData}
+                currencySettings={currencySettings}
             />
 
             <SharedFundExpenseModal
@@ -204,6 +219,7 @@ export default function SharedFundTab() {
                 onOpenChange={setShowExpenseModal}
                 currentBalance={currentBalance}
                 onSuccess={refreshData}
+                currencySettings={currencySettings}
             />
         </div>
     )
