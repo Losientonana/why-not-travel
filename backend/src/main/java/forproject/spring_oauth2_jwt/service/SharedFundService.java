@@ -142,10 +142,17 @@ public class SharedFundService {
                 ? request.getDescription()
                 : String.format("공동 경비 입금 (1인당 %,d원)", request.getAmountPerPerson());
 
+        // 외화 총액 계산 (1인당 외화 * 참여자 수)
+        Long totalForeignAmount = null;
+        if (request.getForeignCurrencyAmountPerPerson() != null && request.getForeignCurrencyAmountPerPerson() > 0) {
+            totalForeignAmount = request.getForeignCurrencyAmountPerPerson() * participantCount;
+        }
+
         SharedFundTrade trade = SharedFundTrade.builder()
                 .sharedFundId(sharedFund.getId())
                 .tradeType(TradeType.DEPOSIT)
                 .amount(totalAmount)
+                .foreignCurrencyAmount(totalForeignAmount)
                 .balanceAfter(balanceAfter)
                 .description(description)
                 .createdBy(userId)
@@ -196,6 +203,7 @@ public class SharedFundService {
                 .sharedFundId(sharedFund.getId())
                 .tradeType(TradeType.EXPENSE)
                 .amount(request.getAmount())
+                .foreignCurrencyAmount(request.getForeignCurrencyAmount())
                 .balanceAfter(balanceAfter)
                 .description(request.getDescription())
                 .category(request.getCategory())

@@ -6,6 +6,7 @@ import SharedFundTab from "./SharedFundTab"
 import IndividualExpenseTab from "./IndividualExpenseTab"
 import SettlementHistoryTab from "./SettlementHistoryTab"
 import StatisticsTab from "./StatisticsTab"
+import CurrencySettingsCard from "./CurrencySettingsCard"
 
 interface ExpenseTabsProps {
   tripId: number
@@ -19,6 +20,9 @@ export default function ExpenseTabs({ tripId }: ExpenseTabsProps) {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">경비 관리</h2>
       </div>
+
+      {/* 외화 설정 카드 */}
+      <CurrencySettingsCard />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">

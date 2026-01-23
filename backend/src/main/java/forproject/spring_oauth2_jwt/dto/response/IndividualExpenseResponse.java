@@ -20,6 +20,7 @@ public class IndividualExpenseResponse {
     private Long tripId;
     private String expenseType;
     private Long totalAmount;
+    private Long foreignCurrencyAmount;  // 외화 금액 (예: JPY)
     private String description;
     private String category;
     private LocalDate date;
@@ -80,6 +81,7 @@ public class IndividualExpenseResponse {
                 .tripId(expense.getTripId())
                 .expenseType(expense.getExpenseType().name())
                 .totalAmount(expense.getTotalAmount())
+                .foreignCurrencyAmount(expense.getForeignCurrencyAmount())
                 .description(expense.getDescription())
                 .category(expense.getCategory())
                 .date(expense.getExpenseDate())

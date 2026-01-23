@@ -26,6 +26,12 @@ public class SharedFundExpenseRequest {
     @Min(value = 1, message = "금액은 1원 이상이어야 합니다.")
     private Long amount;
 
+    /**
+     * 외화 금액 (선택사항, 예: JPY)
+     */
+    @Min(value = 0, message = "외화 금액은 0 이상이어야 합니다.")
+    private Long foreignCurrencyAmount;
+
     @NotBlank(message = "설명은 필수입니다.")
     @Size(max = 500, message = "설명은 500자 이하여야 합니다.")
     private String description;

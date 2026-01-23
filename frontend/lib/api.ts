@@ -523,6 +523,7 @@ export const createPersonalExpense = async (tripId: number, data: {
   date: string;
   category: string;
   amount: number;
+  foreignCurrencyAmount?: number;
   description: string;
 }) => {
   const response = await api.post(`/api/trips/${tripId}/individual-expenses/personal`, data);
@@ -534,6 +535,7 @@ export const createSharedExpense = async (tripId: number, data: {
   date: string;
   category: string;
   amount: number;
+  foreignCurrencyAmount?: number;
   description: string;
   splitMethod: "EQUAL" | "CUSTOM";
   participants: Array<{
@@ -631,7 +633,7 @@ export const getTripOverview = async (tripId: number) => {
 // 예약(Reservation) 관련 API
 // ============================================
 
-import type { Reservation, ReservationSummary } from './types';
+import type { Reservation, ReservationSummary, CurrencySettings, CurrencySettingsRequest } from './types';
 
 // 예약 목록 조회
 export const getReservations = async (tripId: number): Promise<Reservation[]> => {
@@ -665,5 +667,24 @@ export const deleteReservation = async (tripId: number, reservationId: number): 
 // 예약 요약 조회
 export const getReservationSummary = async (tripId: number): Promise<ReservationSummary> => {
   const response = await api.get(`/api/trips/${tripId}/reservations/summary`);
+  return response.data.data;
+};
+
+// ============================================
+// 외화 설정 API
+// ============================================
+
+// 외화 설정 조회
+export const getCurrencySettings = async (tripId: number): Promise<CurrencySettings> => {
+  const response = await api.get(`/api/trips/${tripId}/currency`);
+  return response.data.data;
+};
+
+// 외화 설정 저장
+export const updateCurrencySettings = async (
+  tripId: number,
+  request: CurrencySettingsRequest
+): Promise<CurrencySettings> => {
+  const response = await api.put(`/api/trips/${tripId}/currency`, request);
   return response.data.data;
 };

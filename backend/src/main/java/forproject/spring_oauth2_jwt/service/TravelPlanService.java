@@ -1063,4 +1063,72 @@ public class TravelPlanService {
         return response;
     }
 
+    /**
+     * 외화 설정 조회
+     */
+    @Transactional(readOnly = true)
+    public CurrencySettingsResponse getCurrencySettings(Long tripId, Long userId) {
+        log.info("외화 설정 조회 - tripId: {}, userId: {}", tripId, userId);
+
+        // 권한 검증
+        participantRepository.findByTripIdAndUserId(tripId, userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 조회할 수 있습니다."));
+
+        TravelPlanEntity trip = travelPlanRepository.findById(tripId)
+                .orElseThrow(() -> new RuntimeException("여행을 찾을 수 없습니다."));
+
+        return CurrencySettingsResponse.builder()
+                .tripId(tripId)
+                .foreignCurrency(trip.getForeignCurrency())
+                .exchangeRate(trip.getExchangeRate())
+                .currencySymbol(getCurrencySymbol(trip.getForeignCurrency()))
+                .build();
+    }
+
+    /**
+     * 외화 설정 저장
+     */
+    @Transactional
+    public CurrencySettingsResponse updateCurrencySettings(Long tripId, Long userId, CurrencySettingsRequest request) {
+        log.info("외화 설정 저장 - tripId: {}, userId: {}, currency: {}, rate: {}",
+                tripId, userId, request.getForeignCurrency(), request.getExchangeRate());
+
+        // 권한 검증
+        participantRepository.findByTripIdAndUserId(tripId, userId)
+                .orElseThrow(() -> new RuntimeException("여행 참여자만 수정할 수 있습니다."));
+
+        TravelPlanEntity trip = travelPlanRepository.findById(tripId)
+                .orElseThrow(() -> new RuntimeException("여행을 찾을 수 없습니다."));
+
+        trip.setForeignCurrency(request.getForeignCurrency());
+        trip.setExchangeRate(request.getExchangeRate());
+        travelPlanRepository.save(trip);
+
+        log.info("외화 설정 저장 완료 - tripId: {}", tripId);
+
+        return CurrencySettingsResponse.builder()
+                .tripId(tripId)
+                .foreignCurrency(trip.getForeignCurrency())
+                .exchangeRate(trip.getExchangeRate())
+                .currencySymbol(getCurrencySymbol(trip.getForeignCurrency()))
+                .build();
+    }
+
+    /**
+     * 통화 코드에 따른 심볼 반환
+     */
+    private String getCurrencySymbol(String currencyCode) {
+        if (currencyCode == null) return "₩";
+        return switch (currencyCode.toUpperCase()) {
+            case "JPY" -> "¥";
+            case "USD" -> "$";
+            case "EUR" -> "€";
+            case "CNY" -> "¥";
+            case "GBP" -> "£";
+            case "THB" -> "฿";
+            case "VND" -> "₫";
+            default -> currencyCode;
+        };
+    }
+
 }

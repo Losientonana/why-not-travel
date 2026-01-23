@@ -11,15 +11,18 @@ import { useToast } from "@/hooks/use-toast"
 import { AlertCircle } from "lucide-react"
 import { expenseSharedFund } from "@/lib/api"
 import { useParams } from "next/navigation"
+import { CurrencySettings } from "@/lib/types"
+import { hasForeignCurrency, convertToKRW, convertFromKRW } from "@/lib/currency"
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   currentBalance?: number
   onSuccess?: () => void
+  currencySettings?: CurrencySettings | null
 }
 
-export default function SharedFundExpenseModal({ open, onOpenChange, currentBalance = 0, onSuccess }: Props) {
+export default function SharedFundExpenseModal({ open, onOpenChange, currentBalance = 0, onSuccess, currencySettings }: Props) {
   const { toast } = useToast()
   const params = useParams()
   const tripId = Number(params.id)
@@ -27,8 +30,33 @@ export default function SharedFundExpenseModal({ open, onOpenChange, currentBala
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [category, setCategory] = useState("")
   const [amount, setAmount] = useState("")
+  const [foreignAmount, setForeignAmount] = useState("")
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
+
+  const hasForeign = hasForeignCurrency(currencySettings)
+
+  // 외화 입력 시 원화 자동 계산
+  const handleForeignAmountChange = (value: string) => {
+    setForeignAmount(value)
+    if (value && currencySettings?.exchangeRate) {
+      const krwAmount = convertToKRW(Number(value), currencySettings.exchangeRate)
+      setAmount(String(krwAmount))
+    } else if (!value) {
+      setAmount("")
+    }
+  }
+
+  // 원화 입력 시 외화 자동 계산
+  const handleAmountChange = (value: string) => {
+    setAmount(value)
+    if (hasForeign && value && currencySettings?.exchangeRate) {
+      const foreignAmt = convertFromKRW(Number(value), currencySettings.exchangeRate)
+      setForeignAmount(String(foreignAmt))
+    } else if (!value) {
+      setForeignAmount("")
+    }
+  }
 
   const estimatedBalance = amount ? currentBalance - Number.parseFloat(amount) : currentBalance
   const isInsufficientBalance = estimatedBalance < 0
@@ -57,6 +85,7 @@ export default function SharedFundExpenseModal({ open, onOpenChange, currentBala
         date,
         category,
         amount: Number.parseFloat(amount),
+        foreignCurrencyAmount: foreignAmount ? Number.parseFloat(foreignAmount) : undefined,
         description
       })
 
@@ -84,6 +113,7 @@ export default function SharedFundExpenseModal({ open, onOpenChange, currentBala
     setDate(new Date().toISOString().split("T")[0])
     setCategory("")
     setAmount("")
+    setForeignAmount("")
     setDescription("")
   }
 
@@ -124,9 +154,30 @@ export default function SharedFundExpenseModal({ open, onOpenChange, currentBala
             </Select>
           </div>
 
+          {/* 외화 입력 (설정된 경우) */}
+          {hasForeign && (
+            <div className="space-y-2">
+              <Label>금액 ({currencySettings?.currencySymbol})</Label>
+              <Input
+                type="number"
+                placeholder={`${currencySettings?.currencySymbol} 금액 입력`}
+                value={foreignAmount}
+                onChange={(e) => handleForeignAmountChange(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">
+                환율: 1{currencySettings?.currencySymbol} = {currencySettings?.exchangeRate}원
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label>금액</Label>
-            <Input type="number" placeholder="금액 입력" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <Label>금액 (원화)</Label>
+            <Input
+              type="number"
+              placeholder="금액 입력"
+              value={amount}
+              onChange={(e) => handleAmountChange(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">

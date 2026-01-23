@@ -39,10 +39,17 @@ public class SharedFundTrade {
     private TradeType tradeType;
 
     /**
-     * 거래 금액
+     * 거래 금액 (원화)
      */
     @Column(nullable = false)
     private Long amount;
+
+    /**
+     * 외화 금액 (null이면 원화만 사용)
+     * 예: JPY 10000
+     */
+    @Column(name = "foreign_currency_amount")
+    private Long foreignCurrencyAmount;
 
     /**
      * 거래 전 잔액
