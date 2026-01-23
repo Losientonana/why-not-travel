@@ -42,10 +42,17 @@ public class IndividualExpense {
 
 
     /**
-     * 총 금액
+     * 총 금액 (원화)
      */
     @Column(name = "total_amount", nullable = false)
     private Long totalAmount;
+
+    /**
+     * 외화 금액 (null이면 원화만 사용)
+     * 예: JPY 10000
+     */
+    @Column(name = "foreign_currency_amount")
+    private Long foreignCurrencyAmount;
 
     /**
      * 지출 설명 (프론트에서 최대 200자 제한)

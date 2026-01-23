@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.quartz.SimpleTrigger;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -34,5 +35,9 @@ public class TravelPlanResponse {
     private String status;
     private String imageUrl;
     private String participants;
+
+    // 외화 설정
+    private String foreignCurrency;  // "JPY", "USD" 등 (null이면 KRW만)
+    private BigDecimal exchangeRate; // 1 외화 = X 원 (예: 9.3 = 1엔당 9.3원)
 
 }

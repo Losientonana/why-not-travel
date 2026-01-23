@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -64,6 +65,14 @@ public class TravelPlanEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = true, length = 20)
     private BudgetLevel budgetLevel;
+
+    // 외화 설정 (null이면 KRW만 사용)
+    @Column(nullable = true, length = 10)
+    private String foreignCurrency; // "JPY", "USD" 등
+
+    // 환율 (1 외화 = X 원, 예: JPY면 9.3 = 1엔당 9.3원)
+    @Column(nullable = true, precision = 10, scale = 4)
+    private BigDecimal exchangeRate;
 
 }
 

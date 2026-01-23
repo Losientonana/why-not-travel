@@ -15,11 +15,17 @@ import lombok.*;
 @AllArgsConstructor
 public class SharedFundDepositRequest {
     /**
-     * 1인당 입금액
+     * 1인당 입금액 (원화)
      */
     @NotNull(message = "1인당 입금액은 필수입니다.")
     @Min(value = 0, message = "1인당 입금액은 0원 이상이어야 합니다.")
     private Long amountPerPerson;
+
+    /**
+     * 1인당 외화 입금액 (선택사항, 예: JPY)
+     */
+    @Min(value = 0, message = "외화 금액은 0 이상이어야 합니다.")
+    private Long foreignCurrencyAmountPerPerson;
 
     /**
      * 입금 설명 (메모)
