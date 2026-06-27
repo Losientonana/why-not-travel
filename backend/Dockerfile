@@ -42,7 +42,7 @@ RUN apk upgrade --no-cache && \
 WORKDIR /app
 
 # 빌드 스테이지에서 JAR 파일만 복사 (소스 코드 미포함)
-COPY --from=build /app/build/libs/*.jar app.jar
+COPY --from=build /app/build/libs/*-SNAPSHOT.jar app.jar
 
 # 비root 유저 생성 및 권한 설정
 RUN addgroup -S spring && \
