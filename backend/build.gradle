@@ -88,6 +88,10 @@ processResources {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
+jar {
+    enabled = false
+}
+
 sourceSets {
     main {
         resources {
