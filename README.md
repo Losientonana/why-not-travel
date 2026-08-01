@@ -1,3 +1,6 @@
+
+<img width="1972" height="798" alt="TravelMateLogo" src="https://github.com/user-attachments/assets/2dc1633c-2aab-4060-b43e-d7de064b2c27" />
+
 # ✈️ TravelMate
 
 > 여행의 모든 순간을 함께 — 일정·예약·경비·정산을 한 곳에서 관리하는 협업 여행 플래너
@@ -48,7 +51,8 @@
 
 ## 🏗️ 시스템 아키텍처
 
-<!-- 아키텍처 이미지 삽입 예정 -->
+<img width="1662" height="946" alt="시스템아키텍처" src="https://github.com/user-attachments/assets/44a7ff74-be67-426c-a37e-c15d59724ddf" />
+
 
 ---
 
@@ -80,7 +84,7 @@
 
 ## 🖼️ 실사용 화면
 
-<!-- 스크린샷 추가 예정 -->
+
 
 ---
 
@@ -116,7 +120,8 @@ Optional<SharedFund> findByTripIdWithLock(@Param("tripId") Long tripId);
 
 ## 🗂️ ERD
 
-<!-- ERD 이미지 삽입 예정 -->
+<img width="6481" height="2082" alt="ERD" src="https://github.com/user-attachments/assets/653a673c-2a65-4631-92a1-cdea8bf4dfbe" />
+
 
 ---
 
@@ -133,7 +138,7 @@ my-fullstack-project/
 │   │       ├── entity/
 │   │       ├── jwt/
 │   │       ├── oauth2/
-│   │       ├── aspect/               # AOP 멤버 인가
+│   │       ├── aspect/               
 │   │       └── config/
 │   └── Dockerfile
 ├── frontend/                         # Next.js 15
@@ -144,7 +149,7 @@ my-fullstack-project/
 │   │   ├── invitations/
 │   │   └── ...
 │   └── Dockerfile
-├── nginx/                            # Nginx 설정
+├── nginx/                            
 ├── docker-compose.prod.yml
 └── docker-compose.local.yml
 ```
