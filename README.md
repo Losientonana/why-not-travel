@@ -63,6 +63,10 @@
 
 ---
 
+## 🗂️ ERD
+
+<img width="6481" height="2082" alt="ERD" src="https://github.com/user-attachments/assets/653a673c-2a65-4631-92a1-cdea8bf4dfbe" />
+
 
 ---
 
@@ -70,6 +74,32 @@
 
 
 https://www.notion.so/TravelMate-3af72f11e8e880be8b39eb39bd6408b6?source=copy_link
+
+---
+
+## 📋 주요 기능
+
+### 🔐 인증 / 인가
+- 이메일 인증 기반 회원가입
+- Google · Naver 소셜 로그인 (OAuth2)
+- JWT 이중 토큰 + RTR(Refresh Token Rotation) 방식
+- AOP 커스텀 어노테이션 `@RequiresTripParticipant` 로 여행 멤버 선언적 인가
+
+### 🗺️ 여행 관리
+- 여행 플랜 생성·수정·삭제, 공개/비공개(구현 대기)
+- 이메일 초대 기반 동행자 관리 (OWNER / MEMBER 권한)
+- 일차별 일정·활동 등록 (이동·식사·관광·숙박)
+- 항공·숙박·교통·식당·관광지 예약 통합 관리
+
+### 💰 경비 & 정산
+- 개인(PERSONAL) / 공동(PARTIAL_SHARED) 지출 구분, 균등·개별 분담
+- 공동 경비 계좌 — 1인당 입금액 × 참여자 수 자동 계산, 비관적 락으로 잔액 정합성 보장
+- Greedy 알고리즘으로 N명 지출을 최대 N-1건 정산으로 최적화
+- 정산 상태 변경(신청→승인/거절) 시 SSE 실시간 알림
+
+### 🔔 실시간 알림
+- SSE 기반 정산 요청·승인·거절·초대 알림
+- 미접속 사용자 알림 DB 저장 → 로그인 시 일괄 전송
 ---
 
 ## 🔥 트러블 슈팅
@@ -99,68 +129,3 @@ JPA OSIV 기본값(`open-in-view=true`)으로 SSE 연결 30분 동안 DB 커넥�
 @Query("SELECT sf FROM SharedFund sf WHERE sf.tripId = :tripId")
 Optional<SharedFund> findByTripIdWithLock(@Param("tripId") Long tripId);
 ```
-
----
-
-## 🗂️ ERD
-
-<img width="6481" height="2082" alt="ERD" src="https://github.com/user-attachments/assets/653a673c-2a65-4631-92a1-cdea8bf4dfbe" />
-
-
----
-
-## 📁 프로젝트 구조
-
-```
-my-fullstack-project/
-├── backend/                          # Spring Boot
-│   ├── src/main/java/forproject/
-│   │   └── spring_oauth2_jwt/
-│   │       ├── controller/
-│   │       ├── service/
-│   │       ├── repository/
-│   │       ├── entity/
-│   │       ├── jwt/
-│   │       ├── oauth2/
-│   │       ├── aspect/               
-│   │       └── config/
-│   └── Dockerfile
-├── frontend/                         # Next.js 15
-│   ├── app/
-│   │   ├── dashboard/
-│   │   ├── trip/
-│   │   ├── explore/
-│   │   ├── invitations/
-│   │   └── ...
-│   └── Dockerfile
-├── nginx/                            
-├── docker-compose.prod.yml
-└── docker-compose.local.yml
-```
-
----
-
-## 📋 주요 기능
-
-### 🔐 인증 / 인가
-- 이메일 인증 기반 회원가입
-- Google · Naver 소셜 로그인 (OAuth2)
-- JWT 이중 토큰 + RTR(Refresh Token Rotation) 방식
-- AOP 커스텀 어노테이션 `@RequiresTripParticipant` 로 여행 멤버 선언적 인가
-
-### 🗺️ 여행 관리
-- 여행 플랜 생성·수정·삭제, 공개/비공개(구현 대기)
-- 이메일 초대 기반 동행자 관리 (OWNER / MEMBER 권한)
-- 일차별 일정·활동 등록 (이동·식사·관광·숙박)
-- 항공·숙박·교통·식당·관광지 예약 통합 관리
-
-### 💰 경비 & 정산
-- 개인(PERSONAL) / 공동(PARTIAL_SHARED) 지출 구분, 균등·개별 분담
-- 공동 경비 계좌 — 1인당 입금액 × 참여자 수 자동 계산, 비관적 락으로 잔액 정합성 보장
-- Greedy 알고리즘으로 N명 지출을 최대 N-1건 정산으로 최적화
-- 정산 상태 변경(신청→승인/거절) 시 SSE 실시간 알림
-
-### 🔔 실시간 알림
-- SSE 기반 정산 요청·승인·거절·초대 알림
-- 미접속 사용자 알림 DB 저장 → 로그인 시 일괄 전송
----
