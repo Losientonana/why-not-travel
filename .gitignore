@@ -8,8 +8,10 @@
 backend/.env
 frontend/.env
 **/.env
-!.env.example
-.env.example
+.env.home
+.env.prod
+!.env.home.example
+http-client.private.env.json
 .docker-compose.yml
 deploy-local.sh
 

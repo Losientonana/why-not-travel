@@ -1,4 +1,4 @@
-name: Deploy to AWS EC2
+name: Deploy Backend to Home Server
 
 on:
   push:
@@ -6,14 +6,12 @@ on:
       - main
     paths:
       - 'backend/**'
+      - 'docker-compose.home.yml'
+      - 'nginx/**'
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: backend
+  deploy:
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
@@ -25,7 +23,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # ✅ Gradle 캐시 적용 (빌드 체감속도 가장 큼)
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -35,41 +32,26 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
           restore-keys: gradle-${{ runner.os }}
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
       - name: Build with Gradle
-        run: ./gradlew build -x test
+        working-directory: backend
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build -x test
 
-      # ✅ Docker buildx (캐시 가능)
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Deploy with Docker Compose
+        run: |
+          docker compose -f docker-compose.home.yml build backend-blue
+          docker compose -f docker-compose.home.yml up -d --no-deps blue
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # ✅ Docker 레이어 캐시 적용된 빌드 & 푸시
-      - name: Build and push Docker image (with cache)
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: edcqazs123/travel_live_server:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # ✅ EC2에서는 기존 스크립트만 실행
-      - name: Deploy to EC2 (run deploy.sh)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/travel
-            chmod +x deploy.sh
-            ./deploy-ec2.sh
-
+          # 헬스체크 대기 (최대 60초)
+          echo "Waiting for backend to be healthy..."
+          for i in $(seq 1 12); do
+            if curl -sf http://localhost:8080/hc > /dev/null 2>&1; then
+              echo "Backend is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i/12 - waiting 5s..."
+            sleep 5
+          done
+          echo "Backend health check failed!"
+          exit 1
