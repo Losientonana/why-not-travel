@@ -53,8 +53,8 @@ RUN addgroup -S spring && \
 USER spring:spring
 
 # 헬스체크 설정 (AWS ECS와 호환)
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/hc || exit 1
 
 # 포트 노출 (문서화 목적)
 EXPOSE 8080
