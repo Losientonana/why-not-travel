@@ -1,5 +1,3 @@
-version: '3.8'
-
 # ========================================
 # 홈서버 환경 (백엔드 전용)
 # 프론트엔드는 Vercel에서 운영
@@ -15,7 +13,7 @@ volumes:
     driver: local
   redis-data:
     driver: local
-  minio-data:
+  upload-data:
     driver: local
 
 services:
@@ -96,34 +94,6 @@ services:
       retries: 5
 
   # ======================================
-  # MinIO (S3 호환 오브젝트 스토리지)
-  # ======================================
-  minio:
-    image: minio/minio:latest
-    container_name: travel-minio
-    restart: always
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
-    volumes:
-      - minio-data:/data
-    networks:
-      - travel-network
-    command: server /data --console-address ":9001"
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ======================================
   # Spring Boot - BLUE (기본 활성)
   # ======================================
   blue:
@@ -136,12 +106,12 @@ services:
       - "8080"
     env_file:
       - .env.home
+    volumes:
+      - upload-data:/app/uploads
     depends_on:
       mysql-db:
         condition: service_healthy
       redis-cache:
-        condition: service_healthy
-      minio:
         condition: service_healthy
     networks:
       - travel-network
@@ -165,12 +135,12 @@ services:
       - "8080"
     env_file:
       - .env.home
+    volumes:
+      - upload-data:/app/uploads
     depends_on:
       mysql-db:
         condition: service_healthy
       redis-cache:
-        condition: service_healthy
-      minio:
         condition: service_healthy
     networks:
       - travel-network

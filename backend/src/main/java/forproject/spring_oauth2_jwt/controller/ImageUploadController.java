@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @RestController
 @RequestMapping("/api/upload")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "aws.s3.enabled", havingValue = "true")
 public class ImageUploadController {
 
     private final ImageUploadService imageUploadService;

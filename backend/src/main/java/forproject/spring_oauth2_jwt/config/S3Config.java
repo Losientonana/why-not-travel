@@ -9,6 +9,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "aws.s3.enabled", havingValue = "true")
 public class S3Config {
 
     @Value("${aws.s3.access-key}")

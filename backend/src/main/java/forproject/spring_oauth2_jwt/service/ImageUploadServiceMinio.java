@@ -16,6 +16,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "minio.enabled", havingValue = "true")
 public class ImageUploadServiceMinio {
 
     private final MinioClient minioClient;

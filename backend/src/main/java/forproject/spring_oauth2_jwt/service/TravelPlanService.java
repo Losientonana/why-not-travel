@@ -40,7 +40,8 @@ public class TravelPlanService {
     private final TravelExpenseRepository expenseRepository;
     private final TravelParticipantRepository participantRepository;
     private final TravelItineraryRepository travelItineraryRepository;
-    private final ImageUploadService imageUploadService;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ImageUploadService imageUploadService;
     private final PhotoAlbumRepository photoAlbumRepository;
     private final TravelInvitationRepository travelInvitationRepository;
     private final TravelInvitationService travelInvitationService;
